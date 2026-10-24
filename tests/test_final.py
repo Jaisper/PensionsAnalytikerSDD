@@ -5,7 +5,7 @@ import os, sys; sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspa
 from engine import generer_udbetalingstabel, SkatParametre
 import requests
 
-BASE = "http://localhost:8000"
+BASE = f"http://localhost:{os.environ.get('PORT', '8001')}"
 PASS, FAIL = [], []
 
 def check(label, ok, detail=""):

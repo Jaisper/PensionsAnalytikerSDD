@@ -3,6 +3,8 @@ echo.
 echo  Pensionsraadgiver starter...
 echo.
 
+if "%PORT%"=="" set PORT=8001
+
 if "%ANTHROPIC_API_KEY%"=="" (
     echo  FEJL: ANTHROPIC_API_KEY er ikke sat!
     echo.
@@ -17,6 +19,6 @@ if "%ANTHROPIC_API_KEY%"=="" (
 )
 
 echo  API-noegle fundet. Starter server...
-echo  Aaben http://127.0.0.1:8000 i din browser
+echo  Aaben http://127.0.0.1:%PORT% i din browser
 echo.
-py -m uvicorn app:app --host 127.0.0.1 --port 8000 --reload
+py -m uvicorn app:app --host 127.0.0.1 --port %PORT% --reload

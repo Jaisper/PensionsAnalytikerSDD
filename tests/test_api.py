@@ -4,7 +4,7 @@ Integration test: aldersopsparing flytning => buffer ændres korrekt i API-svar
 import os, sys, requests, json
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-BASE = "http://localhost:8000"
+BASE = f"http://localhost:{os.environ.get('PORT', '8001')}"
 
 # 1. Opret session via chat
 # Brug /api/session og injicer direkte via parametre — ingen chat nødvendig

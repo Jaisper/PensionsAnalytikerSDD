@@ -109,7 +109,7 @@ python tests/test_sekventering.py
 for f in tests/test_*.py; do python "$f"; done
 ```
 
-`tests/test_api.py`, `tests/test_deploy.py` og `tests/test_final.py` kræver at appen kører lokalt (`python -m uvicorn app:app`) da de tester rigtige HTTP-endpoints; resten kører uafhængigt af en kørende server.
+`tests/test_api.py`, `tests/test_deploy.py` og `tests/test_final.py` kræver at appen kører lokalt, da de tester rigtige HTTP-endpoints. Start appen med `start.bat`; den bruger port 8001 som standard, så PensionsAnalytikerSDD kan køre samtidigt med PensionsAnalytiker på port 8000. Testene bruger også port 8001 som standard; sæt `PORT`, hvis du vælger en anden port.
 
 Ca. 190 regressionstests dækker bl.a.:
 - **Golden-cases** porteret fra `pension-core` (en TypeScript-prototype) med håndverificerede facit-tal for progressiv skat, pensionstillæg og tillægsprocent (`test_samspil.py`).
@@ -119,4 +119,4 @@ Ca. 190 regressionstests dækker bl.a.:
 - **Buffer/jævn-udjævnings**-logikken der glatter engangsbeløb ud over pensionsperioden (`test_buffer.py`, `test_jaevn.py`).
 - **Regressionstest for hver ny funktion**, inkl. den spredte engangsudbetaling (`test_kapitalrate.py`) og aldersopsparingens indbetalingsloft.
 
-Testene var indtil 2026-09-20 ikke committet til git — de eksisterede kun lokalt og var derfor usynlige for enhver der klonede repoet. De er nu en del af repoet under `tests/`, netop for at gøre beviset for beregningernes korrekthed en del af den offentlige historik, ikke noget der skal tages på tro.
+Testene var indtil 2026-09-20 ikke committet til git — de eksisterede kun lokalt og var derfor usynlige for enhver der klonede repoet. De er nu en del af repoet under `tests/`, netop for at gøre beviset for beregningernes korrekthed en del af versionshistorikken, ikke noget der skal tages på tro.

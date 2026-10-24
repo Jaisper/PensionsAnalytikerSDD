@@ -5,7 +5,7 @@ import os, sys, requests, json
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, REPO_ROOT)
-BASE = "http://localhost:8000"
+BASE = f"http://localhost:{os.environ.get('PORT', '8001')}"
 
 PASS = []
 FAIL = []
