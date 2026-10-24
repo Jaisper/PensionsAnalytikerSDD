@@ -23,7 +23,7 @@ Dokumentet er teknologiuafhængigt. Henvisninger til `legacy/…` er kun sporbar
 | A3 | ⚠️ **Mediecheck behandles som skattefri.** Den er skattepligtig ("1.552 kr. (2026) før skat"). Kræver desuden tilkendt folkepension senest 1. januar. | Lille overvurdering af netto (≈ 1.552 × marginalskat/år). | borger.dk, mediecheck |
 | A4 | ⚠️ **Partnerens indkomst tælles kun med, når partneren selv er folkepensionist.** Reglen: ægtefællens/samleverens øvrige indkomst (private pensioner, kapitalindkomst, offentlige ydelser) indgår altid; AM-bidragspligtig arbejdsindkomst indgår ikke (lempet fra 2023/2025). Er partneren ikke pensionist, ses der bort fra en del af partnerens indkomst (❓ omfang skal verificeres) og aftrapningen er 32 %. | Pensionstillæg kan overvurderes i år, hvor partneren er under fp-alder men har pensionsudbetalinger. | borger.dk, grundbeløb og pensionstillæg; Ældre Sagen; FT-svar BEU spm. 31 (2023-24) |
 | A5 | ⚠️ **Kapital- og aktieindkomst indgår ikke i indtægtsgrundlaget** for pensionstillæg/tillægsprocent. Nettokapitalindkomst og aktieindkomst (udbytte over 5.000 kr.) tæller. Relevant når engangsbeløb placeres som fri formue/buffer. | Pensionstillæg og ældrecheck kan overvurderes for brugere med fri formue. | borger.dk |
-| A6 | ⚠️ **Ældrecheck under 200 kr. udbetales ikke.** Mangler i legacy. | Marginal. | borger.dk, ældrecheck |
+| A6 | ⚠️ **Ældrecheck under 200 kr. udbetales ikke.** Mangler i legacy. | Ingen med 2026-satser: laveste tillægsprocent (1) giver 269 kr. Implementeret for fremtidige satser. | borger.dk, ældrecheck |
 | A7 | 🟡 **Folkepensionsalder 70 for født 1971+ beskrevet som "ikke endeligt vedtaget".** Den blev vedtaget i maj 2025 (L 149). Værdien i legacy er korrekt — kun begrundelsen er forældet. | Ingen beregningsfejl. | Folketinget L 149 (2024-25); lex.dk |
 | A8 | ⚠️ Kildehenvisning for 40 % afgift af kapitalpension angivet som "PBL § 25". Det korrekte er PBL § 30, stk. 1. § 25 handler om ophævelse (60 %). Satsen 40 % er korrekt. | Kun kildesporbarhed. | JV C.A.10.2.5.4.1 |
 | A9 | ⚠️ **Ratepension udbetales som annuitet (flad rate).** Loven: årsraten = ordningens værdi ved årets begyndelse / antal resterende år. Med positivt afkast stiger raten over tid. (Fundet i plan-research 2026-10-24.) | Forkert fordeling over årene: for høj tidligt og for lav sent. Det påvirker skat og modregning i de enkelte år. Ved afkast 0 er metoderne ens. | PBL § 11 A, stk. 2, nr. 1; JV C.A.10.2.2.4.1 |
@@ -83,6 +83,7 @@ nye kerne skal have en test, der fastholder det.
 | Regel | Værdi | Status | Kilde |
 |---|---|---|---|
 | Formel | venteprocent = opsatte måneder / gennemsnitlig restlevetid i måneder ved den alder, opsættelsen ophører; afrundet. Ganges på grundbeløb **og** pensionstillæg. | ✅ | Ældre Sagen; Lovguiden § 90 |
+| Middellevetider 2026 | Officiel tabel: VEJ nr. 10077/2025, tabel 16 (alder 65–80). Reproducerer tabellen nedenfor eksakt | ✅ | Beskæftigelsesministeriet |
 | Tabel fra 67 år (2026) | 1: 5,71 · 2: 11,94 · 3: 18,75 · 4: 26,23 · 5: 34,48 · 6: 43,37 · 7: 53,50 · 8: 64,43 · 9: 76,60 · 10: 90,23 % | ✅ (primærkilde: restlevetidstabel i Udbetaling Danmarks satsvejledning ❓) | Ældre Sagen |
 | Betingelse | ≥ 750 arbejdstimer pr. år i opsættelsesperioden; maks. 10 år; højst 2 perioder | ✅ — legacy tjekker ikke kravet | Ældre Sagen |
 | Udbetalingsformer (optjent fra 1/7-2018) | Livsvarigt tillæg (default) · forhøjet tillæg i 10 år · engangsbeløb for grundbeløb + 10-årigt forhøjet tillæg | 🟡 legacy modellerer kun livsvarigt | Ældre Sagen |
@@ -197,6 +198,8 @@ PDF-import fra PensionsInfo · AI-forklaring/chat · Optimering af udbetalingsr�
 (sekventering) · Fuld husstandsmodel med to profiler · Forsikringsanalyse · UI.
 
 ## Kilder
+
+- **Primærkilde for sociale satser 2026**: [VEJ nr. 10077 af 10/11/2025 — regulering pr. 1.1.2026 af satser på Beskæftigelsesministeriets område](https://www.retsinformation.dk/eli/retsinfo/2025/10077) (tabel 12, 15, 16)
 
 - [skat.dk — bundskat, mellemskat, topskat og toptopskat](https://skat.dk/hjaelp/bundskat-mellemskat-topskat-og-toptopskat)
 - [info.skat.dk — AM-bidrag og pension (B.3)](https://info.skat.dk/data.aspx?oid=79226)

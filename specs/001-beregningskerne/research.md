@@ -87,6 +87,22 @@ og de tekniske valg.
   levetidsbenchmark er ikke fundet i maskinlæsbar form. Strukturen (en valgfri tabel i
   registret) gør det muligt at tilføje den senere uden at ændre koden (SC-006).
 
+### R6b. Middellevetider (opdatering under implementeringen)
+
+- **Fund**: Beskæftigelsesministeriets *Vejledning om regulering pr. 1. januar 2026 af satser*
+  (VEJ nr. 10077 af 10/11/2025), tabel 16, indeholder de officielle middellevetider i
+  måneder til venteprocenten for livsvarigt tillæg (alder 65–80 år, pr. måned).
+- **Beslutning**: Tabellen erstatter Ældre Sagens 67-tabel og den flade fallback. Den
+  reproducerer Ældre Sagens tal eksakt (12/210 = 5,71 %, 120/133 = 90,23 %). Opsættelse kan
+  nu beregnes korrekt for alle folkepensionsaldre (67–70) uden forenkling.
+- **Samme vejledning** (tabel 12 og 15) er nu primærkilde for grundbeløb, pensionstillæg,
+  fradragsbeløb, aftrapningsprocenter, tillægsprocentens grænser og trin, partnerandelen
+  på 54 %, ældrecheck, minimumsbeløb og mediecheck.
+- **Risiko**: Fradragsbeløbene på 99.200 og 198.800 kr. og tillægsprocentens bundgrænser
+  indeholder en **midlertidig forhøjelse** (§ 49 c: 9.800 og 19.700 kr.). Bortfalder den,
+  falder grænserne i fremtidige år. Kernen satsregulerer i dag hele beløbet. Udløbsdatoen
+  afklares i T-REG.
+
 ### R7. Kommuneskat 2026
 
 - **Beslutning**: Overtag legacy-tabellen (98 kommuner) som registerdata med kilden
@@ -198,3 +214,23 @@ og de tekniske valg.
 
   Der er ingen iteration, fordi indtægtsgrundlaget ikke afhænger af checks eller skat.
   Legacy beskattede ældrechecken separat med en lille inkonsistens. Det rettes her.
+
+---
+
+## T-REG status (2026-10-24)
+
+| Punkt | Status |
+|---|---|
+| § 32 a (54 %) | ✅ VEJ 10077/2025, tabel 15, nr. 13 |
+| PBL § 11 A | ✅ JV C.A.10.2.2.4.1 |
+| Grundbeløb, tillæg, fradrag, tillægsprocent, checks | ✅ VEJ 10077/2025, tabel 12 og 15 |
+| Venteprocent (middellevetider) | ✅ VEJ 10077/2025, tabel 16 |
+| Venteprocentens afrunding (2 decimaler) | ⏳ BEK 930/2018 § 8 ikke slået op (`sekundaer`) |
+| PBL § 1 A (udbetalingsalder for aftaler før 2007) | ⏳ (`sekundaer`) |
+| PBL § 30, stk. 1 (kapitalpension 40 %) | ⏳ paragrafnummer |
+| Tillægsprocent: "fulde" eller "påbegyndte" trin | ⏳ VEJ siger "for hver 635 kr.", legacy og golden G-40 bruger fulde trin |
+| § 49 c — udløb af midlertidig forhøjelse | ⏳ |
+| Kommuneskat 2026 mod Skatteministeriets regneark | ⏳ (`sekundaer` → streng tilstand afviser i dag alle beregninger) |
+
+Registret: 42 af 44 poster er `verificeret` (95 %, SC-002 opfyldt). Kommuneregistret er
+`sekundaer`.

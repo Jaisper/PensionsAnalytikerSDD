@@ -82,7 +82,7 @@ ydelser). Kun `oevrig_indkomst` indgår: 100 % hvis partneren er pensionist, ell
 | `fp.*` | Grundbeløb, pensionstillæg × 3 (ydelse, fradrag, aftrapning), folkepensionsalder pr. fødselsårsinterval, partnerindkomst-andel (0,46) |
 | `tp.*` | Tillægsprocent enlig/gift (bund, trin) |
 | `yd.*` | Ældrecheck, formuegrænse, minimum 200 kr., mediecheck |
-| `opsat.*` | Venteprocent fra 67 (tabel), fallback pr. år, maks. 10 år |
+| `opsat.*` | Middellevetidstabel (VEJ 10077, tabel 16), afrunding, maks. 10 år |
 | `ordning.*` | Ratepensionsloft, rateperiode min./maks., aldersopsparingsloft × 2 og 7-årsgrænse, kapitalpensionsafgift, udbetalingsalder-regler (R2) |
 | `atp.*` | Fallback-beløb |
 | `kommune.*` | 98 kommuneskattesatser (separat fil) |
@@ -122,8 +122,8 @@ ydelser). Kun `oevrig_indkomst` indgår: 100 % hvis partneren er pensionist, ell
 ### Advarsel
 
 `kode` (fx `RATEPENSION_LOFT`, `MELLEMSKAT_INTERVAL`, `UDBETALING_FOER_LOVLIG_ALDER`,
-`ATP_SKOENNET`, `VENTEPROCENT_USIKKER`, `750_TIMER`, `BUFFER_YDELSE_FORENKLING`,
-`OPSAT_ANDRE_FORMER`), `besked` (dansk), `aldre` (interval), `registerposter`.
+`ATP_SKOENNET`, `750_TIMER`, `OPSAT_ANDRE_FORMER`, `BUFFER_YDELSE_FORENKLING`,
+`JAEVN_FORUDSAETTER_SENERE_UDBETALINGER`), `besked` (dansk), `aldre` (interval), `registerposter`.
 
 ### JaevnUdbetaling (US7)
 

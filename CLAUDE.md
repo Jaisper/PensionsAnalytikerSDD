@@ -1,0 +1,29 @@
+# PensionsAnalytikerSDD
+
+Greenfield-genopbygning af PensionsAnalytiker med Spec Kit. Læs først
+[.specify/memory/constitution.md](.specify/memory/constitution.md). Den har forrang.
+
+## Kommandoer
+
+```bash
+uv sync                 # miljø
+uv run pytest           # hele suiten (inkl. differentialtest mod legacy/)
+```
+
+## Struktur
+
+- `src/pensionskerne/`: beregningskernen (feature 001). Én offentlig funktion, `beregn`.
+  - `register/<år>.toml`: ALLE satser med kilde og status. Ingen tal i `regler/` (testes af
+    `tests/register/test_ingen_litteraler.py`).
+  - `regler/`: ét modul pr. lovområde. Rene funktioner, som læser satser via `Regelopslag`.
+  - `fremskrivning.py`: år-for-år-orkestrering. `jaevn.py`: jævn udbetaling.
+- `specs/NNN-*/`: spec, plan, research, data-model, kontrakt og tasks pr. feature.
+- `docs/domaene/`: domænegrundlag og legacy-afvigelser (A1–A9).
+- `legacy/`: kun reference og orakel. Der bygges ikke videre på den.
+
+## Regler for arbejdet
+
+- Lovgivningen er facit (Princip III). En ny regel eller sats kræver en kilde i registret.
+- Test først (Princip IV). En ændring af en golden case kræver begrundelse.
+- Spec Kit-skills er ikke installeret i dette checkout. Følg trinene manuelt med
+  `.specify/templates` og `.specify/scripts/powershell`.
