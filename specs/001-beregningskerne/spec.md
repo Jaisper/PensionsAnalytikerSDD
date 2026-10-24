@@ -292,7 +292,7 @@ falder aldrig, når et nyt engangsbeløb lander.
   enkelte år: enlig 30,9 % / gift med pensionist 16 % / gift med ikke-pensionist 32 %.
   Fradragsbeløb og indtægtsgrundlag MUST følge borger.dk og loven (jf. A4, A5).
 - **FR-033**: Den personlige tillægsprocent MUST beregnes som en selvstændig regel med hele
-  procentpoint pr. påbegyndt trin. Den MUST NOT afledes af pensionstillæggets aftrapning.
+  procentpoint pr. fuldt trin (golden G-40). Den MUST NOT afledes af pensionstillæggets aftrapning.
 - **FR-034**: Ældrechecken MUST være lig satsen ganget med tillægsprocenten, kun ved en likvid
   formue på højst grænsen. Den er skattepligtig, og beløb under 200 kr. udbetales ikke.
 - **FR-035**: Mediechecken MUST kun udbetales ved en tillægsprocent på 100. Den er

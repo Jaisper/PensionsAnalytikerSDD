@@ -1,6 +1,7 @@
 <!--
 Sync Impact Report
-Version change: [TEMPLATE] → 1.0.0
+Version change: 1.0.0 → 1.1.0 (MINOR: nyt Princip X — Brugeroplevelse)
+Tidligere: [TEMPLATE] → 1.0.0
 Rationale: Første ratificering for greenfield-genopbygningen. Erstatter legacy-forfatningen
 (legacy/constitution-v1.md), som var udledt bagud fra den eksisterende kode og bundet til
 konkrete filer og teknologi. Denne version er teknologiuafhængig; teknologivalg træffes pr.
@@ -16,6 +17,7 @@ Principles:
   - VII. Persondata og Privatliv                                            [videreført fra v1 VI, teknologi fjernet]
   - VIII. Dansk Brugerflade                                                 [videreført fra v1 VII]
   - IX.  Simpelhed                                                          [omdefineret fra v1 VIII, teknologi fjernet]
+  - X.   Brugeroplevelse: Klarhed før Fuldstændighed                        [NY i 1.1.0 — legacy-UX var svær at bruge]
 
 Added sections: Kildehierarki · Legacy-løsningens rolle · Udviklingsproces og kvalitetsgates · Governance
 Removed sections: Teknologibegrænsninger (flyttet til de enkelte features' plan.md)
@@ -162,6 +164,39 @@ simplere løsning ikke nok? Funktionalitet bygges kun, når en specifikation kr�
 Rationale: Projektet vedligeholdes af én udvikler. Færre dele giver mindre at vedligeholde og
 sikre.
 
+### X. Brugeroplevelse: Klarhed før Fuldstændighed
+
+Brugerfladen er for borgere uden faglig viden om pension. Den SKAL følge disse regler:
+- **Svaret først**: Hver visning SKAL først svare på brugerens hovedspørgsmål ("Hvad får jeg
+  udbetalt om måneden efter skat?") med ét tydeligt tal. Detaljer (år-for-år, skat pr.
+  kilde, sporing) vises ved progressiv afsløring (fold-ud, faneblade), ikke på én gang.
+- **Forenkl informationen**: Højst én primær beslutning eller handling pr. skærmbillede.
+  Tabeller og grafer viser kun de kolonner og serier, der understøtter beslutningen. Resten
+  er tilgængeligt, men skjult som udgangspunkt.
+- **Kontekstuel bevidsthed**: Spørg kun om oplysninger, når de skal bruges, og forklar
+  hvorfor. Fagudtryk (fx "pensionstillæg", "tillægsprocent") SKAL forklares i konteksten,
+  hvor de står (fx med info-ikon eller tooltip). Brugeren skal ikke slå dem op andre steder.
+- **Konsekvent visuel logik**: Samme farve og form betyder altid det samme i hele løsningen,
+  fx én linkfarve, én farve for primære handlinger og én fast farve pr. indkomstkilde i alle
+  grafer. Status (verificeret/forenkling/advarsel) har fast ikon og farve og kommunikeres
+  aldrig kun med farve.
+- **Usikkerhed uden støj**: Forenklinger, antagelser og uverificerede satser (Princip V)
+  SKAL være synlige, men placeres sammen med det tal, de påvirker. De må ikke overdøve
+  hovedbudskabet.
+- **Fejl og tomme tilstande**: De SKAL forklare på dansk, hvad der skete, og hvad brugeren
+  kan gøre nu. Tekniske fejlkoder vises aldrig alene.
+- **Tilgængelighed**: WCAG 2.2 niveau AA. Den skal kunne bruges med tastatur og på en
+  mobilskærm (360 px) uden vandret scroll.
+- **Klarsprog**: Korte sætninger, aktiv form og "du"-form.
+- **Validering**: Hver feature med brugerflade SKAL valideres før merge, enten med en
+  heuristisk evaluering (Nielsens 10 heuristikker) dokumenteret i feature-mappen eller med
+  en brugertest med mindst 3 personer fra målgruppen.
+
+Rationale: Legacy-løsningen havde korrekte tal, men en brugerflade, der var svær at bruge.
+Et korrekt tal, som brugeren ikke forstår, giver ikke bedre beslutninger. Principperne
+bygger på DodgeUX' fokus på forenklet information, kontekstuel bevidsthed og konsekvent
+farvelogik, samt på Nielsens heuristikker og WCAG.
+
 ## Kildehierarki
 
 Ved verifikation af en registerpost gælder denne rækkefølge, med den mest autoritative
@@ -219,4 +254,4 @@ projektet. Ændringer SKAL dokumenteres med en Sync Impact Report og versioneres
 Alle specifikationer, planer og implementeringer SKAL vurderes mod principperne. Afvigelser
 SKAL begrundes skriftligt i `plan.md`, før arbejdet fortsætter.
 
-**Version**: 1.0.0 | **Ratified**: 2026-10-24 | **Last Amended**: 2026-10-24
+**Version**: 1.1.0 | **Ratified**: 2026-10-24 | **Last Amended**: 2026-10-24

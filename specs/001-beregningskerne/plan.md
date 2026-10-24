@@ -73,6 +73,7 @@ differentialtest mod `legacy/` (skippes, hvis mappen mangler).
 | VII | Persondata | Kernen gemmer og logger intet. Profilen lever kun i kaldet | ✅ (ikke relevant ud over det) |
 | VIII | Dansk brugerflade | Advarsler og fejlbeskeder er på dansk. Talformatering hører til senere UI-feature | ✅ |
 | IX | Simpelhed | Én pakke uden runtime-afhængigheder. `hypothesis` som eneste ekstra dev-afhængighed er begrundet i research T2 | ✅ |
+| X | Brugeroplevelse | Ingen UI i denne feature. Advarsler har kode, kort dansk besked og aldersinterval, så en senere UI kan vise dem kontekstuelt | ✅ (ikke relevant ud over det) |
 
 **Re-check efter Phase 1**: ✅ Designet i data-model og kontrakt introducerer ingen nye
 komponenter eller afhængigheder.

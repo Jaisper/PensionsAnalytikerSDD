@@ -54,6 +54,7 @@ Foundational, fordi alle stories læser satser gennem dem.
   - [ ] PBL § 1 A (overgangsregler for udbetalingsalder)
   - [ ] PBL § 30, stk. 1 (40 %)
   - [ ] PBL § 11 A
+  - [ ] Tillægsprocent: "pr. fulde" eller "pr. påbegyndte" trin
   - [ ] Krydstjek kommuneskat mod Skatteministeriets regneark 2026 (svmn.dk)
 
   Dokumentér resultatet i `research.md`.

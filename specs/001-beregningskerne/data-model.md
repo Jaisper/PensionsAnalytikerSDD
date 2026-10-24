@@ -12,7 +12,7 @@ medmindre andet er angivet. Satser er brøker (0,1201 og ikke 12,01). Aldre er h
 | `foedselsdato` | dato | Påkrævet. Født ≥ 1955-01-01, ellers afvises inputtet. |
 | `civilstand` | `enlig` \| `gift_samlevende` | Påkrævet |
 | `kommune` | str | Skal findes i kommuneregistret for satsåret |
-| `kirkeskat` | brøk \| None | None = ikke medlem. Default 0,007, hvis medlem uden sats |
+| `kirkeskat` | brøk \| None | None = ikke medlem af folkekirken (0 %). Ellers kommunens kirkeskattesats som brøk |
 | `likvid_formue` | kr | ≥ 0. Bruges til formuegrænsen for ældrecheck (pr. 1/1) |
 | `anden_kapitalindkomst` | kr/år | Default 0. Indgår i indtægtsgrundlaget (FR-032) |
 | `ordninger` | liste[Ordning] | Kan være tom |

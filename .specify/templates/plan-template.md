@@ -51,6 +51,7 @@
 | VII | Persondata | Opbevaring og sletning af persondata beskrevet (hvis relevant) | [ ] |
 | VIII | Dansk brugerflade | Brugervendt tekst og talformat på dansk (hvis relevant) | [ ] |
 | IX | Simpelhed | Nye komponenter og afhængigheder begrundet i Complexity Tracking | [ ] |
+| X | Brugeroplevelse | Svaret først, progressiv afsløring, kontekstuelle forklaringer, konsekvent farvelogik, WCAG 2.2 AA, heuristisk evaluering eller brugertest planlagt (hvis UI) | [ ] |
 
 ## Project Structure
 
