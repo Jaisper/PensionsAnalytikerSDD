@@ -15,7 +15,7 @@ spec-driven development ([Spec Kit](https://github.com/github/spec-kit)).
 
 | Feature | Status |
 |---|---|
-| [001 Beregningskerne og regelregister](specs/001-beregningskerne/) | Implementeret (`src/pensionskerne/`). 414 tests inkl. differentialtest mod legacy. T-REG (primærkildetjek af sidste poster) udestår |
+| [001 Beregningskerne og regelregister](specs/001-beregningskerne/) | Implementeret (`src/pensionskerne/`). 424 tests inkl. differentialtest mod legacy. 47/48 satser verificeret mod primærkilder |
 
 ```bash
 uv sync

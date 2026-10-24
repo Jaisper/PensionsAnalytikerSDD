@@ -54,12 +54,21 @@ class Regelopslag:
         return vaerdi
 
     def kommuneskat(self, navn: str) -> float:
+        reg, noegle = self._kommune(navn)
+        self._registrer(f"kommune.{noegle}", reg.status, reg.kilde)
+        return reg.satser[noegle]
+
+    def kirkeskat(self, navn: str) -> float:
+        reg, noegle = self._kommune(navn)
+        self._registrer(f"kirkeskat.{noegle}", reg.status, reg.kilde)
+        return reg.kirkeskat[noegle]
+
+    def _kommune(self, navn: str):
         reg = kommuneregister(self.satsaar)
         noegle = kommune_noegle(self.satsaar, navn)
         if noegle is None:
             raise KeyError(navn)
-        self._registrer(f"kommune.{noegle}", reg.status, reg.kilde)
-        return reg.satser[noegle]
+        return reg, noegle
 
     def overtag(self, andet: "Regelopslag") -> None:
         for id in andet.brugt:

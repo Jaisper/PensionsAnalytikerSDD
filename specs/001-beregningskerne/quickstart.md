@@ -17,7 +17,7 @@ profil = Pensionsprofil(
     foedselsdato=date(1963, 5, 1),
     civilstand="enlig",
     kommune="aarhus",
-    kirkeskat=None,
+    folkekirkemedlem=False,
     likvid_formue=50_000,
     ordninger=[
         Ordning(id="rate1", type="ratepension", oprettet=date(2010, 1, 1),

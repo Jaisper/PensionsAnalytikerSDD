@@ -42,3 +42,17 @@ def test_personfradrag_og_flad_skat(o2026):
 
 def test_personfradrag_kan_ikke_give_negativ_skat(o2026):
     assert beregn_skat(30_000, 0.25, 0.007, o2026).total == 0
+
+
+def test_kirkeskat_fra_registret():
+    from datetime import date
+    from pensionskerne import Antagelser, beregn
+    from tests.conftest import BEREGNINGSDATO, enlig_profil
+    a = Antagelser(afkast_efter_pal=0, inflation=0)
+    uden = beregn(enlig_profil(), a, 2026, BEREGNINGSDATO).aar_ved(65)
+    med = beregn(enlig_profil(folkekirkemedlem=True), a, 2026, BEREGNINGSDATO).aar_ved(65)
+    # Aarhus' kirkeskat 2026 (Skatteministeriets regneark) af PI efter personfradrag
+    from pensionskerne import register
+    kirke = register.kommuneregister(2026).kirkeskat["aarhus"]
+    assert med.skat_i_alt - uden.skat_i_alt == pytest.approx((100_000 - 54_100) * kirke)
+    assert "kirkeskat.aarhus" in med.sporing

@@ -102,10 +102,10 @@ status = "verificeret"
 [[post]]
 id = "fp.folkepensionsalder"
 enhed = "tabel"
-kilde = "Lov om social pension § 1 a; L 149 (2024-25) vedtaget maj 2025 (70 år for født efter 31.12.1970)"
+kilde = "Lov om social pension (LBK nr. 1123 af 21/10/2024) § 1 a, stk. 1, nr. 5–7; L 149 (2024-25), vedtaget maj 2025 (70 år for født efter 31.12.1970). Født 1.1.–30.6.1955 har 66½ år og er uden for kernens scope"
 status = "verificeret"
 vaerdi = [
-  { foedt_fra = 1955-01-01, foedt_til = 1962-12-31, alder = 67 },
+  { foedt_fra = 1955-07-01, foedt_til = 1962-12-31, alder = 67 },
   { foedt_fra = 1963-01-01, foedt_til = 1966-12-31, alder = 68 },
   { foedt_fra = 1967-01-01, foedt_til = 1970-12-31, alder = 69 },
   { foedt_fra = 1971-01-01, foedt_til = 9999-12-31, alder = 70 },
@@ -129,9 +129,9 @@ reguleres = true
 
 [[post]]
 id = "fp.tillaeg.enlig.fradrag"
-vaerdi = 99200
+vaerdi = 89400
 enhed = "kr_aar"
-kilde = "Lov om social pension § 49, stk. 1, nr. 6 (89.400) + midlertidig forhøjelse § 49 c (9.800); VEJ nr. 10077 af 10/11/2025 (Beskæftigelsesministeriet, regulering pr. 1.1.2026), tabel 15; borger.dk. OBS: forhøjelsen er midlertidig"
+kilde = "Lov om social pension (LBK nr. 1123 af 21/10/2024) § 29, stk. 7 og § 49, stk. 1, nr. 5; VEJ nr. 10077 af 10/11/2025 (Beskæftigelsesministeriet, regulering pr. 1.1.2026), tabel 15, nr. 1: 89.400 kr. Hertil den midlertidige forhøjelse (fp.fradrag_forhoejelse.*) — i alt 99.200 kr. i 2026 (borger.dk)"
 status = "verificeret"
 reguleres = true
 
@@ -152,9 +152,9 @@ reguleres = true
 
 [[post]]
 id = "fp.tillaeg.gift.fradrag"
-vaerdi = 198800
+vaerdi = 179100
 enhed = "kr_aar"
-kilde = "Lov om social pension § 49, stk. 1, nr. 6 (179.100) + midlertidig forhøjelse § 49 c (19.700); VEJ nr. 10077 af 10/11/2025 (Beskæftigelsesministeriet, regulering pr. 1.1.2026), tabel 15; borger.dk. OBS: forhøjelsen er midlertidig"
+kilde = "Lov om social pension (LBK nr. 1123 af 21/10/2024) § 29, stk. 7 og § 49, stk. 1, nr. 5; VEJ nr. 10077 af 10/11/2025 (Beskæftigelsesministeriet, regulering pr. 1.1.2026), tabel 15, nr. 2: 179.100 kr. Hertil den midlertidige forhøjelse — i alt 198.800 kr. i 2026 (borger.dk)"
 status = "verificeret"
 reguleres = true
 
@@ -179,13 +179,43 @@ enhed = "brok"
 kilde = "Lov om social pension § 49, stk. 1, nr. 5 og § 32 a; VEJ nr. 10077 af 10/11/2025 (Beskæftigelsesministeriet, regulering pr. 1.1.2026), tabel 15: fradrag 54 % af indtægt fra ægtefælle, der ikke er pensionist; borger.dk. AM-bidragspligtig arbejdsindkomst indgår ikke (research R1)"
 status = "verificeret"
 
+[[post]]
+id = "fp.fradrag_forhoejelse.enlig"
+vaerdi = 9800
+enhed = "kr_aar"
+kilde = "Lov om social pension (LBK nr. 1123 af 21/10/2024) § 49 c: 15.000 kr. (2018-niveau) i 2019, nedsat med 1.000 kr. i hvert af årene 2020–2034 — 8.000 kr. i 2026 = 9.800 kr. reguleret (VEJ nr. 10077 af 10/11/2025 (Beskæftigelsesministeriet, regulering pr. 1.1.2026), tabel 15, nr. 7). Lægges til fradraget for både pensionstillæg og personlig tillægsprocent"
+status = "verificeret"
+reguleres = true
+
+[[post]]
+id = "fp.fradrag_forhoejelse.gift"
+vaerdi = 19700
+enhed = "kr_aar"
+kilde = "Lov om social pension (LBK nr. 1123 af 21/10/2024) § 49 c: 30.000 kr. (2018-niveau) i 2019, nedsat med 2.000 kr. årligt 2020–2034 (VEJ nr. 10077 af 10/11/2025 (Beskæftigelsesministeriet, regulering pr. 1.1.2026), tabel 15, nr. 8: 19.700 kr. i 2026)"
+status = "verificeret"
+reguleres = true
+
+[[post]]
+id = "fp.fradrag_forhoejelse.nul_aar"
+vaerdi = 2034
+enhed = "aar"
+kilde = "Lov om social pension (LBK nr. 1123 af 21/10/2024) § 49 c, stk. 1: forhøjelsen nedsættes lineært i hvert af årene 2020–2034 og er 0 i 2034"
+status = "verificeret"
+
+[[post]]
+id = "fp.indtaegtsgrundlag.afrunding"
+vaerdi = 100
+enhed = "kr_aar"
+kilde = "Lov om social pension (LBK nr. 1123 af 21/10/2024) § 29, stk. 6: den opgjorte indtægt afrundes nedad til nærmeste beløb, der er deleligt med 100"
+status = "verificeret"
+
 # ── Personlig tillægsprocent og afledte ydelser ──────────────────────────────
 
 [[post]]
 id = "tp.enlig.bund"
-vaerdi = 35700
+vaerdi = 25900
 enhed = "kr_aar"
-kilde = "Lov om social pension § 72 d, stk. 3 (25.900) + § 49 c (9.800); VEJ nr. 10077 af 10/11/2025 (Beskæftigelsesministeriet, regulering pr. 1.1.2026), tabel 15; borger.dk, personlig tillægsprocent: 100 % ved højst 35.700 kr."
+kilde = "Lov om social pension (LBK nr. 1123 af 21/10/2024) § 29, stk. 8 og § 49, stk. 1, nr. 6; VEJ nr. 10077 af 10/11/2025 (Beskæftigelsesministeriet, regulering pr. 1.1.2026), tabel 15, nr. 5: 25.900 kr. Hertil den midlertidige forhøjelse — i alt 35.700 kr. i 2026 (borger.dk)"
 status = "verificeret"
 reguleres = true
 
@@ -193,15 +223,15 @@ reguleres = true
 id = "tp.enlig.trin"
 vaerdi = 635
 enhed = "kr_aar"
-kilde = "Lov om social pension § 31, stk. 3; VEJ nr. 10077 af 10/11/2025 (Beskæftigelsesministeriet, regulering pr. 1.1.2026), tabel 15: nedsættelse for hver 635 kr.; borger.dk"
+kilde = "Lov om social pension (LBK nr. 1123 af 21/10/2024) § 31, stk. 2 ('nedsættes med 1 pct. for hvert beløb' — dvs. pr. fuldt trin) og § 49, stk. 5; VEJ nr. 10077 af 10/11/2025 (Beskæftigelsesministeriet, regulering pr. 1.1.2026), tabel 15: 635 kr."
 status = "verificeret"
 reguleres = true
 
 [[post]]
 id = "tp.gift.bund"
-vaerdi = 70600
+vaerdi = 50900
 enhed = "kr_aar"
-kilde = "Lov om social pension § 72 d, stk. 3 (50.900) + § 49 c (19.700); VEJ nr. 10077 af 10/11/2025 (Beskæftigelsesministeriet, regulering pr. 1.1.2026), tabel 15; borger.dk: 70.600 kr."
+kilde = "Lov om social pension (LBK nr. 1123 af 21/10/2024) § 29, stk. 8 og § 49, stk. 1, nr. 6; VEJ nr. 10077 af 10/11/2025 (Beskæftigelsesministeriet, regulering pr. 1.1.2026), tabel 15, nr. 6: 50.900 kr. Hertil den midlertidige forhøjelse — i alt 70.600 kr. i 2026 (borger.dk)"
 status = "verificeret"
 reguleres = true
 
@@ -209,7 +239,7 @@ reguleres = true
 id = "tp.gift.trin"
 vaerdi = 1282
 enhed = "kr_aar"
-kilde = "Lov om social pension § 31, stk. 3; VEJ nr. 10077 af 10/11/2025 (Beskæftigelsesministeriet, regulering pr. 1.1.2026), tabel 15: nedsættelse for hver 1.282 kr.; borger.dk"
+kilde = "Lov om social pension (LBK nr. 1123 af 21/10/2024) § 31, stk. 2 (pr. fuldt trin) og § 49, stk. 5; VEJ nr. 10077 af 10/11/2025 (Beskæftigelsesministeriet, regulering pr. 1.1.2026), tabel 15: 1.282 kr."
 status = "verificeret"
 reguleres = true
 
@@ -217,7 +247,7 @@ reguleres = true
 id = "yd.aeldrecheck"
 vaerdi = 26900
 enhed = "kr_aar"
-kilde = "Lov om social pension § 72 d, stk. 1 (supplerende pensionsydelse); VEJ nr. 10077 af 10/11/2025 (Beskæftigelsesministeriet, regulering pr. 1.1.2026), tabel 12: 26.900 kr.; borger.dk. Skattepligtig"
+kilde = "Lov om social pension (LBK nr. 1123 af 21/10/2024) § 72 d, stk. 1 (supplerende pensionsydelse; kræver ret til folkepension inden 1. januar); VEJ nr. 10077 af 10/11/2025 (Beskæftigelsesministeriet, regulering pr. 1.1.2026), tabel 12: 26.900 kr.; borger.dk. Skattepligtig"
 status = "verificeret"
 reguleres = true
 
@@ -225,7 +255,7 @@ reguleres = true
 id = "yd.aeldrecheck.formuegraense"
 vaerdi = 108000
 enhed = "kr_aar"
-kilde = "borger.dk, ældrecheck: likvid formue højst 108.000 kr. pr. 1. januar 2026 (også for par)"
+kilde = "Lov om social pension (LBK nr. 1123 af 21/10/2024) § 72 d, stk. 2: pensionistens og ægtefællens SAMLEDE likvide formue pr. 1. januar; borger.dk: 108.000 kr. (2026)"
 status = "verificeret"
 reguleres = true
 
@@ -291,8 +321,8 @@ status = "verificeret"
 id = "opsat.venteprocent_decimaler"
 vaerdi = 4
 enhed = "antal"
-kilde = "Venteprocenten afrundes til 2 decimaler i procent (4 som brøk). Reproducerer Ældre Sagens 2026-tabel (12/210 = 5,71 %, 120/133 = 90,23 %). Primærkilde (BEK nr. 930 § 8): T-REG"
-status = "sekundaer"
+kilde = "Lov om social pension (LBK nr. 1123 af 21/10/2024) § 15 e, stk. 1: venteprocenten afrundes til to decimaler (4 som brøk)"
+status = "verificeret"
 
 # ── Private ordninger ────────────────────────────────────────────────────────
 
@@ -345,7 +375,7 @@ status = "verificeret"
 id = "ordning.kapitalpension.afgift"
 vaerdi = 0.40
 enhed = "brok"
-kilde = "Pensionsbeskatningsloven § 30, stk. 1 (40 % afgift ved udbetaling); JV C.A.10.2.5.4.1. Paragrafnummer bekræftes i T-REG"
+kilde = "Pensionsbeskatningsloven § 25, stk. 1, nr. 1: 40 % afgift af udbetaling fra kapitalpension (Den juridiske vejledning C.A.10.2.5.4.1)"
 status = "verificeret"
 
 [[post]]

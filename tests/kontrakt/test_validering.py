@@ -16,6 +16,8 @@ def fejlfelt(profil, antagelser=Antagelser(), satsaar=2026):
 
 def test_foedt_foer_1955():
     assert fejlfelt(enlig_profil(foedselsdato=date(1954, 12, 31))) == "foedselsdato"
+    # Født 1.1.–30.6.1955 har folkepensionsalder 66½ (§ 1 a) og er uden for scope
+    assert fejlfelt(enlig_profil(foedselsdato=date(1955, 6, 30))) == "foedselsdato"
 
 
 def test_ukendt_satsaar():

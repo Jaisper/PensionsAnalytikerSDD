@@ -26,9 +26,10 @@ def test_skift_fra_32_til_16_procent(nul_antagelser):
     efter = res.aar_ved(2045 - 1958)  # partner 70
     tillaeg = lambda a: next((k.brutto for k in a.kilder if k.type == "pensionstillaeg"), 0.0)
     assert foer.indtaegtsgrundlag == pytest.approx(20_000 + 0.46 * 400_000)
-    assert tillaeg(foer) == pytest.approx(max(0, 53_604 - 0.32 * (20_000 + 184_000 - 198_800)))
+    # 2044/2045: den midlertidige forhøjelse (§ 49 c) er udløbet → fradrag 179.100 kr. (A12)
+    assert tillaeg(foer) == pytest.approx(max(0, 53_604 - 0.32 * (204_000 - 179_100)))
     assert efter.indtaegtsgrundlag == pytest.approx(420_000)
-    assert tillaeg(efter) == pytest.approx(max(0, 53_604 - 0.16 * (420_000 - 198_800)))
+    assert tillaeg(efter) == pytest.approx(max(0, 53_604 - 0.16 * (420_000 - 179_100)))
 
 
 def test_arbejdsindkomst_ignoreres(nul_antagelser):
@@ -49,5 +50,6 @@ def test_manglende_aar_bruger_naermeste_og_markeres(nul_antagelser):
 def test_g41_gift_tillaegsprocent_bruger_samlet_grundlag(nul_antagelser):
     a = beregn(_profil(PartnerIndkomst(oevrig_indkomst=200_000)), nul_antagelser, 2026,
                BEREGNINGSDATO).aar_ved(70)
-    # grundlag 20.000 + 46 % × 200.000 = 112.000 → (112.000 − 70.600) // 1.282 = 32 trin
-    assert a.tillaegsprocent == 68
+    # 2028: bund = 50.900 + 19.700 × 6/8 = 65.675 (§ 49 c aftrappes)
+    # grundlag 20.000 + 46 % × 200.000 = 112.000 → (112.000 − 65.675) // 1.282 = 36 trin
+    assert a.tillaegsprocent == 64

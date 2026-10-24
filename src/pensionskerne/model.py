@@ -67,8 +67,8 @@ class Pensionsprofil:
     foedselsdato: date
     civilstand: Civilstand
     kommune: str
-    kirkeskat: float | None = None      # None = ikke medlem af folkekirken
-    likvid_formue: float = 0.0
+    folkekirkemedlem: bool = False      # kirkeskat efter kommunens sats (registret)
+    likvid_formue: float = 0.0          # husstandens samlede likvide formue pr. 1. januar (§ 72 d, stk. 2)
     anden_kapitalindkomst: float = 0.0
     ordninger: tuple[Ordning, ...] | list[Ordning] = ()
     atp_aarlig: float | None = None     # None = registrets fallback (markeres)

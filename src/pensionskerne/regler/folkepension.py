@@ -8,6 +8,7 @@ arbejdsindkomst (borger.dk; domænegrundlag A4, A5).
 """
 from __future__ import annotations
 
+import math
 from datetime import date
 from typing import Literal
 
@@ -34,6 +35,17 @@ def foerste_aar_andel(foedselsdato: date) -> float:
     return (MAANEDER - foedselsdato.month) / MAANEDER
 
 
+def fradrag_forhoejelse(gift: bool, o: Regelopslag) -> float:
+    """Midlertidig forhøjelse af fradraget for pensionstillæg og tillægsprocent (§ 49 c).
+
+    Forhøjelsen nedsættes med lige store trin hvert år og er 0 fra `nul_aar`.
+    """
+    beloeb = o.v("fp.fradrag_forhoejelse.gift" if gift else "fp.fradrag_forhoejelse.enlig")
+    nul_aar = o.v("fp.fradrag_forhoejelse.nul_aar")
+    andel = max(0, nul_aar - o.kalenderaar) / (nul_aar - o.satsaar)
+    return beloeb * min(1.0, andel)
+
+
 def tillaegsregel(gift: bool, partner_er_pensionist: bool) -> Tillaegsregel:
     if not gift:
         return "enlig"
@@ -44,11 +56,11 @@ def pensionstillaeg(indtaegtsgrundlag: float, regel: Tillaegsregel, o: Regelopsl
     """Pensionstillæg pr. år efter aftrapning (lov om social pension § 29)."""
     if regel == "enlig":
         ydelse = o.v("fp.tillaeg.enlig.ydelse")
-        fradrag = o.v("fp.tillaeg.enlig.fradrag")
+        fradrag = o.v("fp.tillaeg.enlig.fradrag") + fradrag_forhoejelse(False, o)
         aftrapning = o.v("fp.tillaeg.enlig.aftrapning")
     else:
         ydelse = o.v("fp.tillaeg.gift.ydelse")
-        fradrag = o.v("fp.tillaeg.gift.fradrag")
+        fradrag = o.v("fp.tillaeg.gift.fradrag") + fradrag_forhoejelse(True, o)
         aftrapning = o.v(f"fp.tillaeg.{regel}.aftrapning")
     return max(0.0, ydelse - aftrapning * max(0.0, indtaegtsgrundlag - fradrag))
 
@@ -65,10 +77,12 @@ def indtaegtsgrundlag(
 
     Partnerens AM-bidragspligtige arbejdsindkomst indgår aldrig. Partnerens øvrige
     indkomst indgår fuldt, hvis partneren er pensionist, ellers med den andel, der
-    ikke ses bort fra (§ 32 a).
+    ikke ses bort fra (§ 29, stk. 5). Den opgjorte indtægt afrundes nedad til hele
+    hundreder (§ 29, stk. 6).
     """
     grundlag = privat_pensionsindkomst + atp + kapitalindkomst
     if partner is not None:
         andel = 1.0 if partner_er_pensionist else o.v("fp.partner_ikke_pensionist.medregnet_andel")
         grundlag += partner.oevrig_indkomst * andel
-    return grundlag
+    afrunding = o.v("fp.indtaegtsgrundlag.afrunding")
+    return math.floor(grundlag / afrunding) * afrunding

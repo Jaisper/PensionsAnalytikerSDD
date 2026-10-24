@@ -15,7 +15,7 @@ def _profil():
                 aarlig_indbetaling=40_000),
         Ordning("liv", "livsvarig", 1_500_000, 68, oprettet=date(2019, 1, 1), aarlig_indbetaling=30_000),
         Ordning("ald", "aldersopsparing", 300_000, 66, oprettet=date(2015, 1, 1), aarlig_indbetaling=9_900),
-    ), kirkeskat=0.0072, anden_kapitalindkomst=10_000)
+    ), folkekirkemedlem=True, anden_kapitalindkomst=10_000)
 
 
 def test_k2_determinisme():
@@ -46,14 +46,21 @@ def test_k6_sporing_ikke_tom_og_gyldig():
     for a in res.aar:
         assert a.sporing
         for id in a.sporing:
-            assert id in gyldige or id.startswith(("antagelse.", "kommune.")), id
+            assert id in gyldige or id.startswith(("antagelse.", "kommune.", "kirkeskat.")), id
     assert set().union(*(a.sporing for a in res.aar)) <= set(res.sporing_samlet)
 
 
-def test_k4_streng_tilstand_afviser():
-    # Kommuneskatten har status 'sekundaer', indtil T-REG har krydstjekket regnearket.
-    with pytest.raises(UverificeretRegel):
-        beregn(_profil(), Antagelser(), 2026, BEREGNINGSDATO, streng=True)
+def test_k4_streng_tilstand_kan_beregne_med_kun_verificerede_regler():
+    res = beregn(_profil(), Antagelser(), 2026, BEREGNINGSDATO, streng=True)
+    assert not [f for a in res.aar for f in a.flag if f.startswith(("sekundaer", "uverificeret"))]
+
+
+def test_k4_streng_tilstand_afviser_sekundaer_kilde():
+    # Ukendt oprettelsesdato kræver reglen for aftaler før 2007 (status 'sekundaer').
+    ukendt = Ordning("x", "livsvarig", 100_000, 68, oprettet=None)
+    with pytest.raises(UverificeretRegel) as e:
+        beregn(enlig_profil(ordninger=(ukendt,)), Antagelser(), 2026, BEREGNINGSDATO, streng=True)
+    assert e.value.id == "ordning.udbetalingsalder.foer_2007"
 
 
 def test_register_api():
@@ -66,7 +73,7 @@ def test_register_api():
 def test_quickstart_eksempel():
     from pensionskerne import Pensionsprofil
     profil = Pensionsprofil(
-        foedselsdato=date(1963, 5, 1), civilstand="enlig", kommune="aarhus", kirkeskat=None,
+        foedselsdato=date(1963, 5, 1), civilstand="enlig", kommune="aarhus",
         likvid_formue=50_000,
         ordninger=[Ordning(id="rate1", type="ratepension", oprettet=date(2010, 1, 1), saldo=1_000_000,
                            aarlig_indbetaling=0, udbetaling_start_alder=65, udbetaling_aar=10)],

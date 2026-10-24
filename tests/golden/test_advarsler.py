@@ -19,10 +19,10 @@ def test_ukendt_oprettelse_giver_advarsel_ikke_fejl():
     assert "UDBETALING_FOER_LOVLIG_ALDER" in [a.kode for a in res.advarsler]
 
 
-def test_ikke_verificeret_post_flagges_i_aaret():
-    res = beregn(enlig_profil(), Antagelser(), 2026, BEREGNINGSDATO)
-    # Kommuneskatten er 'sekundaer' (afventer krydstjek) og flagges i hvert år, den bruges.
-    assert "sekundaer:kommune.aarhus" in res.aar_ved(65).flag
+def test_flag_saettes_kun_i_de_aar_de_vedroerer():
+    res = beregn(enlig_profil(anden_kapitalindkomst=5_000), Antagelser(), 2026, BEREGNINGSDATO)
+    assert "forenkling:kapitalindkomst_ikke_beskattet" in res.aar_ved(70).flag
+    assert "forenkling:kapitalindkomst_ikke_beskattet" not in res.aar_ved(65).flag
     # Skønnet ATP flagges kun i de år, hvor ATP udbetales.
     assert "skoennet_atp" in res.aar_ved(70).flag
     assert "skoennet_atp" not in res.aar_ved(65).flag

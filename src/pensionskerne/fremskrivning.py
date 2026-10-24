@@ -174,7 +174,6 @@ def beregn(
     partner_fp_alder = folkepensionsalder(profil.partner.foedselsdato, samlet) if profil.partner else None
     vente = ventefaktor(fp_alder, opsaettelse, samlet)
     foerste_andel = foerste_aar_andel(profil.foedselsdato)
-    kirkeskat = profil.kirkeskat or 0.0
     atp_skoennet = False
     mellemskat_aldre: list[int] = []
     aar: list[Aarsresultat] = []
@@ -183,6 +182,7 @@ def beregn(
         kalenderaar = foedselsaar + alder
         o = opslag(alder)
         kommuneskat = o.kommuneskat(profil.kommune)
+        kirkeskat = o.kirkeskat(profil.kommune) if profil.folkekirkemedlem else 0.0
         if kalenderaar > satsaar:
             o.antagelse("satsregulering", satsregulering)
 

@@ -60,8 +60,9 @@ og de tekniske valg.
 
 ### R4. Afgift af kapitalpension (A8)
 
-- **Beslutning**: 40 % afgift ved udbetaling efter PBL § 30, stk. 1. Kildefeltet i legacy
-  ("PBL § 25") er forkert. § 25 handler om ophævelse (60 %).
+- **Beslutning**: 40 % afgift ved udbetaling efter **PBL § 25, stk. 1, nr. 1**.
+  *Rettet i T-REG:* Den første version af denne research påstod, at det var § 30, og at
+  legacy tog fejl. Den juridiske vejledning henviser til § 25, stk. 1, nr. 1. Legacy havde ret.
 - **Kilde**: Den juridiske vejledning C.A.10.2.5.4.1 (niveau 2) henviser til 40 % afgift ved
   udbetaling.
 - **Registerstatus**: Satsen er `verificeret`. Paragrafnummeret bekræftes mod lovteksten i
@@ -217,20 +218,24 @@ og de tekniske valg.
 
 ---
 
-## T-REG status (2026-10-24)
+## T-REG status (2026-10-24) — afsluttet
 
-| Punkt | Status |
+Primærkilder: lov om social pension (LBK nr. 1123 af 21/10/2024), VEJ nr. 10077/2025,
+Den juridiske vejledning og Skatteministeriets regneark kommuneskattesatser_2026.xlsx.
+
+| Punkt | Resultat |
 |---|---|
-| § 32 a (54 %) | ✅ VEJ 10077/2025, tabel 15, nr. 13 |
+| § 29, stk. 5 / § 49, stk. 1, nr. 4 (54 %) | ✅ bekræftet. Partnerens arbejdsindkomst ses der helt bort fra (§ 29, stk. 1, nr. 10) |
+| § 29, stk. 6 | 🆕 **A11**: indtægtsgrundlaget afrundes nedad til 100 kr. Implementeret |
+| § 49 c | 🆕 **A12**: forhøjelsen af fradragene aftrappes lineært til 0 i 2034. Fradragene er delt i grundbeløb og forhøjelse. Implementeret |
+| § 1 a | 🆕 **A10**: født 1.1.–30.6.1955 → 66½ år. Kernen understøtter født ≥ 1.7.1955 |
+| § 31, stk. 2 | ✅ "nedsættes med 1 pct. for hvert beløb" → fulde trin (som implementeret) |
+| § 15 e, stk. 1 | ✅ venteprocent afrundes til to decimaler |
+| § 72 d | ✅ kræver ret til folkepension inden 1. januar (som implementeret); formuegrænsen gælder husstandens samlede formue |
 | PBL § 11 A | ✅ JV C.A.10.2.2.4.1 |
-| Grundbeløb, tillæg, fradrag, tillægsprocent, checks | ✅ VEJ 10077/2025, tabel 12 og 15 |
-| Venteprocent (middellevetider) | ✅ VEJ 10077/2025, tabel 16 |
-| Venteprocentens afrunding (2 decimaler) | ⏳ BEK 930/2018 § 8 ikke slået op (`sekundaer`) |
-| PBL § 1 A (udbetalingsalder for aftaler før 2007) | ⏳ (`sekundaer`) |
-| PBL § 30, stk. 1 (kapitalpension 40 %) | ⏳ paragrafnummer |
-| Tillægsprocent: "fulde" eller "påbegyndte" trin | ⏳ VEJ siger "for hver 635 kr.", legacy og golden G-40 bruger fulde trin |
-| § 49 c — udløb af midlertidig forhøjelse | ⏳ |
-| Kommuneskat 2026 mod Skatteministeriets regneark | ⏳ (`sekundaer` → streng tilstand afviser i dag alle beregninger) |
+| PBL § 25, stk. 1, nr. 1 (40 %) | ✅ — A8 var en fejl i plan-researchen, ikke i legacy |
+| Kommuneskat 2026 | ✅ alle 98 identiske med Skatteministeriets regneark. Kirkeskat pr. kommune tilføjet fra samme regneark. Regnearkets "Nedslag" = kommuneskat − 25,06 = skatteloftsnedslaget, som kernen beregner |
+| PBL § 1 A (aftaler før 2007, overgang efter fødselsdato) | ⏳ fortsat `sekundaer` (Ældre Sagen). Bruges kun ved ukendt oprettelsesdato eller aftaler før 2007 |
 
-Registret: 42 af 44 poster er `verificeret` (95 %, SC-002 opfyldt). Kommuneregistret er
-`sekundaer`.
+Registret: 47 af 48 poster er `verificeret` (98 %), og kommuneregistret er `verificeret`.
+Streng tilstand kan nu beregne almindelige profiler.

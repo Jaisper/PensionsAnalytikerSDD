@@ -35,7 +35,8 @@ def test_foerste_folkepensionsaar_fra_maaneden_efter(res):
     andel = 7 / 12  # født i maj → udbetaling juni–december
     assert kilder["grundbeloeb"] == pytest.approx(90_528 * andel)
     assert kilder["atp"] == pytest.approx(17_340 * andel)
-    tillaeg_aar = 104_748 - 0.309 * (100_000 + 17_340 - 99_200)
+    # 2031: fradrag 89.400 + 9.800 × 3/8 (§ 49 c); grundlag 117.340 → 117.300 (§ 29, stk. 6)
+    tillaeg_aar = 104_748 - 0.309 * (117_300 - (89_400 + 9_800 * 3 / 8))
     assert kilder["pensionstillaeg"] == pytest.approx(tillaeg_aar * andel)
     assert a.tillaegsprocent == 0
     assert "aeldrecheck" not in kilder  # kræver folkepension pr. 1. januar
@@ -46,7 +47,7 @@ def test_foerste_folkepensionsaar_fra_maaneden_efter(res):
 def test_efter_ratepensionen_fuldt_tillaeg_og_checks(res):
     a = res.aar_ved(75)
     kilder = {k.type: k.brutto for k in a.kilder}
-    assert a.indtaegtsgrundlag == pytest.approx(17_340)
+    assert a.indtaegtsgrundlag == 17_300  # 17.340 afrundet nedad til hele hundreder
     assert kilder["pensionstillaeg"] == pytest.approx(104_748)
     assert a.tillaegsprocent == 100
     assert kilder["aeldrecheck"] == pytest.approx(26_900)

@@ -49,13 +49,13 @@ Foundational, fordi alle stories læser satser gennem dem.
 - [x] T012 Skriv `src/pensionskerne/register/2026.toml` med alle poster fra domænegrundlagets afsnit 2 og research R1–R6, med kilde og status pr. post
 - [x] T013 [P] Skriv `src/pensionskerne/register/kommuner_2026.toml` fra legacy-tabellen (`legacy/app.py` KOMMUNESKAT), status `sekundaer` (R7)
 - [x] T014 Implementér inputvalidering i `src/pensionskerne/validering.py`
-- [ ] T015 **T-REG** — Verificér mod primærkilde og opdatér status i `2026.toml`:
+- [x] T015 **T-REG** (afsluttet 2026-10-24 — PBL § 1 A står tilbage som `sekundaer`; se research.md) — Verificér mod primærkilde og opdatér status i `2026.toml`:
   - [x] Lov om social pension § 32 a (54 %) — bekræftet i VEJ nr. 10077/2025, tabel 15
-  - [ ] PBL § 1 A (overgangsregler for udbetalingsalder)
-  - [ ] PBL § 30, stk. 1 (40 %)
+  - [ ] PBL § 1 A (overgangsregler for udbetalingsalder) — fortsat sekundær kilde
+  - [x] 40 % afgift: PBL § 25, stk. 1, nr. 1 (ikke § 30)
   - [x] PBL § 11 A — JV C.A.10.2.2.4.1
-  - [ ] Tillægsprocent: "pr. fulde" eller "pr. påbegyndte" trin
-  - [ ] Krydstjek kommuneskat mod Skatteministeriets regneark 2026 (svmn.dk)
+  - [x] Tillægsprocent: fulde trin (§ 31, stk. 2)
+  - [x] Krydstjek kommuneskat mod Skatteministeriets regneark 2026 (svmn.dk)
 
   Dokumentér resultatet i `research.md`.
 

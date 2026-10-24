@@ -55,7 +55,8 @@ def test_tillaegsprocent_som_legacy(ig):
 
 @pytest.mark.parametrize("aar", range(1955, 1990))
 def test_folkepensionsalder_som_legacy(aar):
-    assert folkepensionsalder(date(aar, 6, 1), O) == legacy.folkepension_alder(aar)
+    # 1. juli: legacy kender ikke § 1 a's 66½ år for født 1.1.–30.6.1955 (A10)
+    assert folkepensionsalder(date(aar, 7, 1), O) == legacy.folkepension_alder(aar)
 
 
 # ── Lag 2 ────────────────────────────────────────────────────────────────────

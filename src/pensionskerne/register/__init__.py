@@ -29,6 +29,7 @@ class Registerpost:
 @dataclass(frozen=True)
 class Kommuneregister:
     satser: dict[str, float]
+    kirkeskat: dict[str, float]
     aliaser: dict[str, str]
     kilde: str
     status: str
@@ -89,7 +90,7 @@ def kommuneregister(aar: int) -> Kommuneregister:
     _poster(aar)  # validerer satsåret
     data = _laes(f"kommuner_{aar}.toml")
     return Kommuneregister(
-        satser=dict(data["satser"]), aliaser=dict(data.get("aliaser", {})),
+        satser=dict(data["satser"]), kirkeskat=dict(data["kirkeskat"]), aliaser=dict(data.get("aliaser", {})),
         kilde=data["kilde"], status=data["status"],
     )
 

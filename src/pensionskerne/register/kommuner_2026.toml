@@ -1,9 +1,11 @@
-# Kommuneskattesatser 2026 — 98 kommuner (brøk). Nøgler er normaliserede (æ→ae, ø→o, å→a, uden bindestreg/mellemrum).
-# Overtaget fra legacy/app.py (verificeret dér 2026-09-20 mod Skatteministeriets regneark). Krydstjek: T-REG.
+# Kommune- og kirkeskattesatser 2026 — 98 kommuner (brøk). Nøgler er normaliserede (æ→ae, ø→o, å→a, uden bindestreg/mellemrum).
+# Kilde: Skatteministeriets regneark kommuneskattesatser_2026.xlsx (svmn.dk). Krydstjekket 2026-10-24: alle 98 kommuneskatter
+# er identiske med den tidligere legacy-tabel. Kolonnen 'Nedslag' i regnearket = kommuneskat − 25,06 = skatteloftsnedslaget,
+# som kernen beregner selv (regler/skat.py).
 
 satsaar = 2026
-kilde = "Skatteministeriet (svmn.dk), Kommuneskattesatser 2026 — via legacy-tabel; krydstjek mod regnearket udestår (research R7)"
-status = "sekundaer"
+kilde = "Skatteministeriet (svmn.dk), Kommuneskattesatser 2026 (kommuneskattesatser_2026.xlsx): kommunal skatteprocent og kirkeskatteprocent"
+status = "verificeret"
 
 [satser]
 aabenraa = 0.256
@@ -104,6 +106,106 @@ vejle = 0.234
 vesthimmerland = 0.263
 viborg = 0.255
 vordingborg = 0.263
+
+[kirkeskat]
+aabenraa = 0.0095
+aalborg = 0.0098
+aarhus = 0.0074
+aero = 0.0107
+albertslund = 0.008
+allerod = 0.0058
+assens = 0.0098
+ballerup = 0.0075
+billund = 0.0089
+bornholm = 0.0093
+brondby = 0.008
+bronderslev = 0.0106
+dragor = 0.0061
+egedal = 0.0076
+esbjerg = 0.0081
+faaborgmidtfyn = 0.0105
+fano = 0.0114
+favrskov = 0.0096
+faxe = 0.0108
+fredensborg = 0.0064
+fredericia = 0.0088
+frederiksberg = 0.005
+frederikshavn = 0.0103
+frederikssund = 0.0096
+fureso = 0.007
+gentofte = 0.0038
+gladsaxe = 0.0075
+glostrup = 0.008
+greve = 0.0081
+gribskov = 0.0085
+guldborgsund = 0.0116
+haderslev = 0.0095
+halsnaes = 0.0085
+hedensted = 0.0098
+helsingor = 0.0063
+herlev = 0.008
+herning = 0.0099
+hillerod = 0.0069
+hjorring = 0.0119
+hojetaastrup = 0.008
+holbaek = 0.0096
+holstebro = 0.0108
+horsens = 0.0079
+horsholm = 0.0062
+hvidovre = 0.0072
+ikastbrande = 0.0097
+ishoj = 0.009
+jammerbugt = 0.012
+kalundborg = 0.0101
+kerteminde = 0.0098
+kobenhavn = 0.008
+koge = 0.0087
+kolding = 0.0092
+laeso = 0.013
+langeland = 0.0114
+lejre = 0.0105
+lemvig = 0.0127
+lolland = 0.0123
+lyngbytaarbaek = 0.006
+mariagerfjord = 0.0115
+middelfart = 0.009
+morso = 0.012
+naestved = 0.0098
+norddjurs = 0.01
+nordfyns = 0.0104
+nyborg = 0.01
+odder = 0.0095
+odense = 0.0068
+odsherred = 0.0098
+randers = 0.0089
+rebild = 0.012
+ringkobingskjern = 0.0105
+ringsted = 0.0095
+rodovre = 0.0072
+roskilde = 0.0084
+rudersdal = 0.0057
+samso = 0.012
+silkeborg = 0.0094
+skanderborg = 0.0086
+skive = 0.0109
+slagelse = 0.0096
+solrod = 0.0084
+sonderborg = 0.0091
+soro = 0.0095
+stevns = 0.011
+struer = 0.012
+svendborg = 0.0102
+syddjurs = 0.0098
+tarnby = 0.0061
+thisted = 0.0127
+tonder = 0.0116
+vallensbaek = 0.008
+varde = 0.0095
+vejen = 0.0106
+vejle = 0.0089
+vesthimmerland = 0.0118
+viborg = 0.0093
+vordingborg = 0.0102
 
 [aliaser]
 arhus = "aarhus"

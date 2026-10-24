@@ -27,7 +27,7 @@ def valider(profil: Pensionsprofil, antagelser: Antagelser, satsaar: int, beregn
         raise UgyldigtInput("foedselsdato", "Fødselsdatoen skal ligge før beregningsdatoen")
     foerste = min(r["foedt_fra"] for r in o.v("fp.folkepensionsalder"))
     if profil.foedselsdato < foerste:
-        raise UgyldigtInput("foedselsdato", f"Kernen understøtter kun personer født {foerste.year} eller senere")
+        raise UgyldigtInput("foedselsdato", f"Kernen understøtter kun personer født {foerste:%d.%m.%Y} eller senere")
     fp_alder = folkepensionsalder(profil.foedselsdato, o)
 
     if profil.civilstand not in ("enlig", "gift_samlevende"):
@@ -36,15 +36,13 @@ def valider(profil: Pensionsprofil, antagelser: Antagelser, satsaar: int, beregn
         raise UgyldigtInput("partner", "Gift/samlevende kræver oplysninger om partneren")
     if register.kommune_noegle(satsaar, profil.kommune) is None:
         raise UgyldigtInput("kommune", f"Ukendt kommune: {profil.kommune}")
-    if profil.kirkeskat is not None and not 0 <= profil.kirkeskat < 1:
-        raise UgyldigtInput("kirkeskat", "Kirkeskat angives som brøk, fx 0.007")
     _ikke_negativ("likvid_formue", profil.likvid_formue)
     _ikke_negativ("anden_kapitalindkomst", profil.anden_kapitalindkomst)
     _ikke_negativ("atp_aarlig", profil.atp_aarlig)
 
     if profil.partner is not None:
         if profil.partner.foedselsdato < foerste:
-            raise UgyldigtInput("partner.foedselsdato", f"Partneren skal være født {foerste.year} eller senere")
+            raise UgyldigtInput("partner.foedselsdato", f"Partneren skal være født {foerste:%d.%m.%Y} eller senere")
         for aar, ind in profil.partner.indkomst_pr_aar.items():
             _ikke_negativ(f"partner.indkomst_pr_aar[{aar}].am_pligtig_arbejdsindkomst", ind.am_pligtig_arbejdsindkomst)
             _ikke_negativ(f"partner.indkomst_pr_aar[{aar}].oevrig_indkomst", ind.oevrig_indkomst)

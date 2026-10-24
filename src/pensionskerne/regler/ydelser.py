@@ -6,14 +6,15 @@ afledes af pensionstillæggets aftrapning (golden G-42). Begge checks er skattep
 from __future__ import annotations
 
 from ..register.opslag import Regelopslag
+from .folkepension import fradrag_forhoejelse
 
 FULD = 100
 
 
 def tillaegsprocent(indtaegtsgrundlag: float, gift: bool, o: Regelopslag) -> int:
-    """100 op til bundgrænsen, derefter 1 procentpoint mindre pr. fuldt trin."""
+    """100 op til bundgrænsen, derefter 1 procentpoint mindre for hvert fulde trin (§ 31, stk. 2)."""
     praefiks = "tp.gift" if gift else "tp.enlig"
-    bund = o.v(f"{praefiks}.bund")
+    bund = o.v(f"{praefiks}.bund") + fradrag_forhoejelse(gift, o)
     trin = o.v(f"{praefiks}.trin")
     if indtaegtsgrundlag <= bund:
         return FULD
