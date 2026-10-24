@@ -57,6 +57,20 @@
             <legend><h2 tabindex="-1">Om dig</h2></legend>
             <p class="hjaelp">Vi bruger oplysningerne til beregningen og gemmer dem ikke.</p>
 
+            <section class="upload" id="upload" hidden aria-labelledby="upload-titel">
+              <h3 id="upload-titel">Har du din rapport fra PensionsInfo?</h3>
+              <p class="felt__hjaelp">Så kan vi aflæse dine ordninger for dig. Du tjekker tallene bagefter. Rapporten henter du som PDF på pensionsinfo.dk.</p>
+              <div class="felt" data-felt="pdf">
+                <label for="pdf-fil">Vælg rapporten (PDF)</label>
+                <input type="file" id="pdf-fil" accept="application/pdf,.pdf">
+              </div>
+              <div class="felt felt--afkrydsning" data-felt="samtykke">
+                <label class="valg"><input type="checkbox" id="pdf-samtykke"> Jeg accepterer, at teksten fra rapporten – uden mit CPR-nummer – sendes til Anthropic (en AI-tjeneste), som aflæser tallene. Rapporten gemmes ikke.</label>
+              </div>
+              <button type="button" class="knap knap--sekundaer" id="pdf-knap">Aflæs rapport</button>
+              <div id="pdf-status" class="upload__status" role="status" aria-live="polite"></div>
+            </section>
+
             <div class="felt" data-felt="foedselsdato person.foedselsdato">
               <label for="foedselsdato">Fødselsdato</label>
               <p class="felt__hjaelp" id="foedselsdato-hjaelp">Bestemmer din folkepensionsalder.</p>

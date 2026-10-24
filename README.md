@@ -18,6 +18,7 @@ spec-driven development ([Spec Kit](https://github.com/github/spec-kit)).
 | [001 Beregningskerne og regelregister](specs/001-beregningskerne/) | Implementeret (`src/pensionskerne/`). 424 tests inkl. differentialtest mod legacy. 47/48 satser verificeret mod primærkilder |
 
 | [002 Pensionsoverblik](specs/002-pensionsoverblik/) | Brugerflade: guide → resultat med hovedtal, graf, kort og skydere. axe-core 0 fejl, heuristisk evaluering i [ux-evaluering.md](specs/002-pensionsoverblik/ux-evaluering.md) |
+| [003 Indlæsning af PensionsInfo-rapport](specs/003-pdf-import/) | Upload af PDF → guiden udfyldes. CPR fjernes lokalt, kræver samtykke, intet gemmes. Slås til med `ANTHROPIC_API_KEY`. Live-kald mod Claude endnu ikke verificeret |
 
 ```bash
 uv sync

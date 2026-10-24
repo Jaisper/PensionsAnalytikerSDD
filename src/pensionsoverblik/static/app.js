@@ -204,6 +204,8 @@ function tegnOrdninger() {
     return el("div", { class: "ordning", style: `--farve: var(${t.farve})` },
       el("div", { class: "ordning__top" }, el("h3", {}, `${t.titel} `, info), fjern),
       infoTekst,
+      o.kilde ? el("p", { class: "aflaest", tekst: `Aflæst fra rapporten: ${o.kilde}` }) : null,
+      o.usikkerheder?.length ? el("ul", { class: "usikkerheder", "aria-label": "Tjek disse oplysninger" }, o.usikkerheder.map((u) => el("li", { tekst: u }))) : null,
       el("div", { class: "ordning__felter" }, felter));
   }));
 }
@@ -232,6 +234,56 @@ function guideSvar() {
       folkepension_opsaettelse_aar: +$("#opsaettelse").value,
     },
   };
+}
+
+/* ── Indlæsning af PensionsInfo-rapport (feature 003) ──────────────────── */
+async function pdfStatus() {
+  try { $("#upload").hidden = !(await (await fetch("/api/pdf/status")).json()).aktiv; } catch { /* manuel indtastning virker */ }
+}
+
+async function aflaesPdf() {
+  ryd();
+  const status = $("#pdf-status");
+  const fil = $("#pdf-fil").files[0];
+  if (!fil) { visFejl("pdf", "Vælg din rapport først."); return; }
+  if (!$("#pdf-samtykke").checked) { visFejl("samtykke", "Sæt flueben for at give samtykke, før rapporten kan aflæses."); return; }
+  const knap = $("#pdf-knap");
+  knap.disabled = true;
+  status.textContent = "Aflæser rapporten … Det tager typisk under et minut.";
+  try {
+    const svar = await fetch("/api/pdf", { method: "POST", headers: { "Content-Type": "application/pdf", "X-Samtykke": "ja" }, body: fil });
+    const data = await svar.json().catch(() => ({}));
+    if (!svar.ok) {
+      status.textContent = "";
+      visFejl(data.felt || "pdf", data.besked || "Rapporten kunne ikke aflæses. Du kan i stedet indtaste dine oplysninger selv.");
+      return;
+    }
+    udfyldFraRapport(data);
+  } catch {
+    status.textContent = "";
+    visFejl("pdf", "Rapporten kunne ikke sendes. Prøv igen, eller indtast dine oplysninger selv.");
+  } finally {
+    knap.disabled = false;
+  }
+}
+
+function udfyldFraRapport(d) {
+  if (d.person.foedselsdato) $("#foedselsdato").value = d.person.foedselsdato;
+  if (d.atp_aarlig) $("#atp").value = kr(d.atp_aarlig);
+  tilstand.ordninger = d.ordninger.map((o) => ({
+    id: `o${tilstand.naesteId++}`, type: o.type,
+    saldo: o.saldo === null ? "" : kr(o.saldo), aarlig_indbetaling: o.aarlig_indbetaling === null ? "" : kr(o.aarlig_indbetaling),
+    udbetaling_start_alder: o.udbetaling_start_alder ?? "", udbetaling_aar: o.udbetaling_aar ?? 10,
+    oprettet: o.oprettet, kilde: o.kilde, usikkerheder: o.usikkerheder,
+  }));
+  tegnOrdninger();
+  const n = d.ordninger.length;
+  const usikre = d.ordninger.filter((o) => o.usikkerheder.length).length;
+  $("#pdf-status").replaceChildren(...[
+    el("p", { tekst: `Vi har aflæst ${n === 1 ? "én ordning" : `${n} ordninger`}${d.atp_aarlig ? " og din ATP" : ""}. `
+      + (usikre ? `Tjek tallene – især ved ≈ i trin 2.` : "Tjek tallene i trin 2.") }),
+    d.bemaerkninger.length ? el("ul", {}, d.bemaerkninger.map((b) => el("li", { tekst: b }))) : null,
+  ].filter(Boolean));
 }
 
 /* ── Beregning ─────────────────────────────────────────────────────────── */
@@ -454,7 +506,9 @@ function visResultat(v, foersteGang = true) {
 /* ── Opsætning ─────────────────────────────────────────────────────────── */
 function forbind() {
   hentKommuner();
+  pdfStatus();
   visTrin(1, false);
+  $("#pdf-knap").addEventListener("click", aflaesPdf);
 
   $$("input[name=civilstand]").forEach((r) => r.addEventListener("change", () => {
     $("#partner-felter").hidden = $("input[name=civilstand]:checked").value !== "gift_samlevende";

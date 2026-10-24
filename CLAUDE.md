@@ -20,6 +20,8 @@ uv run uvicorn pensionsoverblik.api:app --port 8002   # brugerfladen (uden --rel
   - `fremskrivning.py`: år-for-år-orkestrering. `jaevn.py`: jævn udbetaling.
 - `src/pensionsoverblik/`: brugerflade (feature 002). FastAPI + statisk HTML/CSS/JS uden build. Visningslaget
   må kun omformatere kernens tal. UX følger forfatningens Princip X og `docs/ux/designretning.md`.
+- `src/pensionsoverblik/pdfimport/`: PDF-indlæsning (feature 003). AI'en aflæser kun til formularfelter.
+  CPR fjernes lokalt før afsendelse. Intet må skrives til disk eller logs. Aktiv kun når `ANTHROPIC_API_KEY` er sat.
 - `specs/NNN-*/`: spec, plan, research, data-model, kontrakt og tasks pr. feature.
 - `docs/domaene/`: domænegrundlag og legacy-afvigelser (A1–A9).
 - `legacy/`: kun reference og orakel. Der bygges ikke videre på den.
