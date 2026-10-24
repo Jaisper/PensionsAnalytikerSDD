@@ -40,7 +40,7 @@
 
 ## Phase 7: Polish
 
-- [x] T018 [P] Privatlivstest i `tests/app/test_privatliv.py`: ingen body i logs, ingen cookies, ingen filer skrevet
+- [x] T018 [P] Privatlivstest (i `tests/app/test_api.py::test_ingen_cookies_og_ingen_input_i_logs`): ingen body i logs, ingen cookies. *Ikke testet: at der ikke skrives filer — appen har ingen skrivende kode, men det er ikke testet*
 - [x] T019 Kør appen, gennemgå siden i browseren (desktop og 360 px) og kør axe-core. Ret fund
 - [x] T020 Heuristisk evaluering (Nielsens 10) i `specs/002-pensionsoverblik/ux-evaluering.md` (FR-054)
 - [x] T021 README og CLAUDE.md: start af appen
