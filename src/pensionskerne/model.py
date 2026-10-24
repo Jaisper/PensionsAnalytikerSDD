@@ -113,6 +113,7 @@ class Aarsresultat:
     tillaegsprocent: int
     netto_i_alt: float
     netto_real: float
+    realfaktor: float           # gang et nominelt beløb i året med denne for at få dagens kroner
     engangsbeloeb_netto: float
     sporing: tuple[str, ...]
     flag: tuple[str, ...]

@@ -83,3 +83,10 @@ def test_quickstart_eksempel():
     aar65 = next(a for a in res.aar if a.alder == 65)
     assert aar65.kilder[0].brutto == 100_000
     assert res.folkepensionsalder == 68
+
+
+def test_realfaktor_deflaterer_til_dagens_kroner():
+    res = beregn(_profil(), Antagelser(inflation=0.02), 2026, BEREGNINGSDATO)
+    for a in res.aar:
+        assert a.realfaktor == pytest.approx(1 / 1.02 ** (a.kalenderaar - 2026))
+        assert a.netto_real == pytest.approx(a.netto_i_alt * a.realfaktor)

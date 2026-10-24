@@ -8,6 +8,7 @@ Greenfield-genopbygning af PensionsAnalytiker med Spec Kit. Læs først
 ```bash
 uv sync                 # miljø
 uv run pytest           # hele suiten (inkl. differentialtest mod legacy/)
+uv run uvicorn pensionsoverblik.api:app --port 8002   # brugerfladen (uden --reload; den hænger på Windows)
 ```
 
 ## Struktur
@@ -17,6 +18,8 @@ uv run pytest           # hele suiten (inkl. differentialtest mod legacy/)
     `tests/register/test_ingen_litteraler.py`).
   - `regler/`: ét modul pr. lovområde. Rene funktioner, som læser satser via `Regelopslag`.
   - `fremskrivning.py`: år-for-år-orkestrering. `jaevn.py`: jævn udbetaling.
+- `src/pensionsoverblik/`: brugerflade (feature 002). FastAPI + statisk HTML/CSS/JS uden build. Visningslaget
+  må kun omformatere kernens tal. UX følger forfatningens Princip X og `docs/ux/designretning.md`.
 - `specs/NNN-*/`: spec, plan, research, data-model, kontrakt og tasks pr. feature.
 - `docs/domaene/`: domænegrundlag og legacy-afvigelser (A1–A9).
 - `legacy/`: kun reference og orakel. Der bygges ikke videre på den.

@@ -30,6 +30,7 @@ class Registerpost:
 class Kommuneregister:
     satser: dict[str, float]
     kirkeskat: dict[str, float]
+    navne: dict[str, str]
     aliaser: dict[str, str]
     kilde: str
     status: str
@@ -90,7 +91,7 @@ def kommuneregister(aar: int) -> Kommuneregister:
     _poster(aar)  # validerer satsåret
     data = _laes(f"kommuner_{aar}.toml")
     return Kommuneregister(
-        satser=dict(data["satser"]), kirkeskat=dict(data["kirkeskat"]), aliaser=dict(data.get("aliaser", {})),
+        satser=dict(data["satser"]), kirkeskat=dict(data["kirkeskat"]), navne=dict(data["navne"]), aliaser=dict(data.get("aliaser", {})),
         kilde=data["kilde"], status=data["status"],
     )
 
@@ -98,6 +99,11 @@ def kommuneregister(aar: int) -> Kommuneregister:
 def kommuner(aar: int) -> dict[str, float]:
     reg = kommuneregister(aar)
     return {**reg.satser, **{alias: reg.satser[maal] for alias, maal in reg.aliaser.items()}}
+
+
+def kommunenavne(aar: int) -> dict[str, str]:
+    """Kanonisk kommunenøgle → officielt navn (til visning)."""
+    return dict(kommuneregister(aar).navne)
 
 
 def kommune_noegle(aar: int, navn: str) -> str | None:

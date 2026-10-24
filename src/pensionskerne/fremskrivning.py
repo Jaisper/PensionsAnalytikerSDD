@@ -249,7 +249,8 @@ def beregn(
         )
         netto = pi - skat.total
         aar_frem = kalenderaar - beregningsdato.year
-        netto_real = netto / (1 + o.antagelse("inflation", antagelser.inflation)) ** aar_frem
+        realfaktor = 1 / (1 + o.antagelse("inflation", antagelser.inflation)) ** aar_frem
+        netto_real = netto * realfaktor
 
         if pi > o.v("skat.mellemskat.graense"):
             mellemskat_aldre.append(alder)
@@ -257,7 +258,7 @@ def beregn(
         aar.append(Aarsresultat(
             alder=alder, kalenderaar=kalenderaar, kilder=kilder, personlig_indkomst=pi,
             skat_i_alt=skat.total, indtaegtsgrundlag=grundlag, tillaegsprocent=tp,
-            netto_i_alt=netto, netto_real=netto_real, engangsbeloeb_netto=engangs,
+            netto_i_alt=netto, netto_real=netto_real, realfaktor=realfaktor, engangsbeloeb_netto=engangs,
             sporing=tuple(o.brugt), flag=tuple(o.flag),
         ))
         samlet.overtag(o)
