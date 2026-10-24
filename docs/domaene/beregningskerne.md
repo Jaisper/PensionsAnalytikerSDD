@@ -25,7 +25,8 @@ Dokumentet er teknologiuafhængigt. Henvisninger til `legacy/…` er kun sporbar
 | A5 | ⚠️ **Kapital- og aktieindkomst indgår ikke i indtægtsgrundlaget** for pensionstillæg/tillægsprocent. Nettokapitalindkomst og aktieindkomst (udbytte over 5.000 kr.) tæller. Relevant når engangsbeløb placeres som fri formue/buffer. | Pensionstillæg og ældrecheck kan overvurderes for brugere med fri formue. | borger.dk |
 | A6 | ⚠️ **Ældrecheck under 200 kr. udbetales ikke.** Mangler i legacy. | Marginal. | borger.dk, ældrecheck |
 | A7 | 🟡 **Folkepensionsalder 70 for født 1971+ beskrevet som "ikke endeligt vedtaget".** Den blev vedtaget i maj 2025 (L 149). Værdien i legacy er korrekt — kun begrundelsen er forældet. | Ingen beregningsfejl. | Folketinget L 149 (2024-25); lex.dk |
-| A8 | ❓ Kildehenvisning for 40 % afgift af kapitalpension angivet som "PBL § 25" — skal efterprøves (afgiftsbestemmelserne står i PBL kap. 5). Satsen 40 % antages korrekt. | Kildesporbarhed. | — |
+| A8 | ⚠️ Kildehenvisning for 40 % afgift af kapitalpension angivet som "PBL § 25". Det korrekte er PBL § 30, stk. 1. § 25 handler om ophævelse (60 %). Satsen 40 % er korrekt. | Kun kildesporbarhed. | JV C.A.10.2.5.4.1 |
+| A9 | ⚠️ **Ratepension udbetales som annuitet (flad rate).** Loven: årsraten = ordningens værdi ved årets begyndelse / antal resterende år. Med positivt afkast stiger raten over tid. (Fundet i plan-research 2026-10-24.) | Forkert fordeling over årene: for høj tidligt og for lav sent. Det påvirker skat og modregning i de enkelte år. Ved afkast 0 er metoderne ens. | PBL § 11 A, stk. 2, nr. 1; JV C.A.10.2.2.4.1 |
 
 ---
 
@@ -92,7 +93,7 @@ nye kerne skal have en test, der fastholder det.
 | Regel | 2026-værdi | Status | Kilde |
 |---|---|---|---|
 | Ratepension — fradragsloft for indbetaling | 68.700 kr./år; overskydende → livsvarig | ✅ | skat.dk |
-| Ratepension — udbetalingsperiode | 10–30 år (legacy: fra PDF, ellers 15) | ❓ lovens min./maks. skal bekræftes | PBL |
+| Ratepension — udbetalingsperiode | Mindst 10 år. Sidste rate senest i kalenderåret 30 år efter pensionsudbetalingsalderen. Årsrate = værdi primo / resterende år | ✅ / ⚠️ A9 | PBL § 11 A; JV C.A.10.2.2.4.1 |
 | Livrente/livsvarig | Udbetales livsvarigt; kerne skal bruge en udbetalingshorisont | 🟡 legacy: max(18, 90 − startalder) | Finanstilsynets levetidsbenchmark (❓) |
 | Aldersopsparing — indbetalingsloft | 9.900 kr.; 64.200 kr. hvis < 7 år til fp-alder | ✅ | skat.dk JV C.A.10.2.6.3.3.1 |
 | Aldersopsparing — udbetaling | Skattefri (afgift betalt ved indbetaling) | ✅ | PBL |
@@ -167,12 +168,17 @@ eller af bevidste ændringer i antagelserne (afsnit 3).
 
 ---
 
-## 6. Åbne spørgsmål til `/speckit-clarify`
+## 6. Åbne spørgsmål
 
-1. Hvor stor en del af en ikke-pensionist-partners indkomst ses der bort fra i
-   pensionstillæggets indtægtsgrundlag i 2026 (A4)? Kræver primærkilde (Lov om social
-   pension § 32 a / Udbetaling Danmark).
-2. Udbetalingsalder for ordninger oprettet fra 2018 (A2): bekræft fp-alder − 3.
+*Status 2026-10-24: Spørgsmål 1, 2, 4, 6, 8 og 9 er afklaret. Se
+[specs/001-beregningskerne/spec.md](../../specs/001-beregningskerne/spec.md) (Clarifications) og
+[research.md](../../specs/001-beregningskerne/research.md) R1–R6. Spørgsmål 3 er besluttet
+(afvis født før 1955). Spørgsmål 5 er delvist afklaret (fallback markeres). Spørgsmål 7: et
+satsår ad gangen pr. beregning, men flere satsår i registret.*
+
+1. ✅ Der ses bort fra 54 % af en ikke-pensionist-partners øvrige indkomst. AM-pligtig
+   arbejdsindkomst indgår ikke (R1).
+2. ✅ Aftaler oprettet fra 2018: fp-alder − 3 (R2).
 3. Skal kernen modellere personer født før 1955 (fp-alder under 67)? Forslag: nej, afvis input.
 4. Skal opsat folkepension understøtte de tre udbetalingsformer eller kun livsvarigt tillæg?
 5. Kilde til restlevetid (ventetillæg ved andre aldre end 67, og livsvarig horisont):
