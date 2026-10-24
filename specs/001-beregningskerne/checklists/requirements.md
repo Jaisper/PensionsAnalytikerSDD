@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain — **3 tilbage** (FR-051, FR-060, FR-081) → `/speckit-clarify`
+- [x] No [NEEDS CLARIFICATION] markers remain (FR-051, FR-060, FR-081 afklaret 2026-10-24)
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (SC-005 angiver en svartid, ikke en teknologi)

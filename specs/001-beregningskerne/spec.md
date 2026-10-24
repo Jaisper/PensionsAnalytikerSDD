@@ -14,6 +14,17 @@ lovgivningen."
 Det indeholder regler, 2026-satser, kilder, legacy-afvigelser (A1–A8) og golden cases.
 Henvisninger som "(jf. A1)" og "G-02" peger dertil.
 
+## Clarifications
+
+### Session 2026-10-24
+
+- Q: Hvilke udbetalingsformer for ventetillæg ved opsat folkepension? → A: Kun livsvarigt
+  tillæg (FR-051).
+- Q: Hvordan satsreguleres lovbestemte beløb i fremtidige år? → A: Med en selvstændig
+  antagelse, der som standard følger inflationen (FR-060).
+- Q: Skal bufferens afkast indgå i indtægtsgrundlaget? → A: Nej. Det er en markeret
+  forenkling (FR-081).
+
 ## Overblik
 
 Kernen tager en **pensionsprofil** (person, ordninger og saldi), **antagelser** (afkast,
@@ -308,16 +319,15 @@ falder aldrig, når et nyt engangsbeløb lander.
 - **FR-050**: Opsættelse i 0–10 år MUST forhøje grundbeløb og pensionstillæg med
   venteprocenten efter lovens formel. Tabellen for opsættelse fra 67 år (2026) bruges, hvor
   den gælder.
-- **FR-051**: Ventetillægget udbetales som livsvarigt tillæg. [NEEDS CLARIFICATION: Skal
-  kernen også understøtte de to andre udbetalingsformer for tillæg optjent efter 1/7-2018
-  (forhøjet tillæg i 10 år / engangsbeløb + 10 år)?]
+- **FR-051**: Ventetillægget MUST udbetales som livsvarigt tillæg. De to andre
+  udbetalingsformer (forhøjet tillæg i 10 år / engangsbeløb + 10 år) understøttes ikke i
+  denne feature. Resultatet MUST nævne dem som en mulighed, der ikke er beregnet.
 
 **Fremtidige år og antagelser**
 
 - **FR-060**: Lovbestemte beløb (skattegrænser, personfradrag, folkepension, ATP og ydelser)
-  MUST satsreguleres i fremtidige år. [NEEDS CLARIFICATION: Skal satsreguleringen være en
-  selvstændig antagelse (fx 2,6 %/år som for 2027) eller fortsat kobles til
-  inflationsantagelsen, som i legacy?]
+  MUST satsreguleres i fremtidige år med en selvstændig antagelse, "satsreguleringsprocent".
+  Den har inflationsantagelsen som standardværdi, men kan ændres uafhængigt af den.
 - **FR-061**: Kernen MUST beregne realværdi (dagens købekraft) ud fra inflationsantagelsen.
 - **FR-062**: Alle antagelser (afkast, inflation, lønvækst, satsregulering,
   udbetalingshorisont for livsvarig, skat på fri formue) MUST fremgå af resultatet som
@@ -339,10 +349,11 @@ falder aldrig, når et nyt engangsbeløb lander.
 - **FR-080**: Kernen MUST kunne beregne en jævn månedlig udbetaling (US7), hvor engangsbeløb,
   der ikke er fravalgt, bruges som buffer. Bufferen forrentes med afkastet efter en antaget
   skat på fri formue.
-- **FR-081**: Afkast af bufferen er kapital- eller aktieindkomst. [NEEDS CLARIFICATION: Skal
-  bufferens afkast indgå i indtægtsgrundlaget for pensionstillæg og tillægsprocent (jf. A5)?
-  Det er lovmæssigt korrekt, men gør den jævne udbetaling afhængig af ydelsesberegningen og
-  omvendt.]
+- **FR-081**: Bufferens afkast MUST NOT indgå i indtægtsgrundlaget for pensionstillæg og
+  tillægsprocent. Det er en dokumenteret forenkling (jf. A5). Når der er buffer, MUST
+  resultatet markere, at pensionstillæg og ældrecheck kan være overvurderet, hvis
+  engangsbeløbene placeres som fri formue. Kapitalindkomst, der er givet direkte som input i
+  profilen, indgår fortsat (FR-032).
 
 ### Key Entities
 
