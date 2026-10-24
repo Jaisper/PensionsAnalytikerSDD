@@ -1,0 +1,105 @@
+"""
+Husstands-orkestrering (Fase D) — kobler to selvstændige personers
+pensionsberegning sammen der hvor dansk lovgivning reelt kobler dem: kun i
+folkepensionstillægget og den personlige tillægsprocent (§ 29-modregningen
+for gifte), som begge bruger et KOMBINERET indtægtsgrundlag. Selve
+indkomstskatten er individuel og upåvirket — hver persons egen opsparings-
+og udbetalingsberegning kører derfor uændret, kun med den anden persons
+reelle, årsvarierende indkomst tilføjet i samspils-laget.
+
+Ingen af de to personers udbetalingsplan optimeres eller udjævnes på tværs
+af hinanden (buffer/jævn-udjævning kører uafhængigt for hver) — det ville
+kræve en antagelse om delt likviditet der ikke er en del af dette arbejde.
+"""
+from __future__ import annotations
+from datetime import date
+
+from engine import generer_udbetalingstabel, SkatParametre, _foedselsaar_fra_profil, skat_params_fra_parametre
+
+
+def _indtaegtsgrundlag_pr_kalenderaar(resultat: dict, alder_nu: int) -> dict[int, float]:
+    """Udtrækker en persons eget (partner-uafhængige) indtægtsgrundlag pr.
+    kalenderår fra en solo-kørsel — samme kalenderårs-formel som Fase B/C
+    allerede bruger internt i engine.py's årsløkke."""
+    basisaar = date.today().year
+    return {
+        basisaar + (row["alder"] - alder_nu): row["indtaegtsgrundlag_aar"]
+        for row in resultat["tabel"]
+    }
+
+
+def skat_params_for_person(
+    parametre_selv: dict, profil_partner: dict, parametre_partner: dict,
+) -> SkatParametre:
+    """Kører partnerens SOLO-kørsel (deres egen plan påvirkes ikke af hvad
+    'selv' foretager sig) og bygger den SkatParametre 'selv' skal bruge for
+    korrekt koblet samspil — samme byggesten som beregn_husstand, men
+    genbrugelig for én side ad gangen (fx sekventeringsoptimeringen, der
+    kun søger over den ene persons produkter og derfor kun behøver
+    partnerens indkomst udregnet ÉN gang, ikke pr. kandidat)."""
+    foedselsaar_partner = _foedselsaar_fra_profil(profil_partner)
+    # VIGTIGT: skal bruge SAMME alder-konvention som engine.py's partner_er_fp-
+    # tjek (date.today().year − foedselsaar, IKKE fødselsdags-justeret
+    # person.alder) — ellers nøgles kalenderårene her til én person's
+    # fødselsdags-justerede alder, mens engine.py afgør hvornår partneren
+    # bliver folkepensionist ud fra den u-justerede årsdifference, og de to
+    # kan forskydes ét kalenderår for en person hvis fødselsdag endnu ikke er
+    # passeret i år.
+    alder_nu_partner = (
+        (date.today().year - foedselsaar_partner) if foedselsaar_partner
+        else int(profil_partner.get("person", {}).get("alder") or 0)
+    )
+    # SOLO skal betyde solo: hvis parametre_partner stadig bærer Fase B's
+    # flade partner_alder/partner_indkomst_aar (fx fordi "parametre_partner"
+    # her reelt ER den anden persons egne, rå beregningsparametre — se
+    # beregn_husstand, hvor A's OG B's parametre-dicts skiftevis spiller
+    # begge roller), ville generer_udbetalingstabel (skat_params=None) selv
+    # folde et GÆT om "partneren" ind i denne kørsels indtægtsgrundlag, og
+    # den rigtige partners reelle indkomst ville blive lagt oveni et gæt om
+    # den samme partner i stedet for at erstatte det.
+    parametre_partner_solo = {
+        k: v for k, v in parametre_partner.items()
+        if k not in ("partner_alder", "partner_indkomst_aar")
+    }
+    solo_partner = generer_udbetalingstabel(profil_partner, parametre_partner_solo)
+    indkomst_partner_pr_aar = _indtaegtsgrundlag_pr_kalenderaar(solo_partner, alder_nu_partner)
+    return _skat_params_med_partner(parametre_selv, foedselsaar_partner, indkomst_partner_pr_aar)
+
+
+def beregn_husstand(
+    profil_a: dict, parametre_a: dict,
+    profil_b: dict, parametre_b: dict,
+) -> dict:
+    """Kører fire engine-kald (to solo + to endelige, ubetydeligt givet
+    ~0,5 ms/kald jf. sekventeringsoptimeringens benchmark): solo-kørslerne
+    udtrækker hver persons reelle indtægtsgrundlag pr. kalenderår, som
+    derefter fødes ind i den ANDEN persons endelige, korrekt koblede
+    kørsel. Returnerer {"a": resultat_a, "b": resultat_b}."""
+    skat_a = skat_params_for_person(parametre_a, profil_b, parametre_b)
+    skat_b = skat_params_for_person(parametre_b, profil_a, parametre_a)
+
+    resultat_a = generer_udbetalingstabel(profil_a, parametre_a, skat_a)
+    resultat_b = generer_udbetalingstabel(profil_b, parametre_b, skat_b)
+
+    return {"a": resultat_a, "b": resultat_b}
+
+
+def _skat_params_med_partner(
+    parametre: dict, partner_foedselsaar: int | None, partner_indkomst_pr_kalenderaar: dict[int, float],
+) -> SkatParametre:
+    """Bygger samme SkatParametre-afledning som engine.skat_params_fra_parametre
+    (den kanoniske, delte opløsning — ikke længere en tredje, uafhængig kopi),
+    men med partnerens REELLE fødselsår og indkomst-per-år tilføjet i stedet
+    for Fase B's flade, manuelt indtastede overslag. Default til
+    "gift_samlevende" hvis civilstand mangler er bevidst HER (i modsætning
+    til den kanoniske funktions enlig-default) — denne kaldes udelukkende fra
+    selve husstandskoblingen, hvor civilstand pr. definition ikke er enlig."""
+    parametre_med_civilstand = {
+        **parametre,
+        "civilstand": parametre.get("civilstand") or "gift_samlevende",
+    }
+    return skat_params_fra_parametre(
+        parametre_med_civilstand,
+        partner_foedselsaar=partner_foedselsaar,
+        partner_indkomst_pr_kalenderaar=partner_indkomst_pr_kalenderaar,
+    )
