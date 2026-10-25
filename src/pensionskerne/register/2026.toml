@@ -395,11 +395,6 @@ vaerdi = { oprettet_fra = 2007-05-01, aar_foer_fp = 5 }
 [[post]]
 id = "ordning.udbetalingsalder.foer_2007"
 enhed = "tabel"
-kilde = "Ældre Sagen, pensionsudbetalingsalder: aftaler før 1.5.2007 — 60 år med overgang efter fødselsdato, ellers 3 år før folkepensionsalderen. Primærkilde (PBL § 1 A): T-REG"
+kilde = "Ældre Sagen: 'Pensionsudbetalingsalder for aftale oprettet før 1. maj 2007: 60 år'. Bekræftet af en rigtig PensionsInfo-rapport (født 1971: 'kan tidligst udbetales fra 60 år'). Primærkilde (PBL § 1 A) mangler stadig. Selskabets oplyste alder overstyrer altid reglen"
 status = "sekundaer"
-vaerdi = { aar_foer_fp = 3, overgang = [
-  { foedt_til = 1958-12-31, alder = 60.0 },
-  { foedt_til = 1959-06-30, alder = 60.5 },
-  { foedt_til = 1959-12-31, alder = 61.0 },
-  { foedt_til = 1960-06-30, alder = 61.5 },
-] }
+vaerdi = { alder = 60.0 }

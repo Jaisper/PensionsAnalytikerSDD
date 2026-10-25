@@ -71,6 +71,7 @@ def til_kerne(data: dict) -> tuple[Pensionsprofil, Antagelser]:
             aarlig_indbetaling=_tal(o.get("aarlig_indbetaling"), f"{felt}.aarlig_indbetaling"),
             udbetaling_aar=_heltal(o.get("udbetaling_aar"), f"{felt}.udbetaling_aar"),
             i_buffer=bool(o.get("i_buffer", True)),
+            tidligste_udbetalingsalder=_tal(o.get("tidligste_udbetalingsalder"), f"{felt}.tidligste_udbetalingsalder", None),
         ))
 
     profil = Pensionsprofil(

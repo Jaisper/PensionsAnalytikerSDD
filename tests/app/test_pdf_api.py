@@ -23,8 +23,8 @@ class FalskAflaeser:
             udbetalingsperioder=[Periode(etiket="63-72 år", aarligt_beloeb=130_000)], afgift_betalt=None)])
         self.fejl = fejl
 
-    async def aflaes(self, tekst: str) -> Aflaesning:
-        self.modtaget.append(tekst)
+    async def aflaes(self, data: bytes) -> Aflaesning:
+        self.modtaget.append(data)
         if self.fejl:
             raise self.fejl
         return self.svar
@@ -67,16 +67,14 @@ def test_scannet(falsk):
     assert r.status_code == 422 and r.json()["kode"] == "ingen_tekst"
 
 
-def test_succes_og_parseren_faar_cpr_fri_tekst(falsk):
+def test_succes(falsk):
     r = post(lav_pdf(RAPPORT))
     assert r.status_code == 200
     g = r.json()
     assert g["person"]["foedselsdato"] == "1963-05-01"
     assert g["atp_aarlig"] == 17_000
     assert g["ordninger"][0]["udbetaling_aar"] == 10 and g["ordninger"][0]["oprettet"] == "2007_2017"
-    sendt = "".join(falsk.modtaget)  # dataminimering: selv den lokale parser ser ikke CPR
-    assert "010563" not in sendt and "[CPR fjernet]" in sendt
-    assert "Reklame" not in sendt  # kun relevante sider
+    assert falsk.modtaget[0].startswith(b"%PDF-")  # den lokale parser får PDF'en; intet forlader serveren
 
 
 def test_aflaeser_fejl_giver_dansk_besked(monkeypatch):

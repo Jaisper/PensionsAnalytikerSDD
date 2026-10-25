@@ -69,6 +69,38 @@ def cpr_foedselsdato(cpr: str) -> date | None:
         return None
 
 
+MASKERET_CPR = re.compile(r"\b(\d{2})(\d{2})(\d{2})-[xX*]{4}\b")
+UDSKREVET = re.compile(r"Udskrevet:\s*\d{1,2}\.\s*\w+\s+(\d{4})")
+MAKS_ALDER = 110
+
+
+CPR_MED_BINDESTREG = re.compile(r"\b\d{6}-\d{4}\b")
+
+
+def foedselsdato_fra_rapport(forside: str) -> date | None:
+    """Fødselsdato fra rapportens forside: fuldt CPR-nummer (DDMMÅÅ-NNNN) eller PensionsInfos
+    maskerede form (DDMMÅÅ-xxxx). Kun forsiden og kun formen med bindestreg bruges — rapporten
+    indeholder 10-cifrede aftale- og depotnumre, der ellers kan forveksles med et CPR-nummer.
+
+    Uden 7. ciffer vælges det århundrede, der giver en alder mellem 0 og 110 år i rapportens
+    udskriftsår.
+    """
+    if (m := CPR_MED_BINDESTREG.search(forside)) and (fuld := cpr_foedselsdato(m.group(0))):
+        return fuld
+    m = MASKERET_CPR.search(forside)
+    u = UDSKREVET.search(forside)
+    if not m or not u:
+        return None
+    dd, mm, aa, rapportaar = int(m.group(1)), int(m.group(2)), int(m.group(3)), int(u.group(1))
+    for aarhundrede in (2000, 1900):
+        if 0 <= rapportaar - (aarhundrede + aa) <= MAKS_ALDER:
+            try:
+                return date(aarhundrede + aa, mm, dd)
+            except ValueError:
+                return None
+    return None
+
+
 def fjern_cpr(tekst: str) -> tuple[str, date | None]:
     """Erstatter alle gyldige CPR-numre og returnerer den første fødselsdato."""
     foedt: list[date] = []

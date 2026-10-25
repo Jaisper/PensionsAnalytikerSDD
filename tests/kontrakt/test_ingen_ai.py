@@ -56,7 +56,8 @@ def test_ingen_ai_vaerter_i_koden():
     assert not fund, "Princip XI: AI/LLM-endpoints fundet:\n" + "\n".join(fund)
 
 
-def test_pdf_aflaesning_er_slaaet_fra_selv_med_ai_noegle(monkeypatch):
+def test_pdf_aflaesning_er_altid_den_lokale_parser(monkeypatch):
     monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test")
     from pensionsoverblik.pdfimport.aflaeser import vaelg_aflaeser
-    assert vaelg_aflaeser() is None
+    from pensionsoverblik.pdfimport.pensionsinfo import PensionsInfoAflaeser
+    assert type(vaelg_aflaeser()) is PensionsInfoAflaeser

@@ -278,7 +278,7 @@ def beregn(
             registerposter=("atp.fallback",),
         ))
     for ordning in profil.ordninger:
-        if ordning.oprettet is None:
+        if ordning.oprettet is None and ordning.tidligste_udbetalingsalder is None:
             tidligste, _ = tidligste_udbetalingsalder(profil.foedselsdato, None, fp_alder, samlet)
             if ordning.udbetaling_start_alder < tidligste:
                 advarsler.append(Advarsel(

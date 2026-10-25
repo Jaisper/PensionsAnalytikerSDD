@@ -27,11 +27,12 @@ def test_ratepension_fuldt_aflaest():
     assert g["person"]["foedselsdato"] == "1963-05-01"
     assert o == {**o, "type": "ratepension", "saldo": 1_000_000, "aarlig_indbetaling": 40_000,
                  "udbetaling_start_alder": 65, "udbetaling_aar": 10, "oprettet": "2007_2017",
-                 "kilde": "Danica · aftale 123"}
-    assert any("udledt" in u for u in o["usikkerheder"])  # oprettelse er altid udledt
+                 "kilde": "Danica · aftale 123", "tidligste_udbetalingsalder": 63}
+    # Selskabet har oplyst tidligste alder → oprettelsen er ikke "udledt"; kernen bruger den oplyste alder
+    assert not any("udledt" in u for u in o["usikkerheder"])
 
 
-@pytest.mark.parametrize("tidligste,oprettet", [(63, "2007_2017"), (65, "fra2018"), (60, "foer2007"), (61, "foer2007"), (64, "ved_ikke")])
+@pytest.mark.parametrize("tidligste,oprettet", [(63, "2007_2017"), (65, "fra2018"), (60, "foer2007"), (61, "ved_ikke"), (64, "ved_ikke")])
 def test_oprettelse_udledes_af_tidligste_alder(tidligste, oprettet):
     assert guide(ordning(tidligste_udbetalingsalder=tidligste))["ordninger"][0]["oprettet"] == oprettet
 

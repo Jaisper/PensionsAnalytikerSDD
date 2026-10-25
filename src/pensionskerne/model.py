@@ -48,6 +48,7 @@ class Ordning:
     aarlig_indbetaling: float = 0.0
     udbetaling_aar: int | None = None   # kun ratepension; None = registrets minimum
     i_buffer: bool = True               # kun engangsbeløb (US7)
+    tidligste_udbetalingsalder: float | None = None  # oplyst af pensionsselskabet (PensionsInfo); overstyrer reglen
 
 
 @dataclass(frozen=True)

@@ -18,7 +18,7 @@ from pensionskerne import UgyldigtInput, beregn, register
 from .oversaet import til_kerne
 from .pdfimport.aflaeser import AflaesningFejl, vaelg_aflaeser
 from .pdfimport.omsaet import til_guide
-from .pdfimport.tekst import PdfFejl, fjern_cpr, relevante_sider, udtraek_sider
+from .pdfimport.tekst import PdfFejl, foedselsdato_fra_rapport, udtraek_sider
 from .visning import byg_visning
 
 STATIC = Path(__file__).parent / "static"
@@ -83,10 +83,9 @@ async def pdf_import(request: Request):
     except PdfFejl as e:
         return _fejl(422, e.kode, e.besked)
 
-    _, foedselsdato = fjern_cpr("\n".join(sider))
-    tekst, _ = fjern_cpr(relevante_sider(sider))
+    foedselsdato = foedselsdato_fra_rapport(sider[0])
     try:
-        aflaesning = await AFLAESER.aflaes(tekst)
+        aflaesning = await AFLAESER.aflaes(data)
     except AflaesningFejl as e:
         return _fejl(422, e.kode, f"{e.besked} Du kan i stedet indtaste dine oplysninger selv.")
     return til_guide(aflaesning, foedselsdato, _satsaar())

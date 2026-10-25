@@ -38,14 +38,13 @@ def _oprettet(tidligste: int | None, fp_alder: int | None, o: Regelopslag) -> st
         return "2007_2017"
     if tidligste == fp_alder - o.v("ordning.udbetalingsalder.fra_2018")["aar_foer_fp"]:
         return "fra2018"
-    overgang = o.v("ordning.udbetalingsalder.foer_2007")["overgang"]
-    if tidligste <= max(r["alder"] for r in overgang):
+    if tidligste <= o.v("ordning.udbetalingsalder.foer_2007")["alder"]:
         return "foer2007"
     return "ved_ikke"
 
 
 def _ordning(o: AflaestOrdning, fp_alder: int | None, regler: Regelopslag) -> dict:
-    usikkerheder: list[str] = []
+    usikkerheder: list[str] = list(o.noter)
     type_ = o.kategori
     if o.kategori == "kapitalpension" and o.afgift_betalt:
         type_ = "aldersopsparing"
@@ -73,13 +72,14 @@ def _ordning(o: AflaestOrdning, fp_alder: int | None, regler: Regelopslag) -> di
             usikkerheder.append(f"Udbetalingsperioden kunne ikke aflæses – vi bruger {min_aar} år.")
 
     oprettet = _oprettet(o.tidligste_udbetalingsalder, fp_alder, regler)
-    if oprettet != "ved_ikke":
+    if oprettet != "ved_ikke" and o.tidligste_udbetalingsalder is None:
         usikkerheder.append("Oprettelsesperioden er udledt af den tidligste udbetalingsalder.")
 
     kilde = " · ".join(x for x in (o.selskab, f"aftale {o.aftalenr}" if o.aftalenr else None) if x) or o.produkttype
     return {
         "type": type_, "saldo": o.saldo, "aarlig_indbetaling": o.aarlig_indbetaling,
         "udbetaling_start_alder": start, "udbetaling_aar": udbetaling_aar, "oprettet": oprettet,
+        "tidligste_udbetalingsalder": o.tidligste_udbetalingsalder,
         "kilde": kilde, "produkttype": o.produkttype, "usikkerheder": usikkerheder,
     }
 

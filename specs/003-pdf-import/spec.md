@@ -6,8 +6,7 @@
 
 **Status**: Revideret 2026-10-25 efter NFR "ingen persondata til AI/LLM" (forfatningens Princip XI).
 AI-aflæsningen er fjernet. Infrastrukturen (upload, lokalt tekstudtræk, omsætning, brugerflade) er
-bevaret, men **funktionen er slået fra**, indtil en lokal parser er bygget og testet mod en rigtig
-rapport (se "Åben opgave" nederst).
+bevaret. **Den lokale parser er bygget 2026-10-25** og funktionen er slået til.
 
 **Input**: "Indlæs PensionsInfo-PDF, så guiden udfyldes automatisk."
 
@@ -121,7 +120,7 @@ fundet, eller en udledt oprettelsesperiode.
 
 - Der findes ingen rigtige PensionsInfo-rapporter i repoet.
 
-## Åben opgave: lokal parser (forudsætning for at slå funktionen til)
+## Lokal parser (gennemført 2026-10-25 — se tasks.md R005–R008). Oprindelig plan:
 
 1. Skaf mindst én rigtig PensionsInfo-rapport, gerne flere med forskellige selskaber og
    produkter. Anonymisér den, før den lægges i `tests/` (navn, CPR, adresse, aftalenumre).

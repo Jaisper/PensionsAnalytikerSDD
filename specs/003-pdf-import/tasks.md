@@ -20,7 +20,10 @@
 - [x] R002 Test `tests/kontrakt/test_ingen_ai.py` (imports, afhængigheder, endpoints). Mutationstestet: en `import openai` og en AI-vært i HTML fanges
 - [x] R003 ClaudeAflaeser, samtykke-header og `anthropic`-afhængighed fjernet. `vaelg_aflaeser()` returnerer `None`
 - [x] R004 Upload-tekst: "Rapporten læses på vores server og slettes med det samme. Intet sendes til AI-tjenester."
-- [ ] R005 Lokal parser mod rigtig(e) rapport(er) — se spec.md "Åben opgave"
+- [x] R005 Lokal parser (`pdfimport/pensionsinfo.py`) bygget mod en rigtig rapport (2026-10-25). Læser "Dine aftaler", udbetalingstabellen og "Pension - flere oplysninger" ud fra position. Saldo på aftaler med flere produkter fordeles som i legacy (nutidsværdi, 4 %). Testet med en syntetisk rapport med samme layout (`tests/app/pensionsinfo_syntetisk.py`) og lokalt mod den rigtige rapport (`PENSIONSINFO_RAPPORT=… pytest -k rigtig`). Den rigtige rapport er IKKE i repoet
+- [x] R006 Kernen: `Ordning.tidligste_udbetalingsalder` — selskabets oplyste alder overstyrer den udledte regel
+- [x] R007 Registret: aftaler før 1.5.2007 → 60 år (rapporten viste 60 for en person født 1971; den tidligere overgangstabel gav 67 og ville afvise rigtige aftaler)
+- [x] R008 Fødselsdato kun fra forsiden og kun med bindestreg (10-cifrede depotnumre blev forvekslet med CPR)
 
 ## Status 2026-10-24 (før revision)
 

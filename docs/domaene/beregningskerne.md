@@ -207,6 +207,13 @@ satsår ad gangen pr. beregning, men flere satsår i registret.*
   NFR'en "ingen persondata til AI/LLM" (Princip XI). Den nye løsning sender intet til AI.
   PDF-aflæsningen skal ske lokalt, og en kommende forklaringsfunktion må kun bruge generisk indhold.
 
+## 7b. Fund fra en rigtig PensionsInfo-rapport (2026-10-25)
+
+- **A14 (register):** Aftaler oprettet før 1.5.2007 kan udbetales fra 60 år. Det gælder også for en
+  person født 1971 ("Pensionen kan tidligst udbetales fra 60 år"). Registrets tidligere
+  overgangstabel efter fødselsdato gav fp-alder − 3 = 67 og ville have afvist rigtige aftaler.
+  Rettet til 60 år (`sekundaer`). Selskabets oplyste alder overstyrer nu altid reglen.
+
 ## 8. Uden for denne feature (kommer i senere features)
 
 PDF-import fra PensionsInfo · AI-forklaring/chat · Optimering af udbetalingsrækkefølge

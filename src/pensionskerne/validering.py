@@ -58,11 +58,15 @@ def valider(profil: Pensionsprofil, antagelser: Antagelser, satsaar: int, beregn
         _ikke_negativ(f"{felt}.saldo", ordning.saldo)
         _ikke_negativ(f"{felt}.aarlig_indbetaling", ordning.aarlig_indbetaling)
 
-        tidligste, usikker = tidligste_udbetalingsalder(profil.foedselsdato, ordning.oprettet, fp_alder, o)
+        if ordning.tidligste_udbetalingsalder is not None:
+            tidligste, usikker = float(ordning.tidligste_udbetalingsalder), False  # oplyst af selskabet
+        else:
+            tidligste, usikker = tidligste_udbetalingsalder(profil.foedselsdato, ordning.oprettet, fp_alder, o)
         if not usikker and ordning.udbetaling_start_alder < tidligste:
             raise UgyldigtInput(
                 f"{felt}.udbetaling_start_alder",
-                f"Ordningen kan tidligst udbetales fra {tidligste:g} år (afhænger af oprettelsesdatoen)",
+                f"Ordningen kan tidligst udbetales fra {tidligste:g} år"
+                + ("" if ordning.tidligste_udbetalingsalder is not None else " (afhænger af oprettelsesdatoen)"),
             )
         if ordning.type == "ratepension" and ordning.udbetaling_aar is not None:
             min_aar = o.v("ordning.ratepension.min_aar")
