@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from datetime import date
 
 from .model import (
+    Engangsbeloeb,
     Aarsresultat, Advarsel, Antagelser, Fremskrivning, Indkomstkilde, Ordning,
     Partner, PartnerIndkomst, Pensionsprofil,
 )
@@ -22,11 +23,11 @@ from .regler.folkepension import (
     folkepensionsalder, foerste_aar_andel, indtaegtsgrundlag, pensionstillaeg, tillaegsregel,
 )
 from .regler.opsat import ventefaktor
-from .regler.ordninger import engangs_netto, indbetalingsloft, livsvarig_ydelse, rateplan
+from .regler.ordninger import engangs_netto, indbetalingsloft, livsvarig_ydelse, portioner, rateplan
 from .regler.skat import beregn_skat, fordel
 from .regler.udbetalingsalder import tidligste_udbetalingsalder
 from .regler.ydelser import aeldrecheck, mediecheck, tillaegsprocent
-from .jaevn import beregn_jaevn
+from .jaevn import BUFFER_MAKS_ITERATIONER, BUFFER_TOLERANCE_KR, beregn_jaevn
 from .validering import valider
 
 OVERSKUD_ID = "ratepension_overskud_livsvarig"
@@ -39,7 +40,7 @@ class _Plan:
     start: int
     rater: dict[int, float] = field(default_factory=dict)   # alder → brutto (ratepension)
     livsvarig: float = 0.0                                  # årlig ydelse fra start (livsvarig)
-    engangs_netto: float = 0.0                              # netto i startåret (engangsbeløb)
+    engangs: dict[int, float] = field(default_factory=dict)  # alder → netto (engangsbeløb og portioner)
     i_buffer: bool = True
 
 
@@ -75,7 +76,12 @@ def beregn(
     satsaar: int,
     beregningsdato: date,
     streng: bool = False,
+    *,
+    buffer_start: Fremskrivning | None = None,
 ) -> Fremskrivning:
+    """Fremskrivningen år for år. `buffer_start` er et gæt på bufferen (en nabos resultat) til
+    fastpunktets første iteration; det ændrer kun, hvor hurtigt fastpunktet findes, ikke hvilket
+    (inden for tolerancen). Optimeringen bruger det til at regne naboplaner hurtigere (009)."""
     valider(profil, antagelser, satsaar, beregningsdato)
 
     ordninger: list[Ordning] = list(profil.ordninger)
@@ -149,19 +155,41 @@ def beregn(
     for ordning in ordninger:
         s = start[ordning.id]
         o = opslag(s)
-        plan = _Plan(ordning.id, ordning.type, s, i_buffer=ordning.i_buffer)
-        if ordning.type == "ratepension":
+        # Kapitalpension omlagt til rate eller livrente (PBL § 41) regnes som den ordning (009).
+        form = ordning.udbetalingsform if ordning.type == "kapitalpension" else "engangs"
+        beregnet_type = form if form in ("ratepension", "livsvarig") else ordning.type
+        plan = _Plan(ordning.id, beregnet_type, s, i_buffer=ordning.i_buffer)
+        if beregnet_type == "ratepension":
             aar = ordning.udbetaling_aar or o.v("ordning.ratepension.min_aar")
             resterende = aar - (alder_nu - ordning.udbetaling_start_alder) if ordning.udbetaling_start_alder < alder_nu else aar
             for i, rate in enumerate(rateplan(saldo[ordning.id], max(0, resterende), afkast)):
                 plan.rater[s + i] = rate
-        elif ordning.type == "livsvarig":
+        elif beregnet_type == "livsvarig":
             horisont = max(antagelser.livsvarig_min_aar, antagelser.livsvarig_horisont_alder - s)
             plan.livsvarig = livsvarig_ydelse(saldo[ordning.id], horisont, afkast)
+        elif form == "portioner":
+            for i, brutto_portion in enumerate(portioner(saldo[ordning.id], ordning.udbetaling_aar, afkast)):
+                plan.engangs[s + i] = engangs_netto(ordning.type, brutto_portion, o, ordning.afgift_betalt)
+            o.v("ordning.kapitalpension.seneste_aar_efter_udbetalingsalder")
         else:
-            plan.engangs_netto = engangs_netto(ordning.type, saldo[ordning.id], o)
+            plan.engangs[s] = engangs_netto(ordning.type, saldo[ordning.id], o, ordning.afgift_betalt)
         samlet.overtag(o)
         planer.append(plan)
+    if any(o.type == "kapitalpension" and o.udbetalingsform == "portioner" for o in ordninger):
+        advarsler.append(Advarsel(
+            "PORTIONER_KRAEVER_AFTALE",
+            "Kapitalpensionen er regnet udbetalt i portioner. Loven giver adgang til delvis udbetaling "
+            "(pensionsbeskatningsloven § 26), og resten bliver i ordningen med lav skat af afkastet. "
+            "Spørg dit pensionsselskab, hvordan de udbetaler i portioner.",
+            registerposter=("ordning.kapitalpension.seneste_aar_efter_udbetalingsalder",),
+        ))
+    if any(o.type == "kapitalpension" and o.udbetalingsform in ("ratepension", "livsvarig") for o in ordninger):
+        advarsler.append(Advarsel(
+            "OMLAEGNING_KRAEVER_OVERFOERSEL",
+            "Kapitalpensionen er regnet omlagt til ratepension eller livrente. Det sker ved en overførsel "
+            "(pensionsbeskatningsloven § 41), som skal aftales med pensionsselskabet, før udbetalingen "
+            "begynder. Udbetalingen beskattes derefter som personlig indkomst og nedsætter pensionstillægget.",
+        ))
 
     tabel_start = max(alder_nu, min([fp_alder] + [p.start for p in planer]))
     tabel_slut = max(
@@ -174,94 +202,151 @@ def beregn(
     partner_fp_alder = folkepensionsalder(profil.partner.foedselsdato, samlet) if profil.partner else None
     vente = ventefaktor(fp_alder, opsaettelse, samlet)
     foerste_andel = foerste_aar_andel(profil.foedselsdato)
-    atp_skoennet = False
-    mellemskat_aldre: list[int] = []
-    aar: list[Aarsresultat] = []
 
-    for alder in range(tabel_start, tabel_slut + 1):
-        kalenderaar = foedselsaar + alder
-        o = opslag(alder)
-        kommuneskat = o.kommuneskat(profil.kommune)
-        kirkeskat = o.kirkeskat(profil.kommune) if profil.folkekirkemedlem else 0.0
-        if kalenderaar > satsaar:
-            o.antagelse("satsregulering", satsregulering)
+    aarets_opslag: dict[int, Regelopslag] = {}  # genbruges på tværs af bufferens iterationer
 
-        # 1. private udbetalinger
-        brutto: dict[str, tuple[str, float]] = {}
-        engangs = 0.0
-        for plan in planer:
-            if plan.rater.get(alder):
-                brutto[plan.id] = ("ratepension", plan.rater[alder])
-                o.antagelse("afkast_efter_pal", afkast)
-            elif plan.livsvarig and alder >= plan.start:
-                brutto[plan.id] = ("livsvarig", plan.livsvarig)
-                o.antagelse("afkast_efter_pal", afkast)
-                o.antagelse("livsvarig_horisont_alder", antagelser.livsvarig_horisont_alder)
-            elif plan.engangs_netto and alder == plan.start:
-                engangs += plan.engangs_netto
-        privat_s = sum(b for _, b in brutto.values())
+    def _samme_buffer(ki, nye_ki, formue, nye_formue) -> bool:
+        """Kapitalindkomsten, årene blev regnet med, er inden for 12 × tolerancen pr. år af den,
+        bufferen giver, og intet år skifter side af ældrechecks formuegrænse. Så ændrer en ny
+        iteration ikke den jævne udbetaling mere end tolerancen — også efter blot én iteration
+        med et godt startgæt."""
+        if max((abs(nye_ki.get(k, 0.0) - ki.get(k, 0.0)) for k in nye_ki.keys() | ki.keys()), default=0.0)                 >= BUFFER_TOLERANCE_KR * 12:
+            return False
+        for alder in nye_formue.keys() | formue.keys():
+            o = aarets_opslag.get(alder)
+            if o is None:
+                continue
+            graense = o.v("yd.aeldrecheck.formuegraense")
+            if (profil.likvid_formue + formue.get(alder, 0.0) > graense) != (profil.likvid_formue + nye_formue.get(alder, 0.0) > graense):
+                return False
+        return True
 
-        # ATP fra folkepensionsalderen (påvirkes ikke af opsættelse)
-        atp_aar = 0.0
-        if alder >= fp_alder:
-            if profil.atp_aarlig is None:
-                atp_aar = o.v("atp.fallback")
-                o.marker("skoennet_atp")
-                atp_skoennet = True
-            else:
-                atp_aar = profil.atp_aarlig * o.reguleringsfaktor
-            andel = foerste_andel if alder == fp_alder else 1.0
-            if atp_aar * andel > 0:
-                brutto["atp"] = ("atp", atp_aar * andel)
+    def aar_for_aar(kapitalindkomst: dict[int, float], formue: dict[int, float]):
+        """Årene for givne kapitalindkomster og formuer fra bufferen (fastpunktet nedenfor)."""
+        atp_skoennet = False
+        mellemskat_aldre: list[int] = []
+        aar: list[Aarsresultat] = []
 
-        # 2.–4. folkepension og tillægsstyrede ydelser
-        partner_er_pensionist = (
-            partner_fp_alder is not None
-            and kalenderaar - profil.partner.foedselsdato.year >= partner_fp_alder
-        )
-        grundlag = indtaegtsgrundlag(
-            privat_s, atp_aar, profil.anden_kapitalindkomst,
-            _partner_indkomst(profil.partner, kalenderaar, o), partner_er_pensionist, o,
-        )
-        tp = 0
-        if alder >= fp_start:
-            andel = foerste_andel if alder == fp_start else 1.0
-            brutto["grundbeloeb"] = ("grundbeloeb", o.v("fp.grundbeloeb") * vente * andel)
-            tillaeg = pensionstillaeg(grundlag, tillaegsregel(gift, partner_er_pensionist), o) * vente * andel
-            if tillaeg > 0:
-                brutto["pensionstillaeg"] = ("pensionstillaeg", tillaeg)
-            tp = tillaegsprocent(grundlag, gift, o)
-            if alder > fp_start:
-                for navn, beloeb in (("aeldrecheck", aeldrecheck(tp, profil.likvid_formue, o)),
-                                     ("mediecheck", mediecheck(tp, o))):
-                    if beloeb > 0:
-                        brutto[navn] = (navn, beloeb)
-            if profil.anden_kapitalindkomst > 0:
-                o.marker("forenkling:kapitalindkomst_ikke_beskattet")
+        for alder in range(tabel_start, tabel_slut + 1):
+            kalenderaar = foedselsaar + alder
+            o = aarets_opslag.get(alder) or aarets_opslag.setdefault(alder, opslag(alder))
+            kommuneskat = o.kommuneskat(profil.kommune)
+            kirkeskat = o.kirkeskat(profil.kommune) if profil.folkekirkemedlem else 0.0
+            if kalenderaar > satsaar:
+                o.antagelse("satsregulering", satsregulering)
 
-        # 5.–6. personlig indkomst og skat
-        pi_pr_kilde = {k: b for k, (_, b) in brutto.items()}
-        pi = sum(pi_pr_kilde.values())
-        skat = beregn_skat(pi, kommuneskat, kirkeskat, o)
-        andele = fordel(skat.total, pi_pr_kilde)
-        kilder = tuple(
-            Indkomstkilde(k, type_, b, andele[k], b - andele[k]) for k, (type_, b) in brutto.items()
-        )
-        netto = pi - skat.total
-        aar_frem = kalenderaar - beregningsdato.year
-        realfaktor = 1 / (1 + o.antagelse("inflation", antagelser.inflation)) ** aar_frem
-        netto_real = netto * realfaktor
+            # 1. private udbetalinger
+            brutto: dict[str, tuple[str, float]] = {}
+            engangs = 0.0
+            for plan in planer:
+                if plan.rater.get(alder):
+                    brutto[plan.id] = ("ratepension", plan.rater[alder])
+                    o.antagelse("afkast_efter_pal", afkast)
+                elif plan.livsvarig and alder >= plan.start:
+                    brutto[plan.id] = ("livsvarig", plan.livsvarig)
+                    o.antagelse("afkast_efter_pal", afkast)
+                    o.antagelse("livsvarig_horisont_alder", antagelser.livsvarig_horisont_alder)
+                elif alder in plan.engangs:
+                    engangs += plan.engangs[alder]
+            privat_s = sum(b for _, b in brutto.values())
 
-        if pi > o.v("skat.mellemskat.graense"):
-            mellemskat_aldre.append(alder)
+            # ATP fra folkepensionsalderen (påvirkes ikke af opsættelse)
+            atp_aar = 0.0
+            if alder >= fp_alder:
+                if profil.atp_aarlig is None:
+                    atp_aar = o.v("atp.fallback")
+                    o.marker("skoennet_atp")
+                    atp_skoennet = True
+                else:
+                    atp_aar = profil.atp_aarlig * o.reguleringsfaktor
+                andel = foerste_andel if alder == fp_alder else 1.0
+                if atp_aar * andel > 0:
+                    brutto["atp"] = ("atp", atp_aar * andel)
 
-        aar.append(Aarsresultat(
-            alder=alder, kalenderaar=kalenderaar, kilder=kilder, personlig_indkomst=pi,
-            skat_i_alt=skat.total, indtaegtsgrundlag=grundlag, tillaegsprocent=tp,
-            netto_i_alt=netto, netto_real=netto_real, realfaktor=realfaktor, engangsbeloeb_netto=engangs,
-            sporing=tuple(o.brugt), flag=tuple(o.flag),
-        ))
-        samlet.overtag(o)
+            # 2.–4. folkepension og tillægsstyrede ydelser
+            partner_er_pensionist = (
+                partner_fp_alder is not None
+                and kalenderaar - profil.partner.foedselsdato.year >= partner_fp_alder
+            )
+            buffer_ki = kapitalindkomst.get(alder, 0.0)
+            grundlag = indtaegtsgrundlag(
+                privat_s, atp_aar, profil.anden_kapitalindkomst + buffer_ki,
+                _partner_indkomst(profil.partner, kalenderaar, o), partner_er_pensionist, o,
+            )
+            tp = 0
+            if alder >= fp_start:
+                andel = foerste_andel if alder == fp_start else 1.0
+                brutto["grundbeloeb"] = ("grundbeloeb", o.v("fp.grundbeloeb") * vente * andel)
+                tillaeg = pensionstillaeg(grundlag, tillaegsregel(gift, partner_er_pensionist), o) * vente * andel
+                if tillaeg > 0:
+                    brutto["pensionstillaeg"] = ("pensionstillaeg", tillaeg)
+                tp = tillaegsprocent(grundlag, gift, o)
+                if alder > fp_start:
+                    for navn, beloeb in (("aeldrecheck", aeldrecheck(tp, profil.likvid_formue + formue.get(alder, 0.0), o)),
+                                         ("mediecheck", mediecheck(tp, o))):
+                        if beloeb > 0:
+                            brutto[navn] = (navn, beloeb)
+                if profil.anden_kapitalindkomst > 0:
+                    o.marker("forenkling:kapitalindkomst_ikke_beskattet")
+
+            # 5.–6. personlig indkomst og skat
+            pi_pr_kilde = {k: b for k, (_, b) in brutto.items()}
+            pi = sum(pi_pr_kilde.values())
+            skat = beregn_skat(pi, kommuneskat, kirkeskat, o, kapitalindkomst=buffer_ki)
+            skat_pi = skat.total - skat.skat_kapitalindkomst
+            andele = fordel(skat_pi, pi_pr_kilde)
+            kilder = tuple(
+                Indkomstkilde(k, type_, b, andele[k], b - andele[k]) for k, (type_, b) in brutto.items()
+            )
+            netto = pi - skat_pi
+            aar_frem = kalenderaar - beregningsdato.year
+            realfaktor = 1 / (1 + o.antagelse("inflation", antagelser.inflation)) ** aar_frem
+            netto_real = netto * realfaktor
+
+            if pi > o.v("skat.mellemskat.graense"):
+                mellemskat_aldre.append(alder)
+
+            aar.append(Aarsresultat(
+                alder=alder, kalenderaar=kalenderaar, kilder=kilder, personlig_indkomst=pi,
+                skat_i_alt=skat_pi, indtaegtsgrundlag=grundlag, tillaegsprocent=tp,
+                netto_i_alt=netto, netto_real=netto_real, realfaktor=realfaktor, engangsbeloeb_netto=engangs,
+                sporing=tuple(o.brugt), flag=tuple(o.flag),
+                kapitalindkomst=buffer_ki, skat_kapitalindkomst=skat.skat_kapitalindkomst,
+            ))
+            samlet.overtag(o)
+        return aar, mellemskat_aldre, atp_skoennet
+
+    # ── 3b. Bufferen: kapitalindkomst og formue (feature 009) ────────────────
+    # Bufferen (engangsbeløb uden for pension) giver kapitalindkomst og formue, som påvirker skat,
+    # pensionstillæg og ældrecheck — og dermed den jævne udbetaling og bufferen selv. Det løses
+    # deterministisk ved fastpunkt-iteration med et fast loft.
+    engangs_i_buffer: dict[int, float] = {}
+    for plan in planer:
+        if plan.i_buffer:
+            for alder, beloeb in plan.engangs.items():
+                engangs_i_buffer[alder] = engangs_i_buffer.get(alder, 0.0) + beloeb
+    rente_buffer = afkast / (1 - samlet.v("pal.sats"))
+    samlet.antagelse("buffer_afkast_som_pension", rente_buffer)
+    # Stopkriterium: den jævne udbetaling ændrer sig i intet år mere end BUFFER_TOLERANCE_KR om
+    # måneden fra én iteration til den næste (hovedtallet vises afrundet til 100 kr.).
+    ki, formue = _buffer_ki_og_formue(buffer_start.jaevn, rente_buffer) if buffer_start else ({}, {})
+    forrige: list[float] | None = None
+    iteration = 0
+    konvergeret = False
+    while True:
+        iteration += 1
+        aar, mellemskat_aldre, atp_skoennet = aar_for_aar(ki, formue)
+        jaevn = beregn_jaevn(tuple(aar), engangs_i_buffer, rente_buffer, antagelser.inflation, beregningsdato.year)
+        niveauer = [j.jaevn for j in jaevn.aar] if jaevn else []
+        nye_ki, nye_formue = _buffer_ki_og_formue(jaevn, rente_buffer)
+        if (nye_ki == ki and nye_formue == formue) or _samme_buffer(ki, nye_ki, formue, nye_formue) or (
+                forrige is not None and len(forrige) == len(niveauer)
+                and max((abs(x - y) for x, y in zip(niveauer, forrige)), default=0.0) < BUFFER_TOLERANCE_KR * 12):
+            konvergeret = True
+            break
+        if iteration >= BUFFER_MAKS_ITERATIONER:
+            break
+        ki, formue, forrige = nye_ki, nye_formue, niveauer
 
     # ── 4. Advarsler ─────────────────────────────────────────────────────────
     for fra, til in _intervaller(mellemskat_aldre):
@@ -299,32 +384,49 @@ def beregn(
             "10 år eller et engangsbeløb — det er ikke beregnet her.",
         ))
 
-    # ── 5. Jævn udbetaling (US7) ─────────────────────────────────────────────
-    engangs_i_buffer: dict[int, float] = {}
-    for plan in planer:
-        if plan.engangs_netto and plan.i_buffer:
-            engangs_i_buffer[plan.start] = engangs_i_buffer.get(plan.start, 0.0) + plan.engangs_netto
-    jaevn = beregn_jaevn(
-        tuple(aar), engangs_i_buffer, afkast, antagelser.buffer_kapitalskat, antagelser.inflation,
-        beregningsdato.year,
-    )
-    if engangs_i_buffer:
-        samlet.antagelse("buffer_kapitalskat", antagelser.buffer_kapitalskat)
+    # ── 5. Jævn udbetaling (US7) og bufferen (009) ───────────────────────────
+    if any(a.kapitalindkomst > 0 for a in aar):
         advarsler.append(Advarsel(
-            "BUFFER_YDELSE_FORENKLING",
-            "Den jævne udbetaling forudsætter, at engangsbeløb placeres som opsparing uden for "
-            "pension. Afkastet af den opsparing kan nedsætte pensionstillæg og ældrecheck — det "
-            "er ikke regnet med.",
+            "BUFFER_SOM_OPSPARING",
+            "Den jævne udbetaling forudsætter, at engangsbeløb og overskud placeres som opsparing uden "
+            "for pension (bank eller obligationer) med samme afkast før skat som din pension. Afkastet er "
+            "regnet som kapitalindkomst: det beskattes, nedsætter pensionstillægget, og opsparingen tæller "
+            "med i ældrechecks formuegrænse.",
+            registerposter=("pal.sats", "skat.kapitalindkomst.bundfradrag", "yd.aeldrecheck.formuegraense"),
         ))
-    if jaevn and min(a.buffer_rest for a in jaevn.aar) < 0:
+    if not konvergeret:
+        advarsler.append(Advarsel(
+            "BUFFER_IKKE_KONVERGERET",
+            "Bufferens kapitalindkomst og formue kunne ikke regnes helt præcist (fx fordi formuen ligger "
+            "tæt på ældrechecks formuegrænse). Tallene kan afvige lidt.",
+        ))
+    if jaevn and min(a.buffer_rest for a in jaevn.aar) < -1.0:  # < 1 kr. er regnestøj (bufferen ender i nul)
         advarsler.append(Advarsel(
             "JAEVN_FORUDSAETTER_SENERE_UDBETALINGER",
             "Den jævne udbetaling er et gennemsnit. I nogle år forudsætter den penge fra udbetalinger, "
             "du først får senere.",
         ))
 
+    aldre_i_tabel = {a.alder for a in aar}
+    engangsbeloeb = tuple(
+        Engangsbeloeb(plan.id, plan.type, alder, beloeb, plan.i_buffer)
+        for plan in planer for alder, beloeb in sorted(plan.engangs.items()) if beloeb and alder in aldre_i_tabel
+    )
     return Fremskrivning(
         satsaar=satsaar, beregningsdato=beregningsdato, folkepensionsalder=fp_alder,
         aar=tuple(aar), advarsler=tuple(advarsler), antagelser=antagelser,
-        sporing_samlet=tuple(samlet.brugt), jaevn=jaevn,
+        sporing_samlet=tuple(samlet.brugt), jaevn=jaevn, engangsbeloeb=engangsbeloeb,
+        buffer_iterationer=iteration,
     )
+
+
+
+def _buffer_ki_og_formue(jaevn: JaevnUdbetaling | None, rente: float) -> tuple[dict[int, float], dict[int, float]]:
+    """Kapitalindkomst (årets afkast af en positiv buffer) og formue pr. 1. januar (bufferen ved
+    udgangen af året før). Negativ buffer — lån af senere udbetalinger — giver hverken
+    kapitalindkomst eller formue (forenkling; der advares særskilt)."""
+    if jaevn is None or rente <= 0:
+        return {}, {}
+    ki = {j.alder: max(0.0, j.buffer_rest) * rente / (1 + rente) for j in jaevn.aar}
+    formue = {nu.alder: max(0.0, foer.buffer_rest) for foer, nu in zip(jaevn.aar, jaevn.aar[1:])}
+    return {k: v for k, v in ki.items() if v > 0}, {k: v for k, v in formue.items() if v > 0}

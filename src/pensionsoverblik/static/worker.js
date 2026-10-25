@@ -17,6 +17,8 @@ def kald(op, *args):
         svar = app.beregn(args[0], args[1])
     elif op == "pdf":
         svar = app.pdf(args[0].to_bytes())
+    elif op == "optimer":
+        svar = app.optimer(args[0], args[1], args[2])
     else:
         raise ValueError(op)
     return json.dumps(svar, allow_nan=False)
@@ -58,6 +60,14 @@ onmessage = async ({ data: { id, op, args } }) => {
     if (op === "pdf") await hentPdf(m);
     const kald = m.kald;
     const pyArgs = args.map((a) => (a instanceof ArrayBuffer ? new Uint8Array(a) : a));
+    if (op === "optimer") {
+      // Fremdrift fra kernen (antal afprøvede / budget), højst ved hver hele procent.
+      let sidst = -1;
+      pyArgs.push((n, iAlt) => {
+        const andel = Math.floor((100 * n) / iAlt);
+        if (andel !== sidst) { sidst = andel; postMessage({ id, fremdrift: andel / 100 }); }
+      });
+    }
     postMessage({ id, svar: JSON.parse(kald(op, ...pyArgs)) });
   } catch (e) {
     postMessage({ id, fejl: String(e) });

@@ -16,7 +16,7 @@ def test_tidligste_alder_pr_ordning():
     assert g["ordninger"] == {
         "a": {"tidligste": 63, "oplyst": False},
         "b": {"tidligste": 65, "oplyst": False},
-        "c": {"tidligste": 60, "oplyst": True},
+        "c": {"tidligste": 60, "oplyst": True, "seneste": 80, "kan_omlaegges": True},  # 009: kapitalpension
     }
     assert g["ratepension_aar"] == {"min": 10, "maks": 30}
     assert g["opsaettelse_maks"] == 10

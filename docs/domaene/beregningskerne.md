@@ -214,6 +214,48 @@ satsår ad gangen pr. beregning, men flere satsår i registret.*
   overgangstabel efter fødselsdato gav fp-alder − 3 = 67 og ville have afvist rigtige aftaler.
   Rettet til 60 år (`sekundaer`). Selskabets oplyste alder overstyrer nu altid reglen.
 
+## 7c. Optimeringen i forhold til legacy (feature 007)
+
+`pensionskerne/optimering.py` porterer `legacy/sekventering.py`. Afvigelser:
+
+| # | Legacy | Ny | Hvorfor |
+|---|---|---|---|
+| O1 | Mål: legacys ene jævne niveau | Det laveste jævne beløb fra første udbetaling ("fast beløb hele perioden") | Kernens jævne model stiger ved senere engangsbeløb. Hovedtallet alene belønnede at skubbe engangsbeløb sent (fundet i T003) |
+| O2 | Engangsbeløb kunne spredes ("kapital_rate") | Ikke med | Kernen har ikke den udbetalingsform |
+| O3 | Opsættelse {0, 1, 2, 3, 5} | 0 til registrets maksimum (10) | Grænsen fra registret (Princip II) |
+| O4 | Startalder til pensionsalder + 10 | Til folkepensionsalder + registrets maksimale opsættelse | Kernen har ingen pensionsalder |
+| O5 | Værn på legacys tabel | Samme fem værn på kernens jævne model, med "under 1 kr." som nul for bufferen | Regnestøj ved bufferens nulpunkt gav forskellige planer i CPython og WebAssembly (T006) |
+| O6 | Top 5 og følsomhed | Kun bedste forslag | Princip X (klarhed før fuldstændighed) |
+
+## 7d. Kapitalpension og bufferen (feature 009)
+
+**Nye regler** (alle i registret med kilde, se `specs/009-kapitalpension/research.md`):
+- Kapitalpension kan udbetales delvist (PBL § 26), senest 20 år efter pensionsudbetalingsalderen
+  (§ 25, stk. 1, nr. 7). Den kan overføres til en rate- eller livrenteordning (§ 41, stk. 1, nr. 4
+  og 6), og afgift, der allerede er betalt, gør udbetalingen skattefri.
+- Bufferen er opsparing uden for pension:
+  - Afkastet før skat er afkastet efter PAL / (1 − 15,3 %).
+  - Afkastet er positiv kapitalindkomst, beskattet efter PSL §§ 6, 7, stk. 1, og 19, stk. 2, og
+    indgår i indtægtsgrundlaget (§ 29).
+  - Bufferen pr. 1. januar er likvid formue (§ 72 d).
+  - Fastpunktet løses deterministisk.
+
+**Afvigelser fra legacy og fra 001:**
+
+| # | Før | Nu | Hvorfor |
+|---|---|---|---|
+| B1 | Bufferen gav afkast med en fast skat på 27 % og påvirkede ikke ydelser (kun en advarsel) | Kapitalindkomst efter PSL, nedsætter pensionstillægget, formue i ældrechecken | Princip III. Det var præcis den forskel, der gør portioner mod engangsbeløb til et reelt valg |
+| B2 | PDF: kapitalpension med betalt afgift blev stille lavet om til aldersopsparing | Typen bevares, og `afgift_betalt` sættes | Ærlig visning. Omlægning er ikke mulig med betalt afgift |
+| B3 | Legacys "kapital_rate" som annuitet ("ikke en generel ret") | Portioner efter § 11 A-formlen af restværdien, med hjemmel i PBL § 26 | Lovhjemlen er nu verificeret |
+
+**Forenklinger, der står tilbage** (markeret eller advaret):
+- Bufferen beskattes som kapitalindkomst (bank og obligationer), ikke som aktieindkomst.
+- Negativ buffer (lån af senere udbetalinger) giver intet renteudgiftsfradrag. Det advares der om.
+- Ægtepars overførsel af uudnyttet bundfradrag for kapitalindkomst er ikke modelleret.
+- Borgerens egen "anden kapitalindkomst" indgår i indtægtsgrundlaget, men beskattes ikke
+  (markeret `kapitalindkomst_ikke_beskattet`, som før).
+- Kapitalpension oprettet før 1980 (lavere afgift, PBL §§ 26 A og 27) er ikke modelleret.
+
 ## 8. Uden for denne feature (kommer i senere features)
 
 PDF-import fra PensionsInfo · AI-forklaring/chat · Optimering af udbetalingsrækkefølge

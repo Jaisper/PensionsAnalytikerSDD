@@ -1,8 +1,10 @@
 """Jævn udbetaling (US7) — en præsentationsmodel, ikke lovgivning.
 
-Engangsbeløb (der ikke er fravalgt) lægges i en buffer, som forrentes med afkastet efter
-en antaget kapitalskat. Ud fra bufferen og de almindelige nettoudbetalinger beregnes ét
-niveau, der stiger med inflationen (konstant i dagens købekraft):
+Engangsbeløb (der ikke er fravalgt) lægges i en buffer — opsparing uden for pension, der
+forrentes med afkastet før skat (feature 009). Skatten af afkastet (kapitalindkomst) regnes i
+kernens år-for-år-beregning og betales af bufferen: den trækkes fra årets almindelige
+nettoudbetaling her. Ud fra bufferen og nettoudbetalingerne beregnes ét niveau, der stiger med
+inflationen (konstant i dagens købekraft):
 
 - Grundniveauet finansieres af nutidsværdien af alle almindelige nettoudbetalinger plus
   engangsbeløb, der er modtaget i det første år.
@@ -15,6 +17,11 @@ from __future__ import annotations
 
 from .model import Aarsresultat, JaevnAar, JaevnUdbetaling
 
+# Bufferens fastpunkt (feature 009) — modelparametre, ikke lovsatser: stop, når den jævne
+# udbetaling ændrer sig mindre end 1 kr. om måneden, og giv op (med advarsel) efter 8 iterationer.
+BUFFER_TOLERANCE_KR = 1.0  # pr. måned
+BUFFER_MAKS_ITERATIONER = 8
+
 
 def _faktor(aar: int, vaekst: float, rente: float) -> float:
     return sum((vaekst / (1 + rente)) ** i for i in range(aar))
@@ -23,19 +30,18 @@ def _faktor(aar: int, vaekst: float, rente: float) -> float:
 def beregn_jaevn(
     raekker: tuple[Aarsresultat, ...],
     engangs_i_buffer: dict[int, float],
-    afkast: float,
-    buffer_kapitalskat: float,
+    rente: float,
     inflation: float,
     beregningsaar: int,
 ) -> JaevnUdbetaling | None:
     if not raekker:
         return None
-    rente = afkast * (1 - buffer_kapitalskat)
     vaekst = 1 + inflation
     n = len(raekker)
     foerste_alder = raekker[0].alder
+    normal = [r.netto_i_alt - r.skat_kapitalindkomst for r in raekker]
 
-    nv_normal = sum(r.netto_i_alt / (1 + rente) ** i for i, r in enumerate(raekker))
+    nv_normal = sum(x / (1 + rente) ** i for i, x in enumerate(normal))
     grund = (engangs_i_buffer.get(foerste_alder, 0.0) + nv_normal) / _faktor(n, vaekst, rente)
     tillaeg = {
         alder - foerste_alder: beloeb / _faktor(n - (alder - foerste_alder), vaekst, rente)
@@ -48,10 +54,10 @@ def beregn_jaevn(
     for i, r in enumerate(raekker):
         buffer += engangs_i_buffer.get(r.alder, 0.0)
         jaevn = grund * vaekst ** i + sum(t * vaekst ** (i - j) for j, t in tillaeg.items() if j <= i)
-        forskel = jaevn - r.netto_i_alt
+        forskel = jaevn - normal[i]
         buffer = (buffer - forskel) * (1 + rente)
         aar.append(JaevnAar(
-            alder=r.alder, jaevn=jaevn, normal=r.netto_i_alt,
+            alder=r.alder, jaevn=jaevn, normal=normal[i],
             fra_buffer=max(0.0, forskel), til_buffer=max(0.0, -forskel), buffer_rest=buffer,
         ))
 

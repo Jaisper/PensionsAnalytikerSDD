@@ -32,5 +32,5 @@ i repoet.
 
 | # | Fund | Alv. |
 |---|---|---|
-| B1 | Bjælkerne kan ikke trækkes med musen som i legacy. Kun skyderne virker (bevidst, se spec Assumptions) | 1 |
+| B1 | ~~Bjælkerne kan ikke trækkes med musen som i legacy~~ Løst i [006](../006-traek-bjaelker/) | – |
 | B2 | Rækkefølgen i tidslinjen følger rapporten, ikke startalderen | 1 |

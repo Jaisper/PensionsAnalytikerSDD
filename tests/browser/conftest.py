@@ -67,3 +67,33 @@ def ny_side(browser, base_url):
     page.base_url = base_url
     yield page
     ctx.close()
+
+
+def koer_guide(page, pdf_sti=None):
+    """Guiden som en borger: evt. upload af rapporten, kommune, ordninger og resultat."""
+    if pdf_sti is not None:
+        page.set_input_files("#pdf-fil", str(pdf_sti))
+        page.click("#pdf-knap")
+        page.wait_for_selector("#pdf-status p")
+    page.fill("#kommune", "Aarhus")
+    page.click("#naeste")
+    for felt in page.query_selector_all(".ordning input[id$='-saldo']"):
+        if not felt.input_value():
+            felt.fill("0")
+    for felt in page.query_selector_all(".ordning input[id$='-udbetaling_start_alder']"):
+        if not felt.input_value():
+            felt.fill("70")
+    page.click("#naeste")
+    page.click("#naeste")
+    page.wait_for_selector("#resultat:not([hidden])")
+
+
+@pytest.fixture
+def resultat(side, tmp_path):
+    """Resultatsiden for den syntetiske rapport."""
+    from tests.app.pensionsinfo_syntetisk import RAPPORT_PDF
+
+    pdf = tmp_path / "rapport.pdf"
+    pdf.write_bytes(RAPPORT_PDF)
+    koer_guide(side, pdf)
+    return side

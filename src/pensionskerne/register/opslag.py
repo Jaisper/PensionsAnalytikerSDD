@@ -20,6 +20,7 @@ class Regelopslag:
         self.streng = streng
         self.brugt: list[str] = []
         self.flag: list[str] = []
+        self._vaerdier: dict[str, Any] = {}  # samme post giver altid samme værdi for samme år
 
     # ── intern registrering ──────────────────────────────────────────────
     def _registrer(self, id: str, status: str, kilde: str) -> None:
@@ -41,11 +42,20 @@ class Regelopslag:
     # ── opslag ───────────────────────────────────────────────────────────
     def v(self, id: str) -> Any:
         """Værdien for kalenderåret (satsreguleret, hvis posten er et beløb, der reguleres)."""
+        if id in self._vaerdier:  # allerede registreret i sporingen
+            return self._vaerdier[id]
         p = post(self.satsaar, id)
         self._registrer(p.id, p.status, p.kilde)
-        if p.reguleres:
-            return p.vaerdi * self.reguleringsfaktor
-        return p.vaerdi
+        vaerdi = p.vaerdi * self.reguleringsfaktor if p.reguleres else p.vaerdi
+        self._vaerdier[id] = vaerdi
+        return vaerdi
+
+    def husk(self, noegle: str, lav):
+        """Afledte værdier (fx listen af skattetrin), lavet én gang pr. år af `lav()` — kun ud fra
+        opslag i dette år, så de registreres i sporingen første gang."""
+        if noegle not in self._vaerdier:
+            self._vaerdier[noegle] = lav()
+        return self._vaerdier[noegle]
 
     def antagelse(self, navn: str, vaerdi: Any) -> Any:
         id = f"antagelse.{navn}"

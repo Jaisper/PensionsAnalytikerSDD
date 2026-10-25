@@ -40,22 +40,69 @@ def kommuner() -> list[dict]:
     return sorted(({"noegle": k, "navn": v} for k, v in navne.items()), key=lambda k: k["navn"].casefold())
 
 
+def _input(guide_json: str, idag: str):
+    try:
+        data = json.loads(guide_json)
+    except ValueError:
+        raise UgyldigtInput("body", "Forespørgslen kunne ikke læses") from None
+    try:
+        dato = date.fromisoformat(idag)
+    except ValueError:
+        raise UgyldigtInput("idag", "Ugyldig dato fra browseren") from None
+    profil, antagelser = til_kerne(data)
+    return profil, antagelser, dato
+
+
 def beregn(guide_json: str, idag: str) -> dict:
     try:
-        try:
-            data = json.loads(guide_json)
-        except ValueError:
-            raise UgyldigtInput("body", "Forespørgslen kunne ikke læses") from None
-        try:
-            dato = date.fromisoformat(idag)
-        except ValueError:
-            raise UgyldigtInput("idag", "Ugyldig dato fra browseren") from None
-        profil, antagelser = til_kerne(data)
+        profil, antagelser, dato = _input(guide_json, idag)
         visning = byg_visning(kerne_beregn(profil, antagelser, _satsaar(), dato))
     except UgyldigtInput as e:
         return _fejl("ugyldigt_input", e.besked, e.felt)
     visning["graenser"] = graenser(profil, _satsaar())
     return _ok(visning)
+
+
+def optimer(guide_json: str, idag: str, fremdrift=None) -> dict:
+    """Find bedste plan (feature 007). Beløb er det faste beløb hele perioden (kr./md., dagens
+    kroner), afrundet som hovedtallet. `plan` er forslaget — eller den nuværende plan, hvis
+    intet er bedre."""
+    from pensionskerne.optimering import optimer as kerne_optimer
+
+    try:
+        profil, antagelser, dato = _input(guide_json, idag)
+        r = kerne_optimer(profil, antagelser, _satsaar(), dato, fremdrift=fremdrift)
+    except UgyldigtInput as e:
+        return _fejl("ugyldigt_input", e.besked, e.felt)
+    foer = int(round(r.udgangspunkt_maaned, -2))
+    efter = int(round(r.bedste_maaned, -2)) if r.bedste else foer
+    forbedret = efter > foer  # en forbedring, der forsvinder i afrundingen, er ingen forbedring for borgeren
+    plan = r.bedste if forbedret else r.udgangspunkt
+    aendringer = []
+    if forbedret:
+        for oid, til in plan.starter.items():
+            if til != r.udgangspunkt.starter[oid]:
+                aendringer.append({"id": oid, "felt": "start", "fra": r.udgangspunkt.starter[oid], "til": til})
+            if oid in plan.varighed and plan.varighed[oid] != r.udgangspunkt.varighed[oid]:
+                aendringer.append({"id": oid, "felt": "varighed", "fra": r.udgangspunkt.varighed[oid], "til": plan.varighed[oid]})
+        for oid, til in plan.form.items():
+            fra = r.udgangspunkt.form.get(oid)
+            if til != fra:
+                aendringer.append({"id": oid, "felt": "form", "fra": {"form": fra[0], "aar": fra[1]},
+                                   "til": {"form": til[0], "aar": til[1]}})
+        if plan.opsaettelse != r.udgangspunkt.opsaettelse:
+            aendringer.append({"id": "folkepension", "felt": "opsaettelse", "fra": r.udgangspunkt.opsaettelse, "til": plan.opsaettelse})
+    ordninger = {oid: {"udbetaling_start_alder": start} for oid, start in plan.starter.items()}
+    for oid, aar in plan.varighed.items():
+        ordninger.setdefault(oid, {})["udbetaling_aar"] = aar
+    for oid, (form, aar) in plan.form.items():
+        ordninger.setdefault(oid, {}).update({"udbetalingsform": form, "udbetaling_aar": aar})
+    return _ok({
+        "forbedret": forbedret, "foer": foer, "efter": efter if forbedret else foer,
+        "aendringer": aendringer,
+        "plan": {"ordninger": ordninger, "folkepension_opsaettelse_aar": plan.opsaettelse},
+        "evalueret": r.evalueret, "mulige": r.mulige, "udtoemmende": r.udtoemmende,
+    })
 
 
 def pdf(data: bytes) -> dict:

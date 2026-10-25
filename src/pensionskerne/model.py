@@ -46,9 +46,11 @@ class Ordning:
     udbetaling_start_alder: int
     oprettet: date | None = None
     aarlig_indbetaling: float = 0.0
-    udbetaling_aar: int | None = None   # kun ratepension; None = registrets minimum
+    udbetaling_aar: int | None = None   # ratepension (None = registrets minimum); kapitalpension i portioner/omlagt
     i_buffer: bool = True               # kun engangsbeløb (US7)
     tidligste_udbetalingsalder: float | None = None  # oplyst af pensionsselskabet (PensionsInfo); overstyrer reglen
+    afgift_betalt: bool = False         # kapitalpension, hvor afgiften er betalt (fx omlagt 2013–2014): skattefri (009)
+    udbetalingsform: str = "engangs"    # kapitalpension: engangs | portioner | ratepension | livsvarig (009)
 
 
 @dataclass(frozen=True)
@@ -84,7 +86,6 @@ class Antagelser:
     loenvaekst: float = 0.0
     livsvarig_horisont_alder: int = 90
     livsvarig_min_aar: int = 18
-    buffer_kapitalskat: float = 0.27
     folkepension_opsaettelse_aar: int = 0
 
     @property
@@ -118,6 +119,8 @@ class Aarsresultat:
     engangsbeloeb_netto: float
     sporing: tuple[str, ...]
     flag: tuple[str, ...]
+    kapitalindkomst: float = 0.0        # bufferens afkast (nominelt), positiv nettokapitalindkomst (009)
+    skat_kapitalindkomst: float = 0.0   # merskatten af kapitalindkomsten; betales af bufferen (009)
 
 
 @dataclass(frozen=True)
@@ -146,6 +149,16 @@ class JaevnUdbetaling:
 
 
 @dataclass(frozen=True)
+class Engangsbeloeb:
+    """Et engangsbeløb fra en ordning (feature 008) — oplysning, ingen ny beregning."""
+    ordning_id: str
+    type: str
+    alder: int
+    netto: float                # nominelt, i udbetalingsåret (efter evt. afgift)
+    i_buffer: bool              # True = indgår i den jævne udbetaling; False = udbetales direkte
+
+
+@dataclass(frozen=True)
 class Fremskrivning:
     satsaar: int
     beregningsdato: date
@@ -155,6 +168,8 @@ class Fremskrivning:
     antagelser: Antagelser
     sporing_samlet: tuple[str, ...]
     jaevn: JaevnUdbetaling | None = None
+    engangsbeloeb: tuple[Engangsbeloeb, ...] = ()
+    buffer_iterationer: int = 1         # fastpunkt-iterationer for bufferens kapitalindkomst og formue (009)
 
     def aar_ved(self, alder: int) -> Aarsresultat:
         return next(a for a in self.aar if a.alder == alder)

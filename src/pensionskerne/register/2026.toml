@@ -97,6 +97,28 @@ enhed = "brok"
 kilde = "Arbejdsmarkedsbidragsloven § 1. Betales ved INDbetaling til arbejdsgiverordninger, aldrig ved udbetaling fra pensionsinstitutter (SKAT, B.3; domænegrundlag A1). Bruges ikke i udbetalingsberegningen."
 status = "verificeret"
 
+[[post]]
+id = "skat.kapitalindkomst.bundfradrag"
+vaerdi = 55000
+enhed = "kr_aar"
+kilde = "Personskatteloven § 7, stk. 1: bundfradrag for positiv nettokapitalindkomst i mellemskattegrundlaget, ugifte, 55.000 kr. (2026). Skatteministeriets satsoversigt for personskatteloven (svmn.dk)"
+status = "verificeret"
+reguleres = true
+
+[[post]]
+id = "skat.skatteloft.kapitalindkomst"
+vaerdi = 0.42
+enhed = "brok"
+kilde = "Personskatteloven § 19, stk. 2: skatteloft for positiv nettokapitalindkomst 42,0 % (2026). Skatteministeriets satsoversigt for personskatteloven (svmn.dk)"
+status = "verificeret"
+
+[[post]]
+id = "pal.sats"
+vaerdi = 0.153
+enhed = "brok"
+kilde = "Pensionsafkastbeskatningsloven § 2: 'Der skal betales en skat til staten på 15,3 pct. af det skattepligtige afkast.'"
+status = "verificeret"
+
 # ── Folkepension ─────────────────────────────────────────────────────────────
 
 [[post]]
@@ -376,6 +398,13 @@ id = "ordning.kapitalpension.afgift"
 vaerdi = 0.40
 enhed = "brok"
 kilde = "Pensionsbeskatningsloven § 25, stk. 1, nr. 1: 40 % afgift af udbetaling fra kapitalpension (Den juridiske vejledning C.A.10.2.5.4.1)"
+status = "verificeret"
+
+[[post]]
+id = "ordning.kapitalpension.seneste_aar_efter_udbetalingsalder"
+vaerdi = 20
+enhed = "aar"
+kilde = "Pensionsbeskatningsloven § 12, stk. 1, nr. 3, og § 25, stk. 1, nr. 7: udbetaling senest 20 år efter pensionsudbetalingsalderen (forlænget fra 15 år pr. 1.1.2018). Delvis udbetaling: PBL § 26 (Den juridiske vejledning C.A.10.2.5.4.1)"
 status = "verificeret"
 
 [[post]]
