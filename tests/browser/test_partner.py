@@ -19,9 +19,9 @@ def til_resultat_som_par(side, tmp_path, civilstand="gift"):
     side.wait_for_selector("#pdf-status p")
     side.fill("#kommune", "Aarhus")
     side.check(f"input[name=civilstand][value={civilstand}]")
-    side.fill("#partner-foedselsdato", "1965-02-01")
     side.check("input[name=partnerdata][value=fuld]")
     assert side.locator('.fremdrift li[data-trin="3"]').is_visible()
+    assert side.locator("#partner-foedselsdato").is_hidden()  # spørges først i partnertrinnet (013)
     side.click("#naeste")                       # → trin 2: dine ordninger
     for felt in side.query_selector_all("#ordninger input[id$='-udbetaling_start_alder']"):
         if not felt.input_value():
@@ -31,12 +31,29 @@ def til_resultat_som_par(side, tmp_path, civilstand="gift"):
     side.set_input_files("#p-pdf-fil", str(pdf))
     side.click("#p-pdf-knap")
     side.wait_for_selector("#p-pdf-status p")
+    assert side.input_value("#p-foedselsdato")  # hentet fra partnerens rapport
     for felt in side.query_selector_all("#p-ordninger input[id$='-udbetaling_start_alder']"):
         if not felt.input_value():
             felt.fill("70")
     side.click("#naeste")                       # → trin 4: forventninger
     side.click("#naeste")                       # → resultat
     side.wait_for_selector("#resultat:not([hidden])")
+
+
+def test_partnerens_foedselsdato_kraeves_i_partnertrinnet_uden_rapport(side):
+    """Uden rapport skal fødselsdatoen skrives i partnertrinnet; ved overslag spørges i trin 1."""
+    side.fill("#foedselsdato", "1963-05-01")
+    side.fill("#kommune", "Aarhus")
+    side.check("input[name=civilstand][value=gift]")
+    side.check("input[name=partnerdata][value=overslag]")
+    assert side.locator("#partner-foedselsdato").is_visible()
+    side.check("input[name=partnerdata][value=fuld]")
+    side.click("#naeste")
+    side.click("#naeste")
+    side.click("#naeste")  # partnertrinnet uden fødselsdato
+    assert side.locator('.trin[data-trin="3"]').is_visible()
+    assert "fødselsdato" in side.inner_text('[data-felt="p.foedselsdato"]')
+    assert side.locator("#p-foedselsdato").get_attribute("aria-invalid") == "true"
 
 
 def faner(side):
