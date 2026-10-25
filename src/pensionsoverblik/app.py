@@ -15,11 +15,12 @@ from pensionskerne import UgyldigtInput, beregn as kerne_beregn, register
 from .oversaet import til_kerne
 from .pdfimport.aflaeser import AflaesningFejl, vaelg_aflaeser
 from .pdfimport.omsaet import til_guide
-from .pdfimport.tekst import PdfFejl, foedselsdato_fra_rapport, udtraek_forside
 from .visning import byg_visning, graenser
 
 MAKS_PDF_BYTES = 25 * 1024 * 1024
-AFLAESER = vaelg_aflaeser()  # altid den lokale parser (Princip XI)
+# Den lokale parser (Princip XI). Oprettes først ved første PDF, så beregningen kan starte uden
+# pdfplumber, pdfminer og cryptography, som browseren henter senere (research R005).
+AFLAESER = None
 
 
 def _satsaar() -> int:
@@ -59,6 +60,9 @@ def beregn(guide_json: str, idag: str) -> dict:
 
 def pdf(data: bytes) -> dict:
     """Aflæser en PensionsInfo-rapport lokalt til guidedata."""
+    global AFLAESER
+    from .pdfimport.tekst import PdfFejl, foedselsdato_fra_rapport, udtraek_forside
+
     if len(data) > MAKS_PDF_BYTES:
         return _fejl("for_stor", f"Filen er for stor. Den må højst fylde {MAKS_PDF_BYTES // 1024 // 1024} MB.")
     try:
@@ -66,6 +70,7 @@ def pdf(data: bytes) -> dict:
     except PdfFejl as e:
         return _fejl(e.kode, e.besked)
     try:
+        AFLAESER = AFLAESER or vaelg_aflaeser()
         aflaesning = AFLAESER.aflaes(data)
     except AflaesningFejl as e:
         return _fejl(e.kode, f"{e.besked} Du kan i stedet indtaste dine oplysninger selv.")

@@ -49,7 +49,7 @@ def side(browser, base_url):
     page = ctx.new_page()
     page.requests = []
     page.fejl = []
-    ctx.on("request", lambda r: page.requests.append((r.method, r.url)))
+    ctx.on("request", lambda r: page.requests.append((r.method, r.url, r.post_data_buffer)))
     page.on("pageerror", lambda e: page.fejl.append(str(e)))
     page.goto(base_url)
     page.evaluate("motorKlar")

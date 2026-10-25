@@ -87,15 +87,15 @@ def test_ikke_pdf_som_cpython(side):
 
 
 def test_intet_forlader_browseren(side, base_url, tmp_path):
-    """Helt forløb: upload, guide, resultat og skyder. Efter indlæsning: 0 requests (SC-001)."""
-    foer = list(side.requests)
-    assert any(u.endswith("pyodide.asm.wasm") for _, u in foer), "workerens requests skal kunne ses"
-    assert all(m == "GET" and u.startswith(base_url) for m, u in foer), foer
+    """Helt forløb: upload, guide, resultat og skyder (SC-001). Siden henter kun sine egne filer
+    (PDF-læseren i baggrunden, R005), sender aldrig data og henter intet, efter rapporten er læst."""
+    assert any(u.endswith("pyodide.asm.wasm") for _, u, _ in side.requests), "workerens requests skal kunne ses"
     pdf = tmp_path / "rapport.pdf"
     pdf.write_bytes(RAPPORT_PDF)
     side.set_input_files("#pdf-fil", str(pdf))
     side.click("#pdf-knap")
     side.wait_for_selector("#pdf-status p")
+    efter_pdf = len(side.requests)
     side.fill("#kommune", "Aarhus")
     side.click("#naeste")
     for felt in side.query_selector_all(".ordning input[id$='-saldo']"):
@@ -112,5 +112,6 @@ def test_intet_forlader_browseren(side, base_url, tmp_path):
     skyder.focus()
     skyder.press("ArrowRight")
     side.wait_for_function("(h) => document.querySelector('#hovedtal').innerText !== h", arg=hovedtal)
-    assert side.requests[len(foer):] == []
+    assert all(m == "GET" and u.startswith(base_url) and not data for m, u, data in side.requests), side.requests
+    assert side.requests[efter_pdf:] == []
     assert side.fejl == []

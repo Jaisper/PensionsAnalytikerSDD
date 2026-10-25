@@ -9,7 +9,8 @@ kerne_sha256 = "9bc8f127db6c590b191b9aee754022cb41b1a36c7bac233776c11c5ecb541be8
 pakke_url = "https://cdn.jsdelivr.net/pyodide/v0.27.7/full/"
 pakker = ["cryptography"]  # pdfminer.six importerer den på modulniveau
 
-# Rene Python-wheels fra PyPI (samme versioner som uv.lock).
+# Rene Python-wheels fra PyPI (samme versioner som uv.lock). Alle hører til PDF-aflæsningen og
+# hentes efter opstart sammen med pakkerne ovenfor.
 [[wheel]]
 navn = "pdfminer.six"
 url = "https://files.pythonhosted.org/packages/20/8b/28c4eaec9d6b036a52cb44720408f26b1a143ca9bce76cc19e8f5de00ab4/pdfminer_six-20260107-py3-none-any.whl"
