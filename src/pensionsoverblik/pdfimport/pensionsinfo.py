@@ -62,7 +62,7 @@ _TEKST: dict[int, str] = {}
 
 
 def _tekst(side) -> str:
-    """Sidens tekst, udtrukket højst én gang pr. aflæsning (cachen nulstilles i aflaes_sync)."""
+    """Sidens tekst, udtrukket højst én gang pr. aflæsning (cachen nulstilles i aflaes)."""
     if id(side) not in _TEKST:
         _TEKST[id(side)] = side.extract_text() or ""
     return _TEKST[id(side)]
@@ -343,10 +343,7 @@ class PensionsInfoAflaeser:
         self.rateloft = rateloft
         self.am_bidrag = am_bidrag
 
-    async def aflaes(self, data: bytes) -> Aflaesning:
-        return self.aflaes_sync(data)
-
-    def aflaes_sync(self, data: bytes) -> Aflaesning:
+    def aflaes(self, data: bytes) -> Aflaesning:
         _TEKST.clear()
         try:
             with pdfplumber.open(io.BytesIO(data)) as pdf:

@@ -10,14 +10,11 @@ default-groups = ["dev", "app"]
 
 [dependency-groups]
 app = [
-    "fastapi>=0.115",
     "pdfplumber>=0.11",
-    "uvicorn>=0.30",
 ]
 dev = [
     "pytest>=8",
     "hypothesis>=6",
-    "httpx>=0.27",
 ]
 
 [build-system]

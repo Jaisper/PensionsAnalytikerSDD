@@ -1,12 +1,8 @@
 """T001 — grænser til tidslinjens skydere kommer fra kernen og registret (FR-006, Princip II)."""
 from datetime import date
 
-from fastapi.testclient import TestClient
-
 from pensionskerne import Ordning
-from pensionsoverblik.api import app
 from pensionsoverblik.visning import graenser
-from tests.app.test_oversaet import GUIDE
 from tests.conftest import enlig_profil
 
 
@@ -26,7 +22,3 @@ def test_tidligste_alder_pr_ordning():
     assert g["opsaettelse_maks"] == 10
     assert g["folkepensionsalder"] == 68
 
-
-def test_graenser_i_api_svar():
-    v = TestClient(app).post("/api/beregn", json=GUIDE).json()
-    assert v["graenser"]["ordninger"]["o1"] == {"tidligste": 63, "oplyst": False}

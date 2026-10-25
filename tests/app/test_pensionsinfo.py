@@ -15,7 +15,7 @@ AFLAESER = PensionsInfoAflaeser(rateloft=68_700, am_bidrag=0.08)
 
 @pytest.fixture(scope="module")
 def aflaesning():
-    return AFLAESER.aflaes_sync(RAPPORT_PDF)
+    return AFLAESER.aflaes(RAPPORT_PDF)
 
 
 def _ordning(a, nr, kategori):
@@ -74,7 +74,7 @@ def test_hele_vejen_til_beregning():
     from pensionskerne import beregn
     from pensionsoverblik.oversaet import til_kerne
     from pensionsoverblik.pdfimport.omsaet import til_guide
-    g = til_guide(AFLAESER.aflaes_sync(RAPPORT_PDF), date(1968, 3, 15), 2026)
+    g = til_guide(AFLAESER.aflaes(RAPPORT_PDF), date(1968, 3, 15), 2026)
     for o in g["ordninger"]:
         o["saldo"] = o["saldo"] or 0
         o["udbetaling_start_alder"] = o["udbetaling_start_alder"] or 69
@@ -97,12 +97,12 @@ def test_kun_de_noedvendige_sider_laeses(monkeypatch):
             laest.append(side.page_number)
         return original(side)
     monkeypatch.setattr(pi, "_tekst", spion)
-    AFLAESER.aflaes_sync(RAPPORT_PDF)
+    AFLAESER.aflaes(RAPPORT_PDF)
     assert laest == [2, 3, 4, 5]  # indhold, aftaler, udbetalingstabel, flere oplysninger
 
 
 def test_uden_indholdsfortegnelse_bruges_fallback():
-    a = AFLAESER.aflaes_sync(RAPPORT_UDEN_INDHOLD_PDF)
+    a = AFLAESER.aflaes(RAPPORT_UDEN_INDHOLD_PDF)
     assert {o.aftalenr for o in a.ordninger} == {"1234567890", "5555555555", "9999999999"}
 
 
@@ -117,7 +117,7 @@ RIGTIG = os.environ.get("PENSIONSINFO_RAPPORT")
 def test_rigtig_rapport_lokalt():
     """Kører kun lokalt mod en rigtig rapport. Tjekker invarianter — ingen persondata i koden."""
     data = Path(RIGTIG).read_bytes()
-    a = AFLAESER.aflaes_sync(data)
+    a = AFLAESER.aflaes(data)
     foedt = foedselsdato_fra_rapport(udtraek_sider(data)[0])
     assert foedt is not None and 18 <= 2026 - foedt.year <= 110
     assert a.ordninger

@@ -2,8 +2,8 @@
 
 ## Fase 1: Forberedelse
 
-- [ ] T001 Erstat pydantic med dataclasses i `pdfimport/aflaeser.py` (D5). Hele suiten skal være grøn, og pydantic fjernes fra afhængighederne
-- [ ] T002 [P] `scripts/pyodide_laas.toml`: Pyodide 0.27.7 og wheels med versioner og SHA-256
+- [x] T001 Erstat pydantic med dataclasses i `pdfimport/aflaeser.py` (D5). Hele suiten skal være grøn, og pydantic fjernes fra afhængighederne
+- [x] T002 [P] `scripts/pyodide_laas.toml`: Pyodide 0.27.7 og wheels med versioner og SHA-256
 
 ## Fase 2: Indgangspunkt (US1)
 

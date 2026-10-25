@@ -6,20 +6,21 @@ er kontrakten, som den leverer.
 """
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from typing import Literal, Protocol
-
-from pydantic import BaseModel
 
 Kategori = Literal["ratepension", "livsvarig", "aldersopsparing", "kapitalpension", "atp", "folkepension",
                    "forsikring", "ukendt"]
 
 
-class Periode(BaseModel):
+@dataclass
+class Periode:
     etiket: str
     aarligt_beloeb: int | None
 
 
-class AflaestOrdning(BaseModel):
+@dataclass
+class AflaestOrdning:
     selskab: str | None
     aftalenr: str | None
     produkttype: str
@@ -30,10 +31,11 @@ class AflaestOrdning(BaseModel):
     aftalt_udbetalingsalder: int | None
     udbetalingsperioder: list[Periode]
     afgift_betalt: bool | None
-    noter: list[str] = []
+    noter: list[str] = field(default_factory=list)
 
 
-class Aflaesning(BaseModel):
+@dataclass
+class Aflaesning:
     atp_aarlig: int | None
     ordninger: list[AflaestOrdning]
 
@@ -48,10 +50,10 @@ class AflaesningFejl(RuntimeError):
 class Aflaeser(Protocol):
     """En lokal, deterministisk aflæser. Må ikke kalde eksterne tjenester (Princip XI)."""
 
-    async def aflaes(self, data: bytes) -> Aflaesning: ...
+    def aflaes(self, data: bytes) -> Aflaesning: ...
 
 
-def vaelg_aflaeser() -> Aflaeser | None:
+def vaelg_aflaeser() -> Aflaeser:
     """Den lokale PensionsInfo-parser. Lofter og satser hentes fra regelregistret (Princip II)."""
     from pensionskerne import register
     from pensionskerne.register.opslag import Regelopslag
