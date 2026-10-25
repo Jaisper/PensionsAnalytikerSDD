@@ -169,5 +169,11 @@ def test_kompakt_axe_og_360_px(resultat):
     assert fejl == []
     resultat.set_viewport_size({"width": 360, "height": 800})
     # Chart.js skalerer grafen via en ResizeObserver; vent til layoutet har sat sig.
-    resultat.wait_for_function("() => document.documentElement.scrollWidth <= 360", timeout=5000)
+    try:
+        resultat.wait_for_function("() => document.documentElement.scrollWidth <= 360", timeout=5000)
+    except Exception:
+        ud = resultat.evaluate("""() => [...document.querySelectorAll('body *')]
+            .filter(e => e.getBoundingClientRect().right > 361 && e.offsetParent !== null)
+            .slice(0, 12).map(e => `${e.tagName}#${e.id}.${e.className} ${Math.round(e.getBoundingClientRect().right)}`)""")
+        pytest.fail(f"Vandret scroll ved 360 px: {resultat.evaluate('document.documentElement.scrollWidth')} px. Stikker ud: {ud}")
     assert resultat.fejl == []
