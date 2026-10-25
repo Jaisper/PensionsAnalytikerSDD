@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-25
 
-**Status**: Draft – clarify gennemført, afventer beslutning om opdeling (se sidst)
+**Status**: Draft – clarify gennemført, opdeling besluttet (se sidst)
 
 **Input**: "Udvid analysen med friværdi i boliger, anden formue, forventet arv osv. Start med en
 fælles husstandsbalance, så formuetyperne kan afvejes mod hinanden i optimeringen."
@@ -30,8 +30,16 @@ selvstændige features oven på 013. Se også den foreslåede opdeling af 013 si
   personlig indkomst, positiv nettokapitalindkomst og aktieindkomst beskattet efter PSL § 8 a,
   stk. 1 og 2, *bortset fra aktieudbytte op til 5.000 kr.* (LBK nr. 1123 af 21/10/2024). Avance
   ved salg tæller altså fuldt, udbytte først over 5.000 kr.
-  - Åbent: om 5.000 kr. gælder pr. person (Seniorhåndbogen skriver 10.000 kr. for et par).
-    Posten lægges i registret som `uverificeret`, til lovteksten er læst direkte.
+  - **5.000 kr. pr. person** (tjekket 2026-10-25). Hverken lovteksten, Udbetaling Danmarks
+    side på borger.dk eller Ankestyrelsens principmeddelelse (KEN nr. 9793 af 23/10/2023) siger,
+    om grænsen gælder pr. person eller pr. par. De siger kun "aktieudbytte op til 5.000 kr.", og
+    at indtægtsgrundlaget for par er den samlede indtægt.
+  - Fire sekundære kilder siger "5.000 kr. for hver" eller "10.000 kr. for gifte/samlevende":
+    Danica, Jyske Bank, Faglig Senior og Seniorhåndbogen. Ældre Sagen har et eksempel med
+    15.000 kr. for et par, som ingen andre kilder støtter.
+  - Kernen bruger derfor 5.000 kr. pr. person. Posten registreres med status `sekundær kilde`
+    og noten "skriftlig bekræftelse fra Udbetaling Danmark afventes". Effekten er højst 5.000 kr.
+    i indtægtsgrundlaget for et par.
   - Afkast på aktiesparekonto beskattes efter aktiesparekontoloven og ikke efter PSL § 8 a. Det
     indgår derfor ikke i § 29.
 - **Likvid formue (ældrecheck)**: Ja. Værdien af en aktiesparekonto og af et frit depot (aktier,
@@ -61,7 +69,7 @@ selvstændige features oven på 013. Se også den foreslåede opdeling af 013 si
 | Udbytte og avance på aktier beskattes som aktieindkomst: 27 % op til progressionsgrænsen og 42 % over. Grænsen er 79.400 kr. i 2026 | PSL § 4 a og § 8 a, stk. 1–2. Skatteministeriets satsoversigt 2026 | verificeret |
 | Gifte, der er samlevende ved årets udgang: den ene ægtefælles uudnyttede progressionsgrænse forhøjer den andens. Forhøjelsen er højst ét grundbeløb. Negativ aktieindkomst modregnes særskilt efter stk. 6 | PSL § 8 a, stk. 4 (og stk. 6). Den juridiske vejledning C.A.8.2 | verificeret |
 | Aktiesparekonto: lagerbeskatning med 17 % af afkastet, som banken afregner. Indskudsloftet er 174.200 kr. i 2026, pr. person | Aktiesparekontoloven. skat.dk | verificeret |
-| Aktieindkomst indgår i pensionstillæggets indtægtsgrundlag, undtagen aktieudbytte op til 5.000 kr. | LSP § 29 (LBK nr. 1123 af 21/10/2024) | verificeret. Om grænsen er pr. person, er uverificeret |
+| Aktieindkomst indgår i pensionstillæggets indtægtsgrundlag, undtagen aktieudbytte op til 5.000 kr. | LSP § 29 (LBK nr. 1123 af 21/10/2024); borger.dk; Ankestyrelsen KEN nr. 9793 af 23/10/2023 | verificeret. At grænsen gælder pr. person, bygger på sekundære kilder (Danica, Jyske Bank, Faglig Senior, Seniorhåndbogen) |
 | Positiv nettokapitalindkomst indgår i pensionstillæggets indtægtsgrundlag | LSP § 29 (i kernen) | verificeret |
 | Ældrecheckens formuegrænse gælder husstandens samlede likvide formue, inkl. aktiesparekonto og frit depot | LSP § 72 d, stk. 2 (i registret). Omfanget er tjekket mod borger.dk og Ældre Sagen | verificeret. Lovteksten citeres i registret |
 | Bundfradrag og skatteloft for positiv nettokapitalindkomst | PSL § 7, stk. 1; § 19, stk. 2 (i registret) | verificeret |
@@ -239,10 +247,12 @@ En fold-ud under grafen viser formuen år for år pr. aktivtype og **restformuen
 | **014, 015, 016** | Bolig og friværdi, arv, usikkerhed (uændret) | senere |
 | **Helbredstillæg** | LSP § 14 a med egen formuegrænse | senere |
 
-**Beslutning ønskes** (fra projektejeren og fætteren), før der planlægges:
-- Opdelingen ovenfor.
-- Standard for den urealiserede gevinstandel (50 %).
-- Om 5.000 kr.-grænsen i § 29 skal afklares hos Udbetaling Danmark, før 013b merges.
+**Besluttet 2026-10-25** (projektejeren):
+- Opdelingen ovenfor er godkendt. 013 planlægges først.
+- Standarden for den urealiserede gevinstandel er 50 %.
+- 5.000 kr.-grænsen i § 29 er tjekket mod Udbetaling Danmarks borger.dk og Ankestyrelsen. Den
+  regnes pr. person (se Clarifications). En skriftlig bekræftelse fra Udbetaling Danmark kan
+  løfte status til `verificeret`. Den blokerer ikke 013, fordi grænsen først bruges i 013b.
 
 ## Uden for scope (næste features)
 
@@ -258,7 +268,10 @@ En fold-ud under grafen viser formuen år for år pr. aktivtype og **restformuen
 ## Kilder (clarify 2026-10-25)
 
 - Lov om social pension § 29: LBK nr. 1123 af 21/10/2024 (lovguiden.dk/danskelove.dk);
-  borger.dk, "Grundbeløb og pensionstillæg"
+  borger.dk, "Grundbeløb og pensionstillæg" og "Når du får folkepension"; Ankestyrelsens
+  principmeddelelse 22-23 (KEN nr. 9793 af 23/10/2023)
+- Udbyttegrænsen for par (sekundære kilder): Danica "Pension og offentlige ydelser" og
+  "Folkepension 2026"; Jyske Bank; Faglig Senior; Seniorhåndbogen
 - Likvid formue: borger.dk og Ældre Sagen om ældrecheck
 - PSL § 8 a: Skatteministeriets satsoversigt 2026; Den juridiske vejledning C.A.8.2 (tax.dk)
 - ABL §§ 19 B–C: Den juridiske vejledning C.B.4.3.1; LBK nr. 1098 af 27/08/2025
