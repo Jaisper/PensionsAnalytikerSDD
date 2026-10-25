@@ -48,7 +48,8 @@
             <li data-trin="1" aria-current="step"><span>1</span> Om dig</li>
             <li data-trin="2"><span>2</span> Dine ordninger</li>
             <li data-trin="3" hidden><span>3</span> Din partners ordninger</li>
-            <li data-trin="4"><span>3</span> Forventninger</li>
+            <li data-trin="4"><span>3</span> Opsparing</li>
+            <li data-trin="5"><span>4</span> Forventninger</li>
           </ol>
 
           <div class="motor" id="motor" role="status" aria-live="polite">
@@ -124,12 +125,6 @@
               <label class="valg"><input type="checkbox" id="folkekirke"> Jeg er medlem af folkekirken</label>
             </div>
 
-            <div class="felt" data-felt="likvid_formue person.likvid_formue">
-              <label for="formue">Opsparing uden for pension <span class="valgfri">(valgfri)</span></label>
-              <input id="formue" inputmode="numeric" class="beloeb" aria-describedby="formue-hjaelp" placeholder="0">
-              <p class="felt__hjaelp" id="formue-hjaelp">Fx penge i banken. For par: jeres samlede opsparing. Har betydning for ældrechecken.</p>
-            </div>
-
             <div class="felt" data-felt="atp_aarlig person.atp_aarlig">
               <label for="atp">Din ATP pr. år <span class="valgfri">(valgfri)</span></label>
               <input id="atp" inputmode="numeric" class="beloeb" aria-describedby="atp-hjaelp">
@@ -198,8 +193,38 @@
             </div>
           </fieldset>
 
-          <!-- Trin 4 -->
+          <!-- Trin 4: opsparing uden for pension (feature 013) -->
           <fieldset class="trin" data-trin="4" hidden>
+            <legend><h2 tabindex="-1">Din opsparing uden for pension</h2></legend>
+            <p class="hjaelp">Penge i banken, obligationer og lignende. Opsparingen påvirker din skat, dit pensionstillæg og din ældrecheck, så den kan ændre beløbet. Har du ingen, kan du springe trinnet over.</p>
+            <div class="felt" data-felt="opsparing[bank].saldo">
+              <label for="bank">Din opsparing <span class="valgfri">(valgfri)</span></label>
+              <input id="bank" inputmode="numeric" class="beloeb" aria-describedby="bank-hjaelp" placeholder="0">
+              <p class="felt__hjaelp" id="bank-hjaelp">Beløbet i dag. Afkastet beskattes som kapitalindkomst, og opsparingen tæller med i ældrechecks formuegrænse.</p>
+            </div>
+            <div class="felt felt--afkrydsning">
+              <label class="valg"><input type="checkbox" id="bank-i-plan" checked aria-describedby="bank-i-plan-hjaelp"> Brug opsparingen i min faste udbetaling</label>
+              <p class="felt__hjaelp" id="bank-i-plan-hjaelp">Ellers står den urørt og vokser med afkastet.</p>
+            </div>
+            <div id="p-opsparing-felter" hidden>
+              <div class="felt" data-felt="opsparing[p-bank].saldo">
+                <label for="p-bank">Din partners opsparing <span class="valgfri">(valgfri)</span></label>
+                <input id="p-bank" inputmode="numeric" class="beloeb" aria-describedby="p-bank-hjaelp" placeholder="0">
+                <p class="felt__hjaelp" id="p-bank-hjaelp">Kun din partners egen. En fælles konto kan I dele mellem jer.</p>
+              </div>
+              <div class="felt felt--afkrydsning">
+                <label class="valg"><input type="checkbox" id="p-bank-i-plan" checked> Brug den i min partners faste udbetaling</label>
+              </div>
+            </div>
+            <div class="felt" id="partner-formue-felt" data-felt="likvid_formue person.likvid_formue" hidden>
+              <label for="partner-formue">Din partners opsparing <span class="valgfri">(valgfri)</span></label>
+              <input id="partner-formue" inputmode="numeric" class="beloeb" aria-describedby="partner-formue-hjaelp" placeholder="0">
+              <p class="felt__hjaelp" id="partner-formue-hjaelp">Tæller med i jeres fælles formuegrænse for ældrechecken.</p>
+            </div>
+          </fieldset>
+
+          <!-- Trin 5 -->
+          <fieldset class="trin" data-trin="5" hidden>
             <legend><h2 tabindex="-1">Dine forventninger</h2></legend>
             <p class="hjaelp">Ingen kender fremtiden. Vi har foreslået almindelige værdier. Du kan ændre dem nu eller senere.</p>
             <div class="felt" data-felt="antagelser.afkast_efter_pal">
@@ -280,6 +305,7 @@
             <p class="sektion__intro">Om måneden efter skat, i dagens kroner, pr. kalenderår. Hver af jer udjævner for sig; den stiplede linje er jeres to faste beløb lagt sammen. Ret jeres ordninger under "Dig" og "Partner".</p>
             <div class="graf-ramme graf-ramme--bred"><canvas id="samlet-graf" role="img" aria-label="Søjlediagram over jeres udbetaling pr. kalenderår, fordelt på dig og din partner. Tallene findes også som tabel."></canvas></div>
             <ul class="forklaring-farver" id="samlet-forklaring"></ul>
+            <p class="graf-forklaring" id="samlet-formue" hidden></p>
             <div class="tidslinje" id="samlet-tidslinje" role="list" aria-label="Jeres ordninger over tid"></div>
             <details class="tabel-alternativ">
               <summary>Vis tallene som tabel</summary>
@@ -297,7 +323,7 @@
           <div class="panel__indhold" id="graf-panel-indhold">
             <p class="sektion__intro">Om måneden efter skat, i dagens kroner. Træk i bjælkerne under grafen for at flytte dine ordninger i tid – eller klik på en bjælke og justér år for år. Vi regner forfra med det samme.</p>
             <div class="graf-ramme graf-ramme--bred"><canvas id="graf" role="img" aria-label="Søjlediagram over din udbetaling pr. år, fordelt på kilder. Tallene findes også som tabel under diagrammet."></canvas></div>
-            <div class="graf-ramme graf-ramme--buffer" id="buffergraf-ramme" hidden><canvas id="buffergraf" role="img" aria-label="Linjediagram over din opsparing uden for pension (bufferen) pr. år i dagens kroner. Den går aldrig i minus. Tallene findes også i tabellen under diagrammet."></canvas></div>
+            <div class="graf-ramme graf-ramme--buffer" id="buffergraf-ramme" hidden><canvas id="buffergraf" role="img" aria-label="Linjediagram over den opsparing uden for pension, der bruges i din faste udbetaling, pr. år i dagens kroner. Den går aldrig i minus. Tallene findes også i tabellen under diagrammet."></canvas></div>
             <ul class="forklaring-farver" id="farveforklaring"></ul>
             <p class="graf-forklaring" id="jaevn-forklaring" hidden></p>
             <ul class="markeringer" id="graf-markeringer"></ul>
@@ -312,6 +338,11 @@
             <details class="tabel-alternativ">
               <summary>Vis tallene som tabel</summary>
               <div class="tabel-rul" id="graf-tabel"></div>
+            </details>
+            <details class="tabel-alternativ" id="formue-fold" hidden>
+              <summary id="formue-titel">Din opsparing uden for pension over tid</summary>
+              <p class="felt__hjaelp">I dagens kroner ved årets udgang. Den opsparing, der bruges i din faste udbetaling, er brugt op ved planens slutning. Urørt opsparing vokser med afkastet.</p>
+              <div class="tabel-rul" id="formue-tabel"></div>
             </details>
           </div>
         </section>

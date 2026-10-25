@@ -456,12 +456,13 @@ def beregn(
         aar=tuple(aar), advarsler=tuple(advarsler), antagelser=antagelser,
         sporing_samlet=tuple(samlet.brugt), jaevn=jaevn, engangsbeloeb=engangsbeloeb,
         buffer_iterationer=iteration,
-        formue=_formue(alder_nu, tabel_start, aar, jaevn, rente_buffer, i_plan_start, uroert_primo),
+        formue=_formue(alder_nu, tabel_start, aar, jaevn, rente_buffer, i_plan_start, uroert_primo,
+                       1 + antagelser.inflation),
         formue_start=i_plan_start + uroert_start,
     )
 
 
-def _formue(alder_nu, tabel_start, aar, jaevn, rente, i_plan_start, uroert_primo) -> tuple[FormueAar, ...]:
+def _formue(alder_nu, tabel_start, aar, jaevn, rente, i_plan_start, uroert_primo, vaekst) -> tuple[FormueAar, ...]:
     """Opsparingen ved årets udgang fra i dag (013): før første udbetalingsår vokser den med renten;
     derefter er opsparingen i planen bufferen, og den urørte vokser videre."""
     buffer = {j.alder: max(0.0, j.buffer_rest) for j in jaevn.aar} if jaevn else {}
@@ -471,6 +472,7 @@ def _formue(alder_nu, tabel_start, aar, jaevn, rente, i_plan_start, uroert_primo
             alder,
             i_plan_start * (1 + rente) ** (alder - alder_nu + 1) if alder < tabel_start else buffer.get(alder, 0.0),
             uroert_primo.get(alder, 0.0) * (1 + rente),
+            1 / vaekst ** (alder - alder_nu),
         )
         for alder in range(alder_nu, slut + 1)
     )

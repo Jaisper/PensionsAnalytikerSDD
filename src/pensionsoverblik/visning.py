@@ -39,6 +39,17 @@ def _hovedtal(res: Fremskrivning) -> dict:
             "fra_alder": foerste_hele.alder, "senere": None}
 
 
+def _formue(res: Fremskrivning) -> dict | None:
+    """Opsparingen uden for pension år for år fra i dag, i dagens kroner (feature 013, US4).
+    Restformuen er opsparingen ved udgangen af beregningens sidste år."""
+    if not any(f.i_plan + f.uden_for_plan >= BUFFER_NUL_KR for f in res.formue):
+        return None
+    i_plan = [0.0 if (x := f.i_plan * f.realfaktor) < BUFFER_NUL_KR else x for f in res.formue]
+    uden = [f.uden_for_plan * f.realfaktor for f in res.formue]
+    return {"aldre": [f.alder for f in res.formue], "i_plan": i_plan, "uden_for_plan": uden,
+            "rest": i_plan[-1] + uden[-1], "rest_alder": res.formue[-1].alder}
+
+
 def _satser(res: Fremskrivning) -> list[dict]:
     satser = []
     kommuner = register.kommuneregister(res.satsaar)
@@ -136,6 +147,7 @@ def byg_visning(res: Fremskrivning) -> dict:
             if any(a.skat_kapitalindkomst for a in res.aar) else None,
             "engangs": engangs,
         },
+        "formue": _formue(res),
         "generelle_advarsler": generelle,
         "antagelser": {**asdict(res.antagelser), "satsregulering": res.antagelser.effektiv_satsregulering},
         "aar": [{

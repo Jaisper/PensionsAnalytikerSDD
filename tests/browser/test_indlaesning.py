@@ -11,6 +11,7 @@ def _udfyld_guide(side):
     side.fill("#kommune", "Aarhus")
     side.click("#naeste")
     side.click("#naeste")
+    side.click("#naeste")  # opsparing (013)
 
 
 def test_banner_mens_motoren_indlaeses_og_guiden_kan_bruges(ny_side):

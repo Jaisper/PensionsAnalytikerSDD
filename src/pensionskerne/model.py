@@ -186,6 +186,7 @@ class FormueAar:
     alder: int
     i_plan: float               # bruges i den faste udbetaling (bank i planen og bufferen fra engangsbeløb)
     uden_for_plan: float        # står urørt og forrentes
+    realfaktor: float = 1.0     # som Aarsresultat.realfaktor: gang med den for dagens kroner
 
 
 @dataclass(frozen=True)

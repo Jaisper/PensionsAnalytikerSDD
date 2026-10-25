@@ -35,7 +35,8 @@ def til_resultat_som_par(side, tmp_path, civilstand="gift"):
     for felt in side.query_selector_all("#p-ordninger input[id$='-udbetaling_start_alder']"):
         if not felt.input_value():
             felt.fill("70")
-    side.click("#naeste")                       # → trin 4: forventninger
+    side.click("#naeste")                       # → trin 4: opsparing (013)
+    side.click("#naeste")                       # → trin 5: forventninger
     side.click("#naeste")                       # → resultat
     side.wait_for_selector("#resultat:not([hidden])")
 

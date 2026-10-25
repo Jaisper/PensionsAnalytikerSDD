@@ -8,7 +8,7 @@ from dataclasses import replace
 from datetime import date
 from typing import Any
 
-from pensionskerne import Antagelser, Ordning, Partner, PartnerIndkomst, Pensionsprofil, UgyldigtInput
+from pensionskerne import Aktiv, Antagelser, Ordning, Partner, PartnerIndkomst, Pensionsprofil, UgyldigtInput
 
 # Partnerens indkomst indtastes som ét årsbeløb og bruges for alle kalenderår.
 PARTNER_AAR = range(2000, 2101)
@@ -67,6 +67,7 @@ def til_kerne(data: dict) -> tuple[Pensionsprofil, Antagelser]:
         likvid_formue=_tal(person.get("likvid_formue"), "person.likvid_formue"),
         atp_aarlig=_tal(person.get("atp_aarlig"), "person.atp_aarlig", None),
         ordninger=_ordninger(data.get("ordninger") or []),
+        opsparing=_opsparing(person.get("opsparing") or []),
         partner=partner,
     )
 
@@ -96,11 +97,22 @@ def til_husstand(data: dict) -> tuple[Pensionsprofil, Antagelser, Pensionsprofil
         atp_aarlig=_tal(pp.get("atp_aarlig"), "person.partner.profil.atp_aarlig", None),
         anden_kapitalindkomst=0.0,
         ordninger=_ordninger(pp.get("ordninger") or []),
+        opsparing=_opsparing(pp.get("opsparing") or []),
         partner=Partner(foedselsdato=profil_a.foedselsdato),
     )
     antagelser_b = replace(antagelser_a, folkepension_opsaettelse_aar=_heltal(
         pp.get("folkepension_opsaettelse_aar"), "person.partner.profil.folkepension_opsaettelse_aar", 0))
     return profil_a, antagelser_a, profil_b, antagelser_b
+
+
+def _opsparing(liste: list) -> tuple[Aktiv, ...]:
+    """Opsparing uden for pension (feature 013). Type og brug i planen har standardværdier."""
+    aktiver = []
+    for i, a in enumerate(liste):
+        id = str(a.get("id") or f"opsparing{i + 1}")
+        aktiver.append(Aktiv(id=id, saldo=_tal(a.get("saldo"), f"opsparing[{id}].saldo"),
+                             type=str(a.get("type") or "bank"), i_plan=bool(a.get("i_plan", True))))
+    return tuple(aktiver)
 
 
 def _ordninger(liste: list) -> tuple[Ordning, ...]:

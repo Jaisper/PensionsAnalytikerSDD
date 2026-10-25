@@ -194,7 +194,7 @@ function visTrin(n, fokus = true) {
     li.classList.toggle("faerdig", t < n);
   });
   $("#tilbage").hidden = n === 1;
-  $("#naeste").textContent = n === 4 ? "Se min pension" : "Næste →";
+  $("#naeste").textContent = n === 5 ? "Se min pension" : "Næste →";
   if (fokus) $(`.trin[data-trin="${n}"] h2`).focus();
 }
 
@@ -262,6 +262,9 @@ function opdaterPartnerFelter() {
   $("#partner-overslag").hidden = fuld;
   $('.fremdrift li[data-trin="3"]').hidden = !fuld;
   $('.fremdrift li[data-trin="4"] span').textContent = fuld ? "4" : "3";
+  $('.fremdrift li[data-trin="5"] span').textContent = fuld ? "5" : "4";
+  $("#p-opsparing-felter").hidden = !fuld;
+  $("#partner-formue-felt").hidden = !erPar() || fuld;
   $("#p-opsaettelse-felt").hidden = !fuld;
   if (tilstand.panel) $('.trin[data-trin="3"]').hidden = !fuld;
 }
@@ -419,7 +422,14 @@ function partnerSvar() {
     atp_aarlig: beloeb($("#p-atp").value) || null,
     folkekirkemedlem: $("#p-folkekirke").checked,
     folkepension_opsaettelse_aar: +$("#p-opsaettelse").value,
+    opsparing: opsparingSvar("p-"),
   } };
+}
+
+/* Opsparing uden for pension (feature 013): ét bankaktiv pr. person. */
+function opsparingSvar(pre = "") {
+  const saldo = beloeb($(`#${pre}bank`).value);
+  return saldo ? [{ id: `${pre}bank`, type: "bank", saldo, i_plan: $(`#${pre}bank-i-plan`).checked }] : [];
 }
 
 function guideSvar() {
@@ -429,7 +439,8 @@ function guideSvar() {
       civilstand: $("input[name=civilstand]:checked").value,
       kommune: $("#kommune").value.trim(),
       folkekirkemedlem: $("#folkekirke").checked,
-      likvid_formue: beloeb($("#formue").value) ?? 0,
+      likvid_formue: erPar() && !fuldPartner() ? beloeb($("#partner-formue").value) ?? 0 : 0,  // partnerens, ved overslag
+      opsparing: opsparingSvar(),
       atp_aarlig: beloeb($("#atp").value) || null,  // tomt eller 0: ATP's gennemsnit (kernens fallback)
       partner: partnerSvar(),
     },
@@ -517,7 +528,7 @@ async function beregnFraGuide() {
     boks.textContent = "Beregningen kunne ikke gennemføres lige nu. Prøv igen om lidt.";
     boks.hidden = false;
   } finally {
-    knap.disabled = false; knap.textContent = tilstand.trin === 4 ? "Se min pension" : "Næste →";
+    knap.disabled = false; knap.textContent = tilstand.trin === 5 ? "Se min pension" : "Næste →";
   }
 }
 
@@ -622,6 +633,7 @@ function tegnGraf(v) {
     tilstand.graf.update();
   }
   tegnBuffergraf(v);
+  tegnFormue(v);
 }
 
 /* ── Feature 008: engangsbeløb og buffer i grafen ────────────────────── */
@@ -724,8 +736,8 @@ function tegnBuffergraf(v) {
     responsive: true, maintainAspectRatio: false, animation: { duration: 250 },
     plugins: {
       legend: { display: false },
-      title: { display: true, text: "Din opsparing uden for pension (bufferen), i dagens kroner", align: "start", color: css("--petrol-900") },
-      tooltip: { callbacks: { title: (t) => `${t[0].label} år`, label: (c) => ` I bufferen: ${kr(c.raw)} kr.` } },
+      title: { display: true, text: "Opsparing uden for pension, som bruges i din faste udbetaling, i dagens kroner", align: "start", color: css("--petrol-900") },
+      tooltip: { callbacks: { title: (t) => `${t[0].label} år`, label: (c) => ` Opsparing: ${kr(c.raw)} kr.` } },
     },
     scales: {
       x: { offset: true, grid: { display: false }, ticks: { display: false } },  // samme kolonner som søjlegrafen
@@ -734,6 +746,19 @@ function tegnBuffergraf(v) {
   };
   if (tilstand.buffergraf) { tilstand.buffergraf.data = data; tilstand.buffergraf.update(); }
   else tilstand.buffergraf = new Chart($("#buffergraf"), { type: "line", data, options: valg });
+}
+
+function tegnFormue(v) {
+  // Feature 013 (US4): opsparingen uden for pension år for år og restformuen.
+  const f = v.formue;
+  $("#formue-fold").hidden = !f;
+  if (!f) return;
+  $("#formue-titel").textContent = `Din opsparing uden for pension over tid: ${kr(f.rest)} kr. tilbage som ${f.rest_alder}-årig`;
+  $("#formue-tabel").replaceChildren(el("table", {},
+    el("caption", { class: "sr-only", tekst: "Opsparing uden for pension ved årets udgang i dagens kroner, pr. alder" }),
+    el("thead", {}, el("tr", {}, ...["Alder", "Bruges i udbetalingen", "Urørt", "I alt"].map((x) => el("th", { scope: "col", tekst: x })))),
+    el("tbody", {}, f.aldre.map((alder, i) => el("tr", {}, el("th", { scope: "row", tekst: `${alder} år` }),
+      ...[f.i_plan[i], f.uden_for_plan[i], f.i_plan[i] + f.uden_for_plan[i]].map((x) => el("td", { tekst: `${kr(x)} kr.` })))))));
 }
 
 function tegnKort(v) {
@@ -825,7 +850,7 @@ function tegnNoegletal(v) {
   const ops = s.antagelser.folkepension_opsaettelse_aar;
   const tal = [
     ["Folkepension fra", `${v.folkepensionsalder + ops} år`],
-    ["Opsparing i dag", `${kr(opsparing)} kr.`],
+    ["Pensionsopsparing i dag", `${kr(opsparing)} kr.`],
     ["Første private udbetaling", starter.length ? `${Math.min(...starter)} år` : "–"],
     ["Engangsbeløb i alt", engangs ? `${kr(engangs.engangs.reduce((x, e) => x + e.netto_real, 0))} kr.` : "–"],
   ];
@@ -1371,11 +1396,13 @@ function tegnSamlet() {
   $("#noegletal").replaceChildren(...[
     ["Din folkepension fra", `${vDig.folkepensionsalder + svar.antagelser.folkepension_opsaettelse_aar} år`],
     ["Din partners folkepension fra", `${vP.folkepensionsalder + (pp.folkepension_opsaettelse_aar || 0)} år`],
-    ["Jeres opsparing i dag", `${kr(opsparing(svar.ordninger) + opsparing(pp.ordninger))} kr.`],
+    ["Jeres pensionsopsparing i dag", `${kr(opsparing(svar.ordninger) + opsparing(pp.ordninger))} kr.`],
     ["Fast beløb: dig / partner", `${kr(s.dig.maaned)} / ${kr(s.partner.maaned)} kr.`],
   ].map(([dt, dd]) => el("div", {}, el("dt", { tekst: dt }), el("dd", { tekst: dd }))));
   tegnSamletGraf(s);
   tegnSamletTidslinje(s);
+  $("#samlet-formue").hidden = !s.formue;
+  if (s.formue) $("#samlet-formue").textContent = `Jeres opsparing uden for pension: ${kr(s.formue.rest)} kr. tilbage ved udgangen af jeres planer, i dagens kroner.`;
 }
 
 function tegnSamletGraf(s) {
@@ -1487,7 +1514,7 @@ function forbind() {
   $("#guide-form").addEventListener("submit", (e) => {
     e.preventDefault();
     if (!validerTrin(tilstand.trin)) return;
-    if (tilstand.trin < 4) visTrin(naesteTrin(tilstand.trin)); else beregnFraGuide();
+    if (tilstand.trin < 5) visTrin(naesteTrin(tilstand.trin)); else beregnFraGuide();
   });
   $("#tilbage").addEventListener("click", () => { ryd(); visTrin(forrigeTrin(tilstand.trin)); });
   $("#ny-beregning").addEventListener("click", () => {
