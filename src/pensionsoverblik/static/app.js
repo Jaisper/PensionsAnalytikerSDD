@@ -271,7 +271,7 @@ function tegnOrdninger() {
     const felter = [
       ordningsFelt(o, "saldo", "Opsparing i dag (kr.)", null, tal("saldo")),
       ordningsFelt(o, "aarlig_indbetaling", "Indbetaling pr. år (kr.)", "Efter arbejdsmarkedsbidrag. 0 hvis du ikke indbetaler mere.", tal("aarlig_indbetaling")),
-      ordningsFelt(o, "udbetaling_start_alder", o.type === "aldersopsparing" || o.type === "kapitalpension" ? "Udbetales når du er (alder)" : "Udbetalingen starter når du er (alder)",
+      ordningsFelt(o, "udbetaling_start_alder", o.type === "aldersopsparing" || o.type === "kapitalpension" ? "Udbetales (alder)" : "Udbetalingen starter (alder)",
         o.tidligste_udbetalingsalder ? `Tidligst udbetaling: ${decimal(o.tidligste_udbetalingsalder)} år (oplyst af selskabet).` : null,
         el("input", { inputmode: "numeric", value: o.udbetaling_start_alder })),
       o.type === "ratepension" ? ordningsFelt(o, "udbetaling_aar", "Udbetales over (antal år)", "Mindst 10 år.", el("input", { inputmode: "numeric", value: o.udbetaling_aar })) : null,
