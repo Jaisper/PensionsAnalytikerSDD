@@ -124,6 +124,8 @@ def byg_visning(res: Fremskrivning) -> dict:
             "markeringer": markeringer,
             "jaevn": jaevn,
             "buffer": buffer,
+            "skat_buffer": [a.skat_kapitalindkomst * a.realfaktor / MAANEDER for a in res.aar]  # 009
+            if any(a.skat_kapitalindkomst for a in res.aar) else None,
             "engangs": engangs,
         },
         "generelle_advarsler": generelle,
