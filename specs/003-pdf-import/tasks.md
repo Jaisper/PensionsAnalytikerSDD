@@ -1,0 +1,35 @@
+# Tasks: Indlæsning af PensionsInfo-rapport
+
+**Tests**: Påkrævet (Princip IV). De skrives før implementeringen.
+
+- [x] T001 Afhængigheder `pdfplumber` og `anthropic` i gruppe `app`
+- [x] T002 [P] Tests `tests/app/test_pdf_tekst.py`: CPR-fjernelse, århundrede-reglen, sidefilter, tom tekst → fejl (US3, FR-002)
+- [x] T003 [P] Tests `tests/app/test_pdf_omsaet.py`: alle kategorier, ATP, folkepension og forsikring ignoreres, periode → antal år, oprettelse udledt, afgift betalt, manglende saldo og startalder (US2, SC-004)
+- [x] T004 [P] Tests `tests/app/test_pdf_api.py`: status, samtykke, ikke-PDF, for stor fil, scannet PDF, succes med falsk aflæser, ingen filer skrevet, ingen CPR i den sendte tekst (US1, US3, SC-002, SC-003)
+- [x] T005 Implementér `pdfimport/tekst.py`
+- [x] T006 Implementér `pdfimport/omsaet.py`
+- [x] T007 ~~Implementér `pdfimport/aflaeser.py` (skema og ClaudeAflaeser)~~ → **fjernet 2026-10-25 (Princip XI)**. `aflaeser.py` indeholder nu kun kontrakten `Aflaesning`
+- [x] T008 Endpoints `GET /api/pdf/status` og `POST /api/pdf` i `api.py`
+- [x] T009 Frontend: upload-kort med samtykke, fremdrift, fejl, udfyldning og usikkerheder
+- [x] T010 Gennemgang i headless Chrome (desktop og mobil), axe-core
+- [x] T011 Docs: README, CLAUDE.md og domænegrundlag (legacy-afvigelser rettet)
+
+## Revision 2026-10-25 — NFR: ingen persondata til AI/LLM
+
+- [x] R001 Constitution 1.2.0: Princip XI
+- [x] R002 Test `tests/kontrakt/test_ingen_ai.py` (imports, afhængigheder, endpoints). Mutationstestet: en `import openai` og en AI-vært i HTML fanges
+- [x] R003 ClaudeAflaeser, samtykke-header og `anthropic`-afhængighed fjernet. `vaelg_aflaeser()` returnerer `None`
+- [x] R004 Upload-tekst: "Rapporten læses på vores server og slettes med det samme. Intet sendes til AI-tjenester."
+- [x] R005 Lokal parser (`pdfimport/pensionsinfo.py`) bygget mod en rigtig rapport (2026-10-25). Læser "Dine aftaler", udbetalingstabellen og "Pension - flere oplysninger" ud fra position. Saldo på aftaler med flere produkter fordeles som i legacy (nutidsværdi, 4 %). Testet med en syntetisk rapport med samme layout (`tests/app/pensionsinfo_syntetisk.py`) og lokalt mod den rigtige rapport (`PENSIONSINFO_RAPPORT=… pytest -k rigtig`). Den rigtige rapport er IKKE i repoet
+- [x] R006 Kernen: `Ordning.tidligste_udbetalingsalder` — selskabets oplyste alder overstyrer den udledte regel
+- [x] R007 Registret: aftaler før 1.5.2007 → 60 år (rapporten viste 60 for en person født 1971; den tidligere overgangstabel gav 67 og ville afvise rigtige aftaler)
+- [x] R008 Fødselsdato kun fra forsiden og kun med bindestreg (10-cifrede depotnumre blev forvekslet med CPR)
+
+## Status 2026-10-24 (før revision)
+
+- Alle opgaver gennemført. 32 nye tests (tekst og CPR, omsætning, API, skema).
+- Browsergennemgang mod testserver med falsk aflæser: samtykke, fremdrift, udfyldning,
+  usikkerheder, validering og beregning virker. axe-core: 0 overtrædelser. Ingen vandret scroll
+  ved 360 px.
+- **Ikke testet:** et live-kald mod Claude (ingen nøgle i miljøet) og rigtige PensionsInfo-rapporter.
+  Skal verificeres manuelt med `ANTHROPIC_API_KEY` sat og en rigtig rapport, før funktionen bruges.

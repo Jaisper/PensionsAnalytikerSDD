@@ -6,3 +6,10 @@ __pycache__/
 .pdf_cache/
 server.log
 .claude/
+.venv/
+.hypothesis/
+.pytest_cache/
+*.egg-info/
+uv.lock.bak
+_site/
+.byggecache/

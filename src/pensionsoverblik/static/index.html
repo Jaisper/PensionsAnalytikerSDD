@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="da">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pensionsoverblik</title>
+  <meta name="description" content="Se hvad du kan forvente at få udbetalt i pension efter skat.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='10' fill='%23123845'/%3E%3Ccircle cx='16' cy='16' r='7' fill='%23f0c46a'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="app.css">
+  <script src="chart.umd.min.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="spring-over" href="#indhold">Gå til indhold</a>
+
+  <div class="infobjaelke" role="note">
+    <span class="ikon" aria-hidden="true">i</span>
+    <p>Pensionsoverblik er information, ikke rådgivning. Tal med en pensionsrådgiver, før du træffer beslutninger.</p>
+  </div>
+
+  <header class="topbjaelke">
+    <div class="ramme topbjaelke__indhold">
+      <a class="logo" href="./" aria-label="Pensionsoverblik – forside">
+        <span class="logo__maerke" aria-hidden="true"></span>Pensionsoverblik
+      </a>
+      <nav aria-label="Hovedmenu" id="menu" hidden>
+        <ul class="menu">
+          <li><a href="#saadan">Sådan regner vi</a></li>
+        </ul>
+      </nav>
+      <button type="button" class="knap knap--primaer" id="ny-beregning" hidden>Ny beregning</button>
+    </div>
+  </header>
+
+  <main id="indhold">
+    <!-- ── Guide ───────────────────────────────────────────────────────── -->
+    <section id="guide" class="guide" aria-labelledby="guide-titel">
+      <div class="guide__hero">
+        <div class="ramme">
+          <h1 id="guide-titel">Hvad får du i pension<br>– efter skat?</h1>
+          <p class="guide__intro">Svar på tre korte spørgsmål om dig, dine ordninger og dine forventninger. Vi regner med de gældende regler for skat og folkepension.</p>
+        </div>
+      </div>
+
+      <div class="ramme">
+        <form id="guide-form" class="guide__kort" novalidate>
+          <ol class="fremdrift" aria-label="Fremdrift">
+            <li data-trin="1" aria-current="step"><span>1</span> Om dig</li>
+            <li data-trin="2"><span>2</span> Dine ordninger</li>
+            <li data-trin="3"><span>3</span> Forventninger</li>
+          </ol>
+
+          <div class="motor" id="motor" role="status" aria-live="polite">
+            <p id="motor-tekst">Gør beregningen klar …</p>
+            <progress id="motor-fremdrift" max="1" value="0" aria-label="Beregningen gøres klar"></progress>
+            <button type="button" class="knap knap--sekundaer" id="motor-igen" hidden>Prøv igen</button>
+          </div>
+
+          <div class="fejlboks" id="fejlboks" role="alert" hidden></div>
+
+          <!-- Trin 1 -->
+          <fieldset class="trin" data-trin="1">
+            <legend><h2 tabindex="-1">Om dig</h2></legend>
+            <p class="hjaelp">Vi bruger oplysningerne til beregningen og gemmer dem ikke.</p>
+
+            <section class="upload" id="upload" aria-labelledby="upload-titel">
+              <h3 id="upload-titel">Har du din rapport fra PensionsInfo?</h3>
+              <p class="felt__hjaelp">Så kan vi aflæse dine ordninger for dig. Du tjekker tallene bagefter. Rapporten henter du som PDF på pensionsinfo.dk.</p>
+              <div class="felt" data-felt="pdf">
+                <label for="pdf-fil">Vælg rapporten (PDF)</label>
+                <input type="file" id="pdf-fil" accept="application/pdf,.pdf">
+              </div>
+              <p class="felt__hjaelp">Rapporten læses på vores server og slettes med det samme. Intet sendes til AI-tjenester.</p>
+              <button type="button" class="knap knap--sekundaer" id="pdf-knap">Aflæs rapport</button>
+              <div id="pdf-status" class="upload__status" role="status" aria-live="polite"></div>
+            </section>
+
+            <div class="felt" data-felt="foedselsdato person.foedselsdato">
+              <label for="foedselsdato">Fødselsdato</label>
+              <p class="felt__hjaelp" id="foedselsdato-hjaelp">Bestemmer din folkepensionsalder.</p>
+              <input type="date" id="foedselsdato" name="foedselsdato" required aria-describedby="foedselsdato-hjaelp" min="1955-07-01">
+            </div>
+
+            <div class="felt" data-felt="kommune person.kommune">
+              <label for="kommune">Kommune</label>
+              <p class="felt__hjaelp" id="kommune-hjaelp">Kommuneskatten er forskellig fra kommune til kommune.</p>
+              <input id="kommune" name="kommune" list="kommuneliste" autocomplete="off" required aria-describedby="kommune-hjaelp">
+              <datalist id="kommuneliste"></datalist>
+            </div>
+
+            <div class="felt felt--valg" data-felt="civilstand person.civilstand partner">
+              <fieldset>
+                <legend>Bor du alene eller sammen med en partner?</legend>
+                <label class="valg"><input type="radio" name="civilstand" value="enlig" checked> Alene</label>
+                <label class="valg"><input type="radio" name="civilstand" value="gift_samlevende"> Gift eller samlevende</label>
+              </fieldset>
+            </div>
+
+            <div class="partner" id="partner-felter" hidden>
+              <div class="felt" data-felt="partner.foedselsdato person.partner.foedselsdato">
+                <label for="partner-foedselsdato">Din partners fødselsdato</label>
+                <input type="date" id="partner-foedselsdato" min="1955-07-01">
+              </div>
+              <div class="felt" data-felt="person.partner.oevrig_indkomst_aar">
+                <label for="partner-indkomst">Din partners pension og kapitalindkomst pr. år</label>
+                <p class="felt__hjaelp" id="partner-indkomst-hjaelp">Løn tæller ikke med. Bruges til at beregne dit pensionstillæg.</p>
+                <input id="partner-indkomst" inputmode="numeric" class="beloeb" aria-describedby="partner-indkomst-hjaelp" placeholder="0">
+              </div>
+            </div>
+
+            <div class="felt felt--afkrydsning">
+              <label class="valg"><input type="checkbox" id="folkekirke"> Jeg er medlem af folkekirken</label>
+            </div>
+
+            <div class="felt" data-felt="likvid_formue person.likvid_formue">
+              <label for="formue">Opsparing uden for pension <span class="valgfri">(valgfri)</span></label>
+              <p class="felt__hjaelp" id="formue-hjaelp">Fx penge i banken. For par: jeres samlede opsparing. Har betydning for ældrechecken.</p>
+              <input id="formue" inputmode="numeric" class="beloeb" aria-describedby="formue-hjaelp" placeholder="0">
+            </div>
+
+            <div class="felt" data-felt="atp_aarlig person.atp_aarlig">
+              <label for="atp">Din ATP pr. år <span class="valgfri">(valgfri)</span></label>
+              <p class="felt__hjaelp" id="atp-hjaelp">Står på pensionsinfo.dk. Lader du feltet stå tomt, bruger vi ATP's gennemsnit.</p>
+              <input id="atp" inputmode="numeric" class="beloeb" aria-describedby="atp-hjaelp" placeholder="Ved ikke">
+            </div>
+          </fieldset>
+
+          <!-- Trin 2 -->
+          <fieldset class="trin" data-trin="2" hidden>
+            <legend><h2 tabindex="-1">Dine ordninger</h2></legend>
+            <p class="hjaelp">Tilføj dine pensionsordninger. Du finder tallene på pensionsinfo.dk. Har du kun folkepension og ATP, kan du springe trinnet over.</p>
+            <div id="ordninger" class="ordninger"></div>
+            <div class="tilfoej">
+              <label for="ny-type">Tilføj ordning</label>
+              <div class="tilfoej__raekke">
+                <select id="ny-type">
+                  <option value="ratepension">Ratepension</option>
+                  <option value="livsvarig">Livsvarig pension (livrente)</option>
+                  <option value="aldersopsparing">Aldersopsparing</option>
+                  <option value="kapitalpension">Kapitalpension</option>
+                </select>
+                <button type="button" class="knap knap--sekundaer" id="tilfoej-ordning">+ Tilføj</button>
+              </div>
+            </div>
+          </fieldset>
+
+          <!-- Trin 3 -->
+          <fieldset class="trin" data-trin="3" hidden>
+            <legend><h2 tabindex="-1">Dine forventninger</h2></legend>
+            <p class="hjaelp">Ingen kender fremtiden. Vi har foreslået almindelige værdier. Du kan ændre dem nu eller senere.</p>
+            <div class="felt" data-felt="antagelser.afkast_efter_pal">
+              <label for="afkast">Forventet afkast pr. år efter skat på pensionen</label>
+              <div class="skyder"><input type="range" id="afkast" min="0" max="8" step="0.5" value="4"><output for="afkast" id="afkast-v">4 %</output></div>
+            </div>
+            <div class="felt" data-felt="antagelser.inflation">
+              <label for="inflation">Forventet prisstigning (inflation) pr. år</label>
+              <div class="skyder"><input type="range" id="inflation" min="0" max="5" step="0.5" value="2"><output for="inflation" id="inflation-v">2 %</output></div>
+            </div>
+            <div class="felt" data-felt="antagelser.folkepension_opsaettelse_aar">
+              <label for="opsaettelse">Udskyd folkepensionen</label>
+              <p class="felt__hjaelp" id="opsaettelse-hjaelp">Udskyder du den, bliver den større. Det kræver, at du arbejder mindst 750 timer om året imens.</p>
+              <div class="skyder"><input type="range" id="opsaettelse" min="0" max="10" step="1" value="0" aria-describedby="opsaettelse-hjaelp"><output for="opsaettelse" id="opsaettelse-v">Nej</output></div>
+            </div>
+          </fieldset>
+
+          <div class="guide__knapper">
+            <button type="button" class="knap knap--tekst" id="tilbage" hidden>← Tilbage</button>
+            <button type="submit" class="knap knap--primaer" id="naeste">Næste →</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- ── Resultat ────────────────────────────────────────────────────── -->
+    <section id="resultat" class="resultat" hidden aria-labelledby="resultat-titel">
+      <div class="hero">
+        <div class="hero__tekst">
+          <p class="hero__lead" id="resultat-titel">Du kan forvente ca.</p>
+          <p class="hero__tal" aria-live="polite"><span id="hovedtal">–</span> <span class="hero__enhed">om måneden efter skat</span></p>
+          <p class="hero__forklaring" id="hovedtal-forklaring"></p>
+          <p class="hero__aendring" id="hovedtal-aendring" aria-live="polite"></p>
+          <details class="forudsaetninger" id="hovedtal-forudsaetninger" hidden>
+            <summary id="forudsaetninger-titel"></summary>
+            <ul class="chips" id="hovedtal-advarsler"></ul>
+          </details>
+          <a class="pil-link pil-link--lys" href="#sammensaetning">Se hvad beløbet består af <span aria-hidden="true">→</span></a>
+        </div>
+        <div class="hero__noegletal">
+          <h2 class="hero__graf-titel">Dit overblik</h2>
+          <dl class="noegletal" id="noegletal"></dl>
+          <a class="pil-link" href="#graf-panel">Se udbetalingen over tid <span aria-hidden="true">→</span></a>
+        </div>
+      </div>
+
+      <div class="ramme paneler">
+        <section class="panel" id="data-panel" aria-labelledby="data-panel-knap">
+          <h2 class="panel__titel">
+            <button type="button" class="panel__knap" id="data-panel-knap" aria-expanded="false" aria-controls="data-panel-indhold">
+              <span>Dine oplysninger</span><span class="panel__pil" aria-hidden="true">▸</span>
+            </button>
+          </h2>
+          <div class="panel__indhold" id="data-panel-indhold" hidden>
+            <p class="sektion__intro">Ret dine oplysninger og ordninger her, og tryk "Opdater beregning".</p>
+            <div id="data-panel-form"></div>
+            <div class="panel__handling">
+              <button type="button" class="knap knap--primaer" id="opdater">Opdater beregning</button>
+              <span class="panel__status" id="opdater-status" role="status"></span>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel" id="graf-panel" aria-labelledby="graf-panel-knap">
+          <h2 class="panel__titel">
+            <button type="button" class="panel__knap" id="graf-panel-knap" aria-expanded="true" aria-controls="graf-panel-indhold">
+              <span>Udbetaling over tid</span><span class="panel__pil" aria-hidden="true">▸</span>
+            </button>
+          </h2>
+          <div class="panel__indhold" id="graf-panel-indhold">
+            <p class="sektion__intro">Om måneden efter skat, i dagens kroner. Flyt dine ordninger i tid med skyderne under grafen – vi regner forfra med det samme.</p>
+            <div class="graf-ramme graf-ramme--bred"><canvas id="graf" role="img" aria-label="Søjlediagram over din udbetaling pr. år, fordelt på kilder. Tallene findes også som tabel under diagrammet."></canvas></div>
+            <ul class="forklaring-farver" id="farveforklaring"></ul>
+            <ul class="markeringer" id="graf-markeringer"></ul>
+            <div class="tidslinje" id="tidslinje" role="group" aria-label="Dine ordninger over tid"></div>
+            <details class="tabel-alternativ">
+              <summary>Vis tallene som tabel</summary>
+              <div class="tabel-rul" id="graf-tabel"></div>
+            </details>
+          </div>
+        </section>
+      </div>
+
+      <section class="sektion" id="sammensaetning" aria-labelledby="sammensaetning-titel">
+        <div class="ramme">
+          <h2 id="sammensaetning-titel">Hvad består beløbet af?</h2>
+          <p class="sektion__intro">Beløbene er pr. måned efter skat i et typisk år for hver kilde, i dagens kroner.</p>
+          <div class="kortgitter" id="kort"></div>
+          <div id="generelle-advarsler" class="advarsler"></div>
+        </div>
+      </section>
+
+      <section class="sektion sektion--tonet" id="forudsaetninger" aria-labelledby="forudsaetninger-titel">
+        <div class="ramme">
+          <h2 id="forudsaetninger-titel">Prøv andre forudsætninger</h2>
+          <p class="sektion__intro">Se hvor følsomt beløbet er. Hvornår dine ordninger udbetales, flytter du på tidslinjen under grafen.</p>
+          <div class="skydergitter">
+            <div class="felt"><label for="r-afkast">Afkast pr. år</label>
+              <div class="skyder"><input type="range" id="r-afkast" min="0" max="8" step="0.5"><output for="r-afkast" id="r-afkast-v"></output></div></div>
+            <div class="felt"><label for="r-inflation">Prisstigning pr. år</label>
+              <div class="skyder"><input type="range" id="r-inflation" min="0" max="5" step="0.5"><output for="r-inflation" id="r-inflation-v"></output></div></div>
+          </div>
+          <button type="button" class="knap knap--tekst" id="nulstil">Nulstil til mine svar</button>
+        </div>
+      </section>
+
+      <section class="sektion" id="saadan" aria-labelledby="saadan-titel">
+        <div class="ramme">
+          <h2 id="saadan-titel">Sådan har vi regnet</h2>
+          <p class="sektion__intro">Alle tal kommer fra en beregningsmotor, der følger gældende regler for skat og folkepension. Satserne har en kilde, og du kan se dem her.</p>
+          <details class="fold">
+            <summary>Se år for år <span aria-hidden="true">→</span></summary>
+            <div class="tabel-rul" id="aar-tabel"></div>
+          </details>
+          <details class="fold">
+            <summary>Se de satser, vi har brugt <span aria-hidden="true">→</span></summary>
+            <ul class="satsliste" id="satser"></ul>
+          </details>
+          <details class="fold">
+            <summary>Se vores forudsætninger <span aria-hidden="true">→</span></summary>
+            <ul class="satsliste" id="antagelser"></ul>
+          </details>
+        </div>
+      </section>
+    </section>
+
+  </main>
+
+  <footer class="bund">
+    <div class="ramme">
+      <p><strong>Pensionsoverblik</strong> er information, ikke rådgivning. Beregningen bygger på dine svar, gældende regler for 2026 og forudsætninger om fremtiden, som ingen kender. Tal med en pensionsrådgiver, før du træffer beslutninger.</p>
+      <p>Vi gemmer ikke dine oplysninger. De bruges kun til beregningen, mens siden er åben.</p>
+    </div>
+  </footer>
+</body>
+</html>

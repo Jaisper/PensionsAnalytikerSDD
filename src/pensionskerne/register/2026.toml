@@ -1,0 +1,400 @@
+# Regelregister — satsår 2026
+#
+# Hver post: id, vaerdi, enhed (brok | kr_aar | aar | dato | tabel), kilde, status
+# (verificeret | sekundaer | uverificeret), reguleres (beløb, der satsreguleres i fremtidige år).
+# Kildehierarki og statusregler: .specify/memory/constitution.md. Baggrund og
+# validering: docs/domaene/beregningskerne.md og specs/001-beregningskerne/research.md.
+
+satsaar = 2026
+
+# ── Indkomstskat ─────────────────────────────────────────────────────────────
+
+[[post]]
+id = "skat.bundskat"
+vaerdi = 0.1201
+enhed = "brok"
+kilde = "Personskatteloven § 6; skat.dk (bundskat, mellemskat, topskat og toptopskat)"
+status = "verificeret"
+
+[[post]]
+id = "skat.personfradrag"
+vaerdi = 54100
+enhed = "kr_aar"
+kilde = "Personskatteloven § 10, reguleret efter § 20; Skatteministeriet, satser 2026"
+status = "verificeret"
+reguleres = true
+
+[[post]]
+id = "skat.mellemskat.sats"
+vaerdi = 0.075
+enhed = "brok"
+kilde = "Personskatteloven § 7 (L 138, 2023-24); skat.dk"
+status = "verificeret"
+
+[[post]]
+id = "skat.mellemskat.graense"
+vaerdi = 641200
+enhed = "kr_aar"
+kilde = "Personskatteloven § 7; skat.dk: personlig indkomst efter AM-bidrag over 641.200 kr. (2026)"
+status = "verificeret"
+reguleres = true
+
+[[post]]
+id = "skat.topskat.sats"
+vaerdi = 0.075
+enhed = "brok"
+kilde = "Personskatteloven § 7 a; skat.dk"
+status = "verificeret"
+
+[[post]]
+id = "skat.topskat.graense"
+vaerdi = 777900
+enhed = "kr_aar"
+kilde = "Personskatteloven § 7 a; skat.dk: over 777.900 kr. (2026)"
+status = "verificeret"
+reguleres = true
+
+[[post]]
+id = "skat.toptopskat.sats"
+vaerdi = 0.05
+enhed = "brok"
+kilde = "Personskatteloven § 8; skat.dk"
+status = "verificeret"
+
+[[post]]
+id = "skat.toptopskat.graense"
+vaerdi = 2592700
+enhed = "kr_aar"
+kilde = "Personskatteloven § 8; skat.dk: over 2.592.700 kr. efter AM-bidrag (2026)"
+status = "verificeret"
+reguleres = true
+
+[[post]]
+id = "skat.skatteloft.mellemskat"
+vaerdi = 0.4457
+enhed = "brok"
+kilde = "Personskatteloven § 19, stk. 1 (L 138, 2023-24); tax.dk"
+status = "verificeret"
+
+[[post]]
+id = "skat.skatteloft.topskat"
+vaerdi = 0.5207
+enhed = "brok"
+kilde = "Personskatteloven § 19, stk. 1 (L 138, 2023-24); tax.dk"
+status = "verificeret"
+
+[[post]]
+id = "skat.skatteloft.toptopskat"
+vaerdi = 0.5707
+enhed = "brok"
+kilde = "Personskatteloven § 19, stk. 1 (L 138, 2023-24); tax.dk"
+status = "verificeret"
+
+[[post]]
+id = "skat.am_bidrag"
+vaerdi = 0.08
+enhed = "brok"
+kilde = "Arbejdsmarkedsbidragsloven § 1. Betales ved INDbetaling til arbejdsgiverordninger, aldrig ved udbetaling fra pensionsinstitutter (SKAT, B.3; domænegrundlag A1). Bruges ikke i udbetalingsberegningen."
+status = "verificeret"
+
+# ── Folkepension ─────────────────────────────────────────────────────────────
+
+[[post]]
+id = "fp.folkepensionsalder"
+enhed = "tabel"
+kilde = "Lov om social pension (LBK nr. 1123 af 21/10/2024) § 1 a, stk. 1, nr. 5–7; L 149 (2024-25), vedtaget maj 2025 (70 år for født efter 31.12.1970). Født 1.1.–30.6.1955 har 66½ år og er uden for kernens scope"
+status = "verificeret"
+vaerdi = [
+  { foedt_fra = 1955-07-01, foedt_til = 1962-12-31, alder = 67 },
+  { foedt_fra = 1963-01-01, foedt_til = 1966-12-31, alder = 68 },
+  { foedt_fra = 1967-01-01, foedt_til = 1970-12-31, alder = 69 },
+  { foedt_fra = 1971-01-01, foedt_til = 9999-12-31, alder = 70 },
+]
+
+[[post]]
+id = "fp.grundbeloeb"
+vaerdi = 90528
+enhed = "kr_aar"
+kilde = "Lov om social pension § 49, stk. 1, nr. 1; VEJ nr. 10077 af 10/11/2025 (Beskæftigelsesministeriet, regulering pr. 1.1.2026), tabel 12: 90.528 kr./år (7.544 kr./md.)"
+status = "verificeret"
+reguleres = true
+
+[[post]]
+id = "fp.tillaeg.enlig.ydelse"
+vaerdi = 104748
+enhed = "kr_aar"
+kilde = "Lov om social pension § 49, stk. 1, nr. 3; VEJ nr. 10077 af 10/11/2025 (Beskæftigelsesministeriet, regulering pr. 1.1.2026), tabel 12: 104.748 kr./år (reelt enlige)"
+status = "verificeret"
+reguleres = true
+
+[[post]]
+id = "fp.tillaeg.enlig.fradrag"
+vaerdi = 89400
+enhed = "kr_aar"
+kilde = "Lov om social pension (LBK nr. 1123 af 21/10/2024) § 29, stk. 7 og § 49, stk. 1, nr. 5; VEJ nr. 10077 af 10/11/2025 (Beskæftigelsesministeriet, regulering pr. 1.1.2026), tabel 15, nr. 1: 89.400 kr. Hertil den midlertidige forhøjelse (fp.fradrag_forhoejelse.*) — i alt 99.200 kr. i 2026 (borger.dk)"
+status = "verificeret"
+reguleres = true
+
+[[post]]
+id = "fp.tillaeg.enlig.aftrapning"
+vaerdi = 0.309
+enhed = "brok"
+kilde = "Lov om social pension § 31, stk. 2, nr. 1; VEJ nr. 10077 af 10/11/2025 (Beskæftigelsesministeriet, regulering pr. 1.1.2026), tabel 15: 30,9 %"
+status = "verificeret"
+
+[[post]]
+id = "fp.tillaeg.gift.ydelse"
+vaerdi = 53604
+enhed = "kr_aar"
+kilde = "Lov om social pension § 49, stk. 1, nr. 3; VEJ nr. 10077 af 10/11/2025 (Beskæftigelsesministeriet, regulering pr. 1.1.2026), tabel 12: 53.604 kr./år (andre)"
+status = "verificeret"
+reguleres = true
+
+[[post]]
+id = "fp.tillaeg.gift.fradrag"
+vaerdi = 179100
+enhed = "kr_aar"
+kilde = "Lov om social pension (LBK nr. 1123 af 21/10/2024) § 29, stk. 7 og § 49, stk. 1, nr. 5; VEJ nr. 10077 af 10/11/2025 (Beskæftigelsesministeriet, regulering pr. 1.1.2026), tabel 15, nr. 2: 179.100 kr. Hertil den midlertidige forhøjelse — i alt 198.800 kr. i 2026 (borger.dk)"
+status = "verificeret"
+reguleres = true
+
+[[post]]
+id = "fp.tillaeg.gift_pensionist.aftrapning"
+vaerdi = 0.16
+enhed = "brok"
+kilde = "Lov om social pension § 31, stk. 2, nr. 3; VEJ nr. 10077 af 10/11/2025 (Beskæftigelsesministeriet, regulering pr. 1.1.2026), tabel 15: 16 %"
+status = "verificeret"
+
+[[post]]
+id = "fp.tillaeg.gift_ikke_pensionist.aftrapning"
+vaerdi = 0.32
+enhed = "brok"
+kilde = "Lov om social pension § 31, stk. 2, nr. 2; VEJ nr. 10077 af 10/11/2025 (Beskæftigelsesministeriet, regulering pr. 1.1.2026), tabel 15: 32 %"
+status = "verificeret"
+
+[[post]]
+id = "fp.partner_ikke_pensionist.medregnet_andel"
+vaerdi = 0.46
+enhed = "brok"
+kilde = "Lov om social pension § 49, stk. 1, nr. 5 og § 32 a; VEJ nr. 10077 af 10/11/2025 (Beskæftigelsesministeriet, regulering pr. 1.1.2026), tabel 15: fradrag 54 % af indtægt fra ægtefælle, der ikke er pensionist; borger.dk. AM-bidragspligtig arbejdsindkomst indgår ikke (research R1)"
+status = "verificeret"
+
+[[post]]
+id = "fp.fradrag_forhoejelse.enlig"
+vaerdi = 9800
+enhed = "kr_aar"
+kilde = "Lov om social pension (LBK nr. 1123 af 21/10/2024) § 49 c: 15.000 kr. (2018-niveau) i 2019, nedsat med 1.000 kr. i hvert af årene 2020–2034 — 8.000 kr. i 2026 = 9.800 kr. reguleret (VEJ nr. 10077 af 10/11/2025 (Beskæftigelsesministeriet, regulering pr. 1.1.2026), tabel 15, nr. 7). Lægges til fradraget for både pensionstillæg og personlig tillægsprocent"
+status = "verificeret"
+reguleres = true
+
+[[post]]
+id = "fp.fradrag_forhoejelse.gift"
+vaerdi = 19700
+enhed = "kr_aar"
+kilde = "Lov om social pension (LBK nr. 1123 af 21/10/2024) § 49 c: 30.000 kr. (2018-niveau) i 2019, nedsat med 2.000 kr. årligt 2020–2034 (VEJ nr. 10077 af 10/11/2025 (Beskæftigelsesministeriet, regulering pr. 1.1.2026), tabel 15, nr. 8: 19.700 kr. i 2026)"
+status = "verificeret"
+reguleres = true
+
+[[post]]
+id = "fp.fradrag_forhoejelse.nul_aar"
+vaerdi = 2034
+enhed = "aar"
+kilde = "Lov om social pension (LBK nr. 1123 af 21/10/2024) § 49 c, stk. 1: forhøjelsen nedsættes lineært i hvert af årene 2020–2034 og er 0 i 2034"
+status = "verificeret"
+
+[[post]]
+id = "fp.indtaegtsgrundlag.afrunding"
+vaerdi = 100
+enhed = "kr_aar"
+kilde = "Lov om social pension (LBK nr. 1123 af 21/10/2024) § 29, stk. 6: den opgjorte indtægt afrundes nedad til nærmeste beløb, der er deleligt med 100"
+status = "verificeret"
+
+# ── Personlig tillægsprocent og afledte ydelser ──────────────────────────────
+
+[[post]]
+id = "tp.enlig.bund"
+vaerdi = 25900
+enhed = "kr_aar"
+kilde = "Lov om social pension (LBK nr. 1123 af 21/10/2024) § 29, stk. 8 og § 49, stk. 1, nr. 6; VEJ nr. 10077 af 10/11/2025 (Beskæftigelsesministeriet, regulering pr. 1.1.2026), tabel 15, nr. 5: 25.900 kr. Hertil den midlertidige forhøjelse — i alt 35.700 kr. i 2026 (borger.dk)"
+status = "verificeret"
+reguleres = true
+
+[[post]]
+id = "tp.enlig.trin"
+vaerdi = 635
+enhed = "kr_aar"
+kilde = "Lov om social pension (LBK nr. 1123 af 21/10/2024) § 31, stk. 2 ('nedsættes med 1 pct. for hvert beløb' — dvs. pr. fuldt trin) og § 49, stk. 5; VEJ nr. 10077 af 10/11/2025 (Beskæftigelsesministeriet, regulering pr. 1.1.2026), tabel 15: 635 kr."
+status = "verificeret"
+reguleres = true
+
+[[post]]
+id = "tp.gift.bund"
+vaerdi = 50900
+enhed = "kr_aar"
+kilde = "Lov om social pension (LBK nr. 1123 af 21/10/2024) § 29, stk. 8 og § 49, stk. 1, nr. 6; VEJ nr. 10077 af 10/11/2025 (Beskæftigelsesministeriet, regulering pr. 1.1.2026), tabel 15, nr. 6: 50.900 kr. Hertil den midlertidige forhøjelse — i alt 70.600 kr. i 2026 (borger.dk)"
+status = "verificeret"
+reguleres = true
+
+[[post]]
+id = "tp.gift.trin"
+vaerdi = 1282
+enhed = "kr_aar"
+kilde = "Lov om social pension (LBK nr. 1123 af 21/10/2024) § 31, stk. 2 (pr. fuldt trin) og § 49, stk. 5; VEJ nr. 10077 af 10/11/2025 (Beskæftigelsesministeriet, regulering pr. 1.1.2026), tabel 15: 1.282 kr."
+status = "verificeret"
+reguleres = true
+
+[[post]]
+id = "yd.aeldrecheck"
+vaerdi = 26900
+enhed = "kr_aar"
+kilde = "Lov om social pension (LBK nr. 1123 af 21/10/2024) § 72 d, stk. 1 (supplerende pensionsydelse; kræver ret til folkepension inden 1. januar); VEJ nr. 10077 af 10/11/2025 (Beskæftigelsesministeriet, regulering pr. 1.1.2026), tabel 12: 26.900 kr.; borger.dk. Skattepligtig"
+status = "verificeret"
+reguleres = true
+
+[[post]]
+id = "yd.aeldrecheck.formuegraense"
+vaerdi = 108000
+enhed = "kr_aar"
+kilde = "Lov om social pension (LBK nr. 1123 af 21/10/2024) § 72 d, stk. 2: pensionistens og ægtefællens SAMLEDE likvide formue pr. 1. januar; borger.dk: 108.000 kr. (2026)"
+status = "verificeret"
+reguleres = true
+
+[[post]]
+id = "yd.aeldrecheck.minimum"
+vaerdi = 200
+enhed = "kr_aar"
+kilde = "Lov om social pension § 72 d, stk. 5; VEJ nr. 10077 af 10/11/2025 (Beskæftigelsesministeriet, regulering pr. 1.1.2026), tabel 15: minimumsbeløb 200 kr.; borger.dk"
+status = "verificeret"
+
+[[post]]
+id = "yd.mediecheck"
+vaerdi = 1552
+enhed = "kr_aar"
+kilde = "Lov om social pension § 49, stk. 1, nr. 4; VEJ nr. 10077 af 10/11/2025 (Beskæftigelsesministeriet, regulering pr. 1.1.2026), tabel 12: 1.552 kr.; borger.dk: før skat, kræver personlig tillægsprocent 100"
+status = "verificeret"
+reguleres = true
+
+# ── ATP ──────────────────────────────────────────────────────────────────────
+
+[[post]]
+id = "atp.fallback"
+vaerdi = 17340
+enhed = "kr_aar"
+kilde = "ATP.dk, pressemeddelelse 1.1.2026: 17.340 kr./år for et gennemsnitligt medlem. Bruges kun, når profilen ikke oplyser ATP"
+status = "verificeret"
+reguleres = true
+
+# ── Opsat folkepension ───────────────────────────────────────────────────────
+
+[[post]]
+id = "opsat.maks_aar"
+vaerdi = 10
+enhed = "aar"
+kilde = "Lov om social pension § 15 a; Ældre Sagen, opsat folkepension"
+status = "verificeret"
+
+[[post]]
+id = "opsat.middellevetid_livsvarig"
+enhed = "tabel"
+kilde = "VEJ nr. 10077 af 10/11/2025 (Beskæftigelsesministeriet, regulering pr. 1.1.2026), tabel 16: middellevetider i måneder (alder i hele år → måneder 0–11) til venteprocent ved livsvarigt tillæg; BEK nr. 930 af 27.6.2018 § 8. Venteprocent = opsatte måneder / middellevetid ved opsættelsens ophør"
+status = "verificeret"
+
+[post.vaerdi]
+  "65" = [238, 238, 237, 236, 235, 234, 233, 233, 232, 231, 230, 229]
+  "66" = [229, 228, 227, 226, 226, 225, 224, 223, 222, 222, 221, 220]
+  "67" = [219, 219, 218, 217, 216, 215, 215, 214, 213, 212, 212, 211]
+  "68" = [210, 209, 209, 208, 207, 206, 205, 205, 204, 203, 202, 202]
+  "69" = [201, 200, 199, 199, 198, 197, 196, 196, 195, 194, 193, 193]
+  "70" = [192, 191, 191, 190, 189, 188, 188, 187, 186, 185, 185, 184]
+  "71" = [183, 182, 182, 181, 180, 179, 179, 178, 177, 177, 176, 175]
+  "72" = [174, 174, 173, 172, 172, 171, 170, 169, 169, 168, 167, 167]
+  "73" = [166, 165, 165, 164, 163, 162, 162, 161, 160, 160, 159, 158]
+  "74" = [157, 157, 156, 155, 155, 154, 153, 153, 152, 151, 150, 150]
+  "75" = [149, 148, 148, 147, 146, 146, 145, 144, 144, 143, 142, 142]
+  "76" = [141, 140, 140, 139, 138, 138, 137, 136, 136, 135, 134, 134]
+  "77" = [133, 132, 132, 131, 130, 130, 129, 128, 128, 127, 126, 126]
+  "78" = [125, 125, 124, 123, 123, 122, 121, 121, 120, 119, 119, 118]
+  "79" = [117, 117, 116, 116, 115, 114, 114, 113, 113, 112, 111, 111]
+  "80" = [110]
+
+[[post]]
+id = "opsat.venteprocent_decimaler"
+vaerdi = 4
+enhed = "antal"
+kilde = "Lov om social pension (LBK nr. 1123 af 21/10/2024) § 15 e, stk. 1: venteprocenten afrundes til to decimaler (4 som brøk)"
+status = "verificeret"
+
+# ── Private ordninger ────────────────────────────────────────────────────────
+
+[[post]]
+id = "ordning.ratepension.indbetalingsloft"
+vaerdi = 68700
+enhed = "kr_aar"
+kilde = "Pensionsbeskatningsloven § 16; skat.dk: fradrag for indbetalinger op til 68.700 kr. i 2026. Overskydende behandles som livsvarig"
+status = "verificeret"
+reguleres = true
+
+[[post]]
+id = "ordning.ratepension.min_aar"
+vaerdi = 10
+enhed = "aar"
+kilde = "Pensionsbeskatningsloven § 11 A, stk. 1; Den juridiske vejledning C.A.10.2.2.4.1"
+status = "verificeret"
+
+[[post]]
+id = "ordning.ratepension.maks_aar_efter_udbetalingsalder"
+vaerdi = 30
+enhed = "aar"
+kilde = "Pensionsbeskatningsloven § 11 A: sidste rate senest i kalenderåret 30 år efter pensionsudbetalingsalderen"
+status = "verificeret"
+
+[[post]]
+id = "ordning.aldersopsparing.indbetalingsloft"
+vaerdi = 9900
+enhed = "kr_aar"
+kilde = "Pensionsbeskatningsloven § 16, stk. 1; skat.dk JV C.A.10.2.6.3.3.1 (2026)"
+status = "verificeret"
+reguleres = true
+
+[[post]]
+id = "ordning.aldersopsparing.indbetalingsloft_forhoejet"
+vaerdi = 64200
+enhed = "kr_aar"
+kilde = "Pensionsbeskatningsloven § 16, stk. 1; skat.dk JV C.A.10.2.6.3.3.1 (2026)"
+status = "verificeret"
+reguleres = true
+
+[[post]]
+id = "ordning.aldersopsparing.forhoejet_aar_foer_fp"
+vaerdi = 7
+enhed = "aar"
+kilde = "Pensionsbeskatningsloven § 16, stk. 1: forhøjet loft når der er mindre end 7 år til folkepensionsalderen"
+status = "verificeret"
+
+[[post]]
+id = "ordning.kapitalpension.afgift"
+vaerdi = 0.40
+enhed = "brok"
+kilde = "Pensionsbeskatningsloven § 25, stk. 1, nr. 1: 40 % afgift af udbetaling fra kapitalpension (Den juridiske vejledning C.A.10.2.5.4.1)"
+status = "verificeret"
+
+[[post]]
+id = "ordning.udbetalingsalder.fra_2018"
+enhed = "tabel"
+kilde = "Den juridiske vejledning C.A.10.2.8.2 (info.skat.dk): ordninger oprettet fra 1.1.2018 — 3 år før folkepensionsalderen"
+status = "verificeret"
+vaerdi = { oprettet_fra = 2018-01-01, aar_foer_fp = 3 }
+
+[[post]]
+id = "ordning.udbetalingsalder.2007_2017"
+enhed = "tabel"
+kilde = "Den juridiske vejledning C.A.10.2.8.2; Ældre Sagen: ordninger oprettet 1.5.2007–31.12.2017 — 5 år før folkepensionsalderen"
+status = "verificeret"
+vaerdi = { oprettet_fra = 2007-05-01, aar_foer_fp = 5 }
+
+[[post]]
+id = "ordning.udbetalingsalder.foer_2007"
+enhed = "tabel"
+kilde = "Ældre Sagen: 'Pensionsudbetalingsalder for aftale oprettet før 1. maj 2007: 60 år'. Bekræftet af en rigtig PensionsInfo-rapport (født 1971: 'kan tidligst udbetales fra 60 år'). Primærkilde (PBL § 1 A) mangler stadig. Selskabets oplyste alder overstyrer altid reglen"
+status = "sekundaer"
+vaerdi = { alder = 60.0 }

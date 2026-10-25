@@ -40,7 +40,19 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+| # | Princip | Gate | Status |
+|---|---|---|---|
+| I | Deterministisk beregning | Ingen tal produceres af AI; kernen kører færdig før AI-svar | [ ] |
+| II | Regelregister | Ingen satser/grænser uden for registret; alle poster har kilde, satsår og status | [ ] |
+| III | Lovgivningen er facit | Hver regel har lovhenvisning; afvigelser er rettet eller dokumenteret som forenkling | [ ] |
+| IV | Test først | Golden cases, grænseværdier og differentialtest mod legacy planlagt før implementering | [ ] |
+| V | Sporbarhed | Output angiver brugte regler, uverificerede satser, forenklinger og advarsler | [ ] |
+| VI | Isoleret kerne | Kernen har ingen I/O, AI, UI eller implicit "i dag" | [ ] |
+| VII | Persondata | Opbevaring og sletning af persondata beskrevet (hvis relevant) | [ ] |
+| VIII | Dansk brugerflade | Brugervendt tekst og talformat på dansk (hvis relevant) | [ ] |
+| IX | Simpelhed | Nye komponenter og afhængigheder begrundet i Complexity Tracking | [ ] |
+| XI | Ingen persondata til AI/LLM | Ingen brugerdata eller dokumenter sendes til AI/LLM. Ingen AI-klientbiblioteker i kode, der håndterer brugerdata | [ ] |
+| X | Brugeroplevelse | Svaret først, progressiv afsløring, kontekstuelle forklaringer, konsekvent farvelogik, WCAG 2.2 AA, heuristisk evaluering eller brugertest planlagt (hvis UI) | [ ] |
 
 ## Project Structure
 

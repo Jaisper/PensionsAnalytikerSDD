@@ -1,188 +1,283 @@
 <!--
 Sync Impact Report
-Version change: [TEMPLATE/UNRATIFIED] → 1.0.0
-Rationale: Første ratificering. Forfatningen er udledt af den eksisterende kodebase
-(brownfield) og README.md — den kodificerer principper projektet allerede følger,
-frem for at indføre nye.
+Version change: 1.1.0 → 1.2.0 (MINOR: nyt Princip XI — Ingen persondata til AI/LLM, NFR fra produktejer 2026-10-25)
+Tidligere: 1.0.0 → 1.1.0 (MINOR: nyt Princip X — Brugeroplevelse)
+Tidligere: [TEMPLATE] → 1.0.0
+Rationale: Første ratificering for greenfield-genopbygningen. Erstatter legacy-forfatningen
+(legacy/constitution-v1.md), som var udledt bagud fra den eksisterende kode og bundet til
+konkrete filer og teknologi. Denne version er teknologiuafhængig; teknologivalg træffes pr.
+feature i /speckit-plan.
 
-Added principles:
-  - I. Deterministisk Beregning — AI'en Beregner Aldrig (NON-NEGOTIABLE)
-  - II. Ét Kildested for Satser med Kildehenvisning
-  - III. Regressionstest for Alle Beregninger
-  - IV. Gennemsigtighed og Forbehold
-  - V. Klar Ansvarsfordeling mellem Moduler
-  - VI. Persondata og Privatliv (GDPR)
-  - VII. Dansk Brugerflade
-  - VIII. Simpelhed og Minimale Afhængigheder
+Principles:
+  - I.   Deterministisk Beregning — AI'en Beregner Aldrig (NON-NEGOTIABLE)  [videreført fra v1 I]
+  - II.  Regelregister: Ét Kildested med Kildehenvisning                    [videreført/udvidet fra v1 II]
+  - III. Lovgivningen er Facit                                              [NY]
+  - IV.  Test Først med Facit-tal (NON-NEGOTIABLE)                          [omdefineret fra v1 III]
+  - V.   Sporbarhed og Gennemsigtighed                                      [udvidet fra v1 IV]
+  - VI.  Isoleret Beregningskerne                                           [omdefineret fra v1 V]
+  - VII. Persondata og Privatliv                                            [videreført fra v1 VI, teknologi fjernet]
+  - VIII. Dansk Brugerflade                                                 [videreført fra v1 VII]
+  - IX.  Simpelhed                                                          [omdefineret fra v1 VIII, teknologi fjernet]
+  - X.   Brugeroplevelse: Klarhed før Fuldstændighed                        [NY i 1.1.0 — legacy-UX var svær at bruge]
+  - XI.  Ingen Persondata til AI/LLM (NON-NEGOTIABLE)                       [NY i 1.2.0 — NFR; feature 003 ombygget til lokal aflæsning]
 
-Added sections:
-  - Teknologibegrænsninger
-  - Kvalitetsgates
-  - Governance
+Added sections: Kildehierarki · Legacy-løsningens rolle · Udviklingsproces og kvalitetsgates · Governance
+Removed sections: Teknologibegrænsninger (flyttet til de enkelte features' plan.md)
 
-Removed sections: none
+Templates:
+  ✅ .specify/templates/plan-template.md — Constitution Check udfyldt med konkrete gates
+  ⚠ .specify/templates/spec-template.md — ingen ændring nødvendig (teknologiuafhængig i forvejen)
+  ⚠ .specify/templates/tasks-template.md — ingen ændring; test-først følger allerede af skabelonen
 
-Observerede afvigelser i den eksisterende kode (skal håndteres som features, ikke
-rettet af denne kommando):
-  - Princip VI: pdf_parser.py gemmer udtrukne profiler (inkl. persondata) permanent
-    i .pdf_cache/ på disk, nøglet på PDF'ens SHA-256 — uden udløb eller sletning.
-    Det modsiger sidefodens løfte "Ingen data gemmes permanent".
-  - Princip VI: debug-endpoints GET /api/session/{id}/raw, GET /api/session/{id}/text
-    og POST /api/session/{id}/inject er eksponeret uden adgangsbegrænsning ud over
-    kendskab til session-id'et.
-  - Princip VI: Oplysningen om, at data sendes til Anthropic, står kun i sidefoden —
-    ikke i forbindelse med selve upload-handlingen.
-  - Princip III: tests er print-baserede scripts; test_api/test_deploy/test_final
-    kræver en kørende server og kører derfor ikke i én samlet kommando.
-
-Deferred / TODO items: none
-
-Templates requiring follow-up review (not modified by this command):
-  - .claude/skills/speckit-plan — Constitution Check bør eksplicit tjekke
-    Princip I (ingen tal fra LLM) og Princip II (ingen litterale satser uden for
-    satser_2026.py).
+Deferred / TODO: none
 -->
 
-# PensionsAnalytikerSDD Constitution
+# PensionsAnalytiker Constitution
+
+PensionsAnalytiker er et beslutningsstøtteværktøj til dansk pensionsplanlægning. Det
+fremskriver en borgers forventede pensionsudbetalinger år for år efter gældende dansk skatte-
+og pensionslovgivning og forklarer resultatet. Værktøjet er information, ikke reguleret
+rådgivning.
 
 ## Core Principles
 
 ### I. Deterministisk Beregning — AI'en Beregner Aldrig (NON-NEGOTIABLE)
-Alle tal, brugeren får præsenteret (skat, udbetalinger, fremskrivninger, scenarier,
-optimeringsresultater), SKAL være beregnet af den deterministiske beregningskerne
-(`engine.py` og moduler der kalder den). Beregningen SKAL være kørt færdig, før
-AI-modellen genererer et svar, og AI'en SKAL instrueres i kun at gengive og
-forklare engine-tal. Nye undtagelser fra denne regel SKAL være snævert afgrænsede,
-bruge en fast, dokumenteret formel og være beskrevet eksplicit i `prompts.py`.
-Beregningsfunktioner SKAL være rene funktioner uden delt tilstand.
 
-Rationale: Værktøjets troværdighed hviler på, at tallene kan verificeres ved at
-læse og teste koden — ikke ved at stole på en sprogmodels regnefærdigheder.
+Alle tal, som brugeren ser (skat, udbetalinger, ydelser, fremskrivninger, scenarier,
+optimeringsresultater), SKAL komme fra den deterministiske beregningskerne. Beregningen SKAL
+være færdig, før en AI-model formulerer et svar, og AI'en må kun gengive og forklare tal fra
+kernen. Den må aldrig selv beregne, afrunde om, interpolere eller estimere tal. Hvis en
+undtagelse alligevel er nødvendig, SKAL den være snævert afgrænset, bruge en fast og
+dokumenteret formel og være godkendt som en ændring af denne forfatning.
 
-### II. Ét Kildested for Satser med Kildehenvisning
-Alle satser og beløbsgrænser fra lovgivningen SKAL ligge i `satser_2026.py` (eller
-efterfølgende års-modul) som `Sats`-objekter med `kilde` og `verificeret`-flag.
-Ingen anden fil — Python, prompt-tekst eller frontend — må indeholde en litteral
-kopi af en sats; de SKAL læses fra kildestedet (frontend via API). En sats SKAL
-markeres `verificeret=False`, indtil den er bekræftet mod en primær, officiel kilde
-(skat.dk, Skatteministeriet, borger.dk, ATP.dk o.l.) — sekundære opsummeringer
-tæller ikke. Kommuneskat er den ene dokumenterede undtagelse fra `Sats`-formatet,
-men SKAL stadig kun findes ét sted.
+Rationale: Tallenes troværdighed skal kunne efterprøves ved at læse og teste kernen. Det må
+ikke afhænge af en sprogmodels regnefærdigheder.
 
-Rationale: Dublerede satser har tidligere ført til indbyrdes modstridende og
-forældede tal i det brugeren så. Ét kildested gør den årlige opdatering og en
-revisionsgennemgang mulig.
+### II. Regelregister: Ét Kildested med Kildehenvisning
 
-### III. Regressionstest for Alle Beregninger
-Enhver ændring af beregningslogik, satser eller optimering SKAL ledsages af
-regressionstests i `tests/`, og hele suiten SKAL bestå før merge. Nye funktioner
-SKAL have deres egen testfil eller tilføjelser til en eksisterende. Ændrede satser
-SKAL give nye, eksplicit forventede tal i de tests, der bruger dem — "stadig grønt"
-er ikke nok. Håndverificerede facit-tal (golden cases) SKAL bevares og må kun
-ændres med en begrundelse. For fejlrettelser SKAL der skrives en test, der fejler
-før rettelsen.
+Alle satser, beløbsgrænser, procenter og aldersregler fra lovgivningen SKAL ligge i ét
+regelregister som data og ikke som tal i koden. Hver post SKAL have:
+- en entydig id
+- en værdi
+- et gyldighedsår (satsår)
+- en kildehenvisning (lov og paragraf og/eller officiel URL)
+- en verifikationsstatus: `verificeret`, `sekundær kilde` eller `uverificeret`
 
-Rationale: Testene er det offentlige bevis for beregningernes korrekthed og
-erstatter manuel QA i et enmandsprojekt.
+Ingen anden del af løsningen (beregning, AI-tekst, brugerflade) må indeholde en kopi af en
+sats. Den SKAL læses fra registret. Regelregistret SKAL kunne indeholde flere satsår side om
+side, og en beregning SKAL angive, hvilket satsår den bruger.
 
-### IV. Gennemsigtighed og Forbehold
-Værktøjet er information, ikke reguleret rådgivning, og det SKAL fremgå for
-brugeren ved enhver konkret anbefaling, med henvisning til en certificeret
-pensionsrådgiver. Når en beregning bygger på en uverificeret sats, en forenklet
-tilnærmelse eller en ikke-udtømmende søgning, SKAL det rapporteres eksplicit i
-resultatet (som f.eks. `usikker_venteprocent` og antal evaluerede vs. mulige
-kombinationer). Kendte forenklinger SKAL dokumenteres i README.md.
+Rationale: Legacy-løsningen havde flere indbyrdes modstridende kopier af de samme satser, og
+det gav forkerte tal hos brugeren. Når der kun er ét kildested, bliver den årlige
+satsopdatering og en revision overskuelig.
 
-Rationale: Brugeren træffer beslutninger med store økonomiske konsekvenser og
-skal kunne se, hvor sikre tallene er.
+### III. Lovgivningen er Facit
 
-### V. Klar Ansvarsfordeling mellem Moduler
-Hvert modul har ét ansvar og SKAL holde sig til det:
-- `engine.py` — al beregning; ingen AI, ingen I/O.
-- `satser_2026.py` — alle satser.
-- `prompts.py` — al tekst AI'en ser eller siger; ingen litterale satser.
-- `app.py` — routing, sessioner, streaming, caching; ingen beregning, ingen prompt-tekst.
-- `pdf_parser.py` — udtræk fra PensionsInfo-PDF til engine-format.
-- `sekventering.py` / `husstand.py` — orkestrering af engine-kørsler.
-Ny funktionalitet SKAL placeres i det modul, der ejer ansvaret, eller i et nyt
-modul med ét tydeligt ansvar.
+Beregningsreglerne SKAL følge gældende dansk lovgivning. Den eksisterende løsning,
+pensionsselskabernes beregnere og sekundære vejledninger er ikke facit. Hver regel i
+specifikationen SKAL henvise til sit lovgrundlag. Når der er afvigelse fra loven, skal den
+enten:
+1. rettes, eller
+2. beskrives eksplicit som en **forenkling** med begrundelse, betydning for resultatet og
+   synlighed for brugeren (jf. Princip V).
 
-Rationale: En revisor skal kunne verificere tal ved at læse `engine.py` og
-`satser_2026.py` alene, og AI-adfærd ved at læse `prompts.py` alene.
+Modelleringsantagelser, som ikke er lovgivning (fx afkast, inflation, levetid og
+satsregulering i fremtidige år), SKAL holdes adskilt fra lovregler og være synlige som
+antagelser, som brugeren kan ændre.
 
-### VI. Persondata og Privatliv (GDPR)
-PensionsInfo-rapporter indeholder følsomme personoplysninger (CPR-afledte data,
-opsparing, forsikringer). Derfor:
-- Dataminimering: der SKAL kun gemmes det, der er nødvendigt for den aktive session.
-- Uploadede PDF'er SKAL slettes fra disk, så snart de er parset.
-- Persondata MÅ IKKE gemmes permanent på disk eller i logs uden et dokumenteret
-  formål og en sletteregel.
-- Brugeren SKAL oplyses om, at indhold sendes til en ekstern AI-tjeneste
-  (Anthropic), før upload.
-- Endpoints, der eksponerer rå udtræk eller tillader manipulation af samtalen,
-  MÅ IKKE være tilgængelige i en offentlig udrulning.
-- Hemmeligheder (API-nøgler) SKAL læses fra miljø/`.env` og aldrig committes.
+Rationale: Brugeren træffer beslutninger med store økonomiske konsekvenser. Valideringen af
+legacy viste fejl som AM-bidrag af pensionsudbetalinger, der ikke var opdaget, fordi den gamle
+kode blev behandlet som facit.
 
-Rationale: Juridisk forpligtelse og tillid — uden den vil ingen uploade deres
-pensionsrapport.
+### IV. Test Først med Facit-tal (NON-NEGOTIABLE)
 
-### VII. Dansk Brugerflade
-Alt brugervendt indhold — UI-tekst, fejlmeddelelser, AI-svar og eksporterede
-analyser — SKAL være på dansk, med dansk talformatering (punktum som
-tusindtalsseparator, komma som decimaltegn). Siden SKAL have `lang="da"`.
-Kode, kommentarer og commits må være på dansk eller engelsk.
+Al beregningslogik SKAL udvikles med test først. Testene skrives og godkendes, de fejler, og
+først derefter implementeres logikken. Testsuiten SKAL omfatte:
+- **Golden cases**: håndberegnede facit-tal, der helst følger lovens eller myndighedernes
+  egne eksempler, og med kildehenvisning. De må kun ændres med skriftlig begrundelse.
+- **Regelgrænser**: værdier lige på, under og over hver tærskel i regelregistret.
+- **Differentialtest mod legacy**: alle afvigelser fra `legacy/` SKAL kunne forklares af en
+  dokumenteret lovrettelse eller et bevidst ændret valg.
+- **Fejlrettelser**: en test, der fejler før rettelsen.
 
-Rationale: Målgruppen er danske borgere, der planlægger pension under dansk lov.
+Hele suiten SKAL kunne køres med én kommando og uden netværk eller kørende server.
 
-### VIII. Simpelhed og Minimale Afhængigheder
-Løsningen SKAL forblive en simpel FastAPI-backend med én statisk frontend-fil uden
-build-trin. Nye afhængigheder (Python-pakker, frontend-biblioteker) SKAL begrundes
-i PR'en: hvilket problem løses, og hvorfor kan det ikke løses simpelt uden. Frontend-
-biblioteker fra CDN SKAL pinnes til en eksakt version.
+Rationale: Testene er det offentlige bevis for, at beregningerne er korrekte.
 
-Rationale: Færre dele betyder mindre at vedligeholde, færre sikkerhedsopdateringer
-og en kodebase én udvikler kan overskue.
+### V. Sporbarhed og Gennemsigtighed
 
-## Teknologibegrænsninger
+Hvert beregnet tal SKAL kunne spores til de registerposter og antagelser, der indgik i det.
+Resultatet SKAL eksplicit oplyse:
+- brug af satser, der ikke er `verificeret`
+- forenklinger (jf. Princip III), som påvirker resultatet
+- tilnærmelser og ufuldstændige søgninger, fx hvor mange kombinationer der er evalueret ud af
+  hvor mange mulige
+- advarsler, der er relevante for brugerens beslutning, fx loft overskredet eller høj
+  marginalskat
 
-- Backend: Python, FastAPI og uvicorn. Frontend: `static/index.html` (HTML/CSS/JS)
-  med Chart.js som eneste frontend-bibliotek.
-- AI: Anthropic Claude via den officielle `anthropic`-pakke, til PDF-udtræk og
-  chat. Den statiske del af systemprompten SKAL caches (prompt caching).
-- PDF-tekstudtræk: `pdfplumber`.
-- Sessioner ligger i hukommelsen. En udrulning med flere processer eller
-  vedvarende sessioner kræver en eksplicit begrundet ændring (jf. Princip VI og VIII).
-- Offentligt tilgængelige endpoints SKAL have rate limiting og upload-størrelsesloft.
-- Langvarige eksterne kald (PDF-udtræk, LLM) SKAL have timeouts, så brugeren altid
-  får en forståelig dansk fejlbesked frem for en hængende side.
+Ved enhver konkret anbefaling SKAL brugeren få at vide, at værktøjet er information og ikke
+rådgivning, med henvisning til en certificeret pensionsrådgiver.
 
-## Kvalitetsgates
+Rationale: Brugeren og en revisor skal kunne se, hvor sikkert hvert tal er, og hvorfor det
+har den værdi, det har.
 
-- Hele testsuiten i `tests/` SKAL bestå før merge (Princip III), inklusive de
-  server-afhængige tests mod en lokalt kørende app.
-- En ændring, der introducerer et tal uden for `satser_2026.py`, SKAL afvises i
-  review (Princip II).
-- En ændring af prompts SKAL reviewes for, at AI'en ikke får mulighed for selv at
-  beregne tal (Princip I).
-- Ved årlig satsopdatering SKAL README.md's tjekliste "Årlig satsopdatering" følges,
-  inklusive verifikation i browseren.
-- Ændringer, der rører persondata, SKAL vurderes mod Princip VI og beskrive
-  opbevaring og sletning i plan-dokumentet.
-- Nye afhængigheder SKAL fremgå af PR-beskrivelsen med begrundelse (Princip VIII).
+### VI. Isoleret Beregningskerne
+
+Beregningskernen SKAL være en selvstændig komponent med et veldefineret input- og
+outputformat. Den må ikke indeholde I/O, netværkskald, AI, brugerflade eller lagring. Samme
+input og samme satsår SKAL altid give samme output. "Dags dato" er input og må ikke læses
+implicit. Alle andre dele (import, AI-forklaring, optimering, husstand, brugerflade) bruger
+kernen gennem dens grænseflade og må ikke selv beregne skat eller ydelser.
+
+Rationale: En revisor skal kunne verificere alle tal ved kun at læse kernen og
+regelregistret.
+
+### VII. Persondata og Privatliv
+
+Pensionsoplysninger er følsomme personoplysninger. Derfor gælder:
+- **Dataminimering**: Der gemmes kun det, som den aktive session har brug for.
+- **Uploadede dokumenter**: De SKAL slettes, så snart de er behandlet.
+- **Opbevaring**: Persondata må ikke gemmes permanent, i cache eller i logs uden et
+  dokumenteret formål og en sletteregel.
+- **Eksterne tjenester**: Brugeren SKAL oplyses om, at data sendes til en ekstern tjeneste,
+  før det sker. Til AI/LLM-tjenester må persondata slet ikke sendes (Princip XI).
+- **Diagnostik**: Endpoints, der eksponerer rå data eller tillader at manipulere sessionen,
+  må ikke være tilgængelige i en offentlig udrulning.
+- **Hemmeligheder**: De SKAL komme fra miljøet og må aldrig committes.
+
+Rationale: Juridisk forpligtelse (GDPR) og tillid.
+
+### VIII. Dansk Brugerflade
+
+Alt indhold, som brugeren ser, SKAL være på dansk og bruge dansk talformat (punktum som
+tusindtalsseparator og komma som decimaltegn). Det gælder tekst, fejlbeskeder, AI-svar og
+eksport. Fagudtryk SKAL følge myndighedernes terminologi (fx "pensionstillæg", "personlig
+tillægsprocent", "ældrecheck"). Kode, kommentarer og commits må være på dansk eller engelsk.
+
+Rationale: Målgruppen er danske borgere, der planlægger pension efter dansk lov.
+
+### IX. Simpelhed
+
+Vælg den enkleste løsning, der opfylder specifikationen. Nye komponenter, afhængigheder og
+abstraktioner SKAL begrundes i `plan.md`: hvilket problem løser de, og hvorfor er den
+simplere løsning ikke nok? Funktionalitet bygges kun, når en specifikation kræver den
+(YAGNI).
+
+Rationale: Projektet vedligeholdes af én udvikler. Færre dele giver mindre at vedligeholde og
+sikre.
+
+### X. Brugeroplevelse: Klarhed før Fuldstændighed
+
+Brugerfladen er for borgere uden faglig viden om pension. Den SKAL følge disse regler:
+- **Svaret først**: Hver visning SKAL først svare på brugerens hovedspørgsmål ("Hvad får jeg
+  udbetalt om måneden efter skat?") med ét tydeligt tal. Detaljer (år-for-år, skat pr.
+  kilde, sporing) vises ved progressiv afsløring (fold-ud, faneblade), ikke på én gang.
+- **Forenkl informationen**: Højst én primær beslutning eller handling pr. skærmbillede.
+  Tabeller og grafer viser kun de kolonner og serier, der understøtter beslutningen. Resten
+  er tilgængeligt, men skjult som udgangspunkt.
+- **Kontekstuel bevidsthed**: Spørg kun om oplysninger, når de skal bruges, og forklar
+  hvorfor. Fagudtryk (fx "pensionstillæg", "tillægsprocent") SKAL forklares i konteksten,
+  hvor de står (fx med info-ikon eller tooltip). Brugeren skal ikke slå dem op andre steder.
+- **Konsekvent visuel logik**: Samme farve og form betyder altid det samme i hele løsningen,
+  fx én linkfarve, én farve for primære handlinger og én fast farve pr. indkomstkilde i alle
+  grafer. Status (verificeret/forenkling/advarsel) har fast ikon og farve og kommunikeres
+  aldrig kun med farve.
+- **Usikkerhed uden støj**: Forenklinger, antagelser og uverificerede satser (Princip V)
+  SKAL være synlige, men placeres sammen med det tal, de påvirker. De må ikke overdøve
+  hovedbudskabet.
+- **Fejl og tomme tilstande**: De SKAL forklare på dansk, hvad der skete, og hvad brugeren
+  kan gøre nu. Tekniske fejlkoder vises aldrig alene.
+- **Tilgængelighed**: WCAG 2.2 niveau AA. Den skal kunne bruges med tastatur og på en
+  mobilskærm (360 px) uden vandret scroll.
+- **Klarsprog**: Korte sætninger, aktiv form og "du"-form.
+- **Validering**: Hver feature med brugerflade SKAL valideres før merge, enten med en
+  heuristisk evaluering (Nielsens 10 heuristikker) dokumenteret i feature-mappen eller med
+  en brugertest med mindst 3 personer fra målgruppen.
+
+Rationale: Legacy-løsningen havde korrekte tal, men en brugerflade, der var svær at bruge.
+Et korrekt tal, som brugeren ikke forstår, giver ikke bedre beslutninger. Principperne
+bygger på DodgeUX' fokus på forenklet information, kontekstuel bevidsthed og konsekvent
+farvelogik, samt på Nielsens heuristikker og WCAG.
+
+### XI. Ingen Persondata til AI/LLM (NON-NEGOTIABLE)
+
+Persondata MÅ ALDRIG sendes til en AI- eller LLM-tjeneste, hverken ekstern eller intern.
+Det gælder også med brugerens samtykke og også efter fjernelse eller pseudonymisering af
+enkelte felter. Persondata er alt, der kan henføres til en person, fx:
+- CPR-nummer, navn, adresse, telefon og e-mail
+- aftale- og policenumre
+- en uploadet rapport og dens tekst
+- brugerens egne oplysninger og beregningsresultater for brugeren
+
+Konsekvenser:
+- **Aflæsning af dokumenter** (fx PensionsInfo-rapporter) SKAL ske lokalt og
+  deterministisk.
+- **En AI-funktion** (fx forklaring eller chat) må kun bruge generisk indhold: lovregler,
+  satser fra regelregistret og forklaringer uden brugerdata. Den må ikke bruge brugerens tal
+  eller dokumenter.
+- **Afhængigheder**: Klientbiblioteker til AI/LLM-tjenester må ikke være afhængigheder af
+  kode, der håndterer brugerdata. Det SKAL håndhæves med en automatisk test.
+- **Undtagelser** kræver en ændring af denne forfatning (MAJOR) med en juridisk vurdering.
+
+Rationale: Kravet kommer fra produktejeren (NFR, 2026-10-25). Anonymisering af fritekst kan
+ikke garanteres fuldstændig, fx navne på pårørende. Den eneste måde at overholde kravet uden
+restrisiko er derfor ikke at sende brugerdata til AI.
+
+## Kildehierarki
+
+Ved verifikation af en registerpost gælder denne rækkefølge, med den mest autoritative
+først:
+
+1. **Lovgivning**: lovtekst og bekendtgørelser (retsinformation.dk) og vedtagne lovforslag
+   (ft.dk).
+2. **Myndigheder**: skat.dk og Den juridiske vejledning, Skatteministeriet, borger.dk,
+   Udbetaling Danmark, Beskæftigelsesministeriet og Finanstilsynet.
+3. **Lovbestemte institutioner**: fx ATP.
+4. **Sekundære kilder**: fx Ældre Sagen, pensionsselskaber, revisionshuse og fagmedier.
+
+Status `verificeret` kræver en kilde fra niveau 1–3. En post, der kun bygger på niveau 4,
+SKAL have status `sekundær kilde`.
+
+## Legacy-løsningens rolle
+
+`legacy/` (tag `legacy-v1`) må kun bruges som:
+- **Kilde til domæneviden** (jf. `docs/domaene/`)
+- **Orakel** i differentialtests (jf. Princip IV)
+
+Den er ikke facit (jf. Princip III), og der bygges ikke videre på dens kode. Når
+genopbygningen dækker al legacy-funktionalitet, kan mappen fjernes ved en ændring af denne
+forfatning.
+
+## Udviklingsproces og kvalitetsgates
+
+- **Spec Kit-flow pr. feature**: Hver feature følger `/speckit-specify` → `/speckit-clarify`
+  → `/speckit-plan` → `/speckit-tasks` → `/speckit-implement`. Specifikationen beskriver
+  *hvad* og *hvorfor*, og teknologivalg hører til i `plan.md`.
+- **Constitution Check i plan**: `/speckit-plan` SKAL gennemgå alle principper. Afvigelser
+  SKAL begrundes i "Complexity Tracking", før arbejdet fortsætter.
+- **Review af tal og satser**: En ændring, der indfører et tal uden for regelregistret, SKAL
+  afvises (Princip II). En ny eller ændret regel uden lovhenvisning SKAL afvises
+  (Princip III).
+- **Review af AI-tekst**: Ændringer i AI-instruktioner SKAL reviewes for, om de giver AI'en
+  mulighed for selv at beregne (Princip I).
+- **Testsuite**: Hele testsuiten SKAL bestå før merge (Princip IV).
+- **Årlig satsopdatering**:
+  1. Tilføj et nyt satsår i registret.
+  2. Verificér hver post mod kildehierarkiet.
+  3. Opdatér golden cases med nye, eksplicit forventede tal. Det er ikke nok, at testene
+     "stadig er grønne".
+- **Persondata**: Ændringer, der rører persondata, SKAL beskrive opbevaring og sletning i
+  `plan.md` (Princip VII).
 
 ## Governance
 
-Denne forfatning har forrang over øvrige praksisser, skabeloner og retningslinjer i
-projektet. Ved konflikt mellem forfatningen og andre dokumenter gælder forfatningen.
+Denne forfatning har forrang over alle andre praksisser, skabeloner og dokumenter i
+projektet. Ændringer SKAL dokumenteres med en Sync Impact Report og versioneres semantisk:
+- **MAJOR**: Et princip fjernes eller omdefineres, så det ikke er bagudkompatibelt.
+- **MINOR**: Et nyt princip tilføjes, eller en regel udvides væsentligt.
+- **PATCH**: Sproglige præciseringer.
 
-Ændringer af forfatningen SKAL dokumenteres med en Sync Impact Report og en opdateret
-version efter semantisk versionering:
-- MAJOR: Fjernelse eller bagudkompatibel omdefinering af et princip.
-- MINOR: Nyt princip eller væsentlig udvidelse af en eksisterende regel.
-- PATCH: Sproglige præciseringer og andre ikke-semantiske justeringer.
+Alle specifikationer, planer og implementeringer SKAL vurderes mod principperne. Afvigelser
+SKAL begrundes skriftligt i `plan.md`, før arbejdet fortsætter.
 
-Alle designs, planer og implementeringer (herunder `/speckit-plan`'s Constitution
-Check) SKAL vurderes mod principperne ovenfor. Afvigelser SKAL begrundes skriftligt i
-plan-dokumentet, før arbejdet fortsætter.
-
-**Version**: 1.0.0 | **Ratified**: 2026-10-24 | **Last Amended**: 2026-10-24
+**Version**: 1.2.0 | **Ratified**: 2026-10-24 | **Last Amended**: 2026-10-25
