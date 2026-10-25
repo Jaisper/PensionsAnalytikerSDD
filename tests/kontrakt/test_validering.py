@@ -71,3 +71,10 @@ def test_opsaettelse_over_10_aar():
 def test_partner_foedt_foer_1955():
     p = Partner(date(1950, 1, 1))
     assert fejlfelt(enlig_profil(civilstand="gift_samlevende", partner=p)) == "partner.foedselsdato"
+
+
+def test_opsparing_valideres():  # feature 013
+    from pensionskerne import Aktiv
+    assert fejlfelt(enlig_profil(opsparing=(Aktiv("b", -1),))) == "opsparing[b].saldo"
+    assert fejlfelt(enlig_profil(opsparing=(Aktiv("b", 1, type="depot"),))) == "opsparing[b].type"
+    assert fejlfelt(enlig_profil(opsparing=(Aktiv("b", 1), Aktiv("b", 2)))) == "opsparing[b]"

@@ -103,8 +103,9 @@ Trinnet forklarer, hvorfor der spørges: opsparingen påvirker skat, pensionstil
 **Acceptance Scenarios**:
 
 1. **Given** en profil uden opsparing, **Then** er resultatet det samme som før 013.
-2. **Given** et gammelt input med `likvid_formue`, **When** det indlæses, **Then** bliver det til
-   ét bankindestående ejet af person A med samme beløb, og resultatet er uændret.
+2. **Given** et gammelt input med `likvid_formue`, **When** det indlæses, **Then** er resultatet
+   uændret. Feltet beholder sin betydning (fast formue til ældrechecken) og bruges nu kun til
+   partnerens opsparing ved et overslag (ændret i planen).
 3. **Given** gift med fuld partnerprofil, **Then** angiver hver person sin egen opsparing.
 
 ---
@@ -185,12 +186,13 @@ En fold-ud under grafen viser formuen år for år pr. aktivtype og **restformuen
   - Et underskud trækkes efter rækkefølgen.
   - Det hele sker inden for 009's fastpunkt-iteration.
 - **FR-004**: Trækrækkefølgen MUST være en udskiftelig strategi med en defineret grænseflade.
-  Fast rækkefølge er den eneste strategi i 013. Grænsefladen skal kunne bruges af en senere
-  optimering (US3).
+  Fast rækkefølge er den eneste strategi. Grænsefladen skal kunne bruges af en senere
+  optimering (US3). Flyttet til 013b i planen: med én skattekasse har rækkefølgen ingen virkning.
 - **FR-005**: Husstandens likvide formue til ældrechecken MUST være summen af begge personers
   likvide aktiver pr. 1. januar (erstatter `likvid_formue` + buffer i 012, FR-004).
 - **FR-006**: Gamle input MUST stadig kunne indlæses og give samme resultat.
-  - `likvid_formue` bliver ét bankaktiv ejet af person A.
+  - `likvid_formue` beholder sin betydning: en fast formue, der kun tæller i ældrechecken (ændret
+    i planen, fordi et bankaktiv forrentes og beskattes og derfor giver et andet resultat).
   - `anden_kapitalindkomst` bevarer sin nuværende forenkling: den indgår i indtægtsgrundlaget og
     beskattes ikke.
 - **FR-007**: Nye satser MUST ligge i regelregistret med kilde og status (Princip II).

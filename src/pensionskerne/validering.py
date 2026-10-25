@@ -12,6 +12,7 @@ from .register.opslag import Regelopslag
 
 ORDNINGSTYPER = ("ratepension", "livsvarig", "aldersopsparing", "kapitalpension")
 UDBETALINGSFORMER = ("engangs", "portioner", "ratepension", "livsvarig")
+AKTIVTYPER = ("bank",)  # feature 013; frit depot og aktiesparekonto kommer i 013b
 
 
 def _ikke_negativ(felt: str, vaerdi: float | None) -> None:
@@ -102,6 +103,16 @@ def valider(profil: Pensionsprofil, antagelser: Antagelser, satsaar: int, beregn
                     f"{felt}.udbetaling_aar",
                     f"Sidste rate må senest udbetales som {sidste_tilladte}-årig",
                 )
+
+    aktiv_ids: set[str] = set()
+    for aktiv in profil.opsparing:
+        felt = f"opsparing[{aktiv.id}]"
+        if aktiv.id in aktiv_ids:
+            raise UgyldigtInput(felt, "Opsparingens id skal være unikt")
+        aktiv_ids.add(aktiv.id)
+        if aktiv.type not in AKTIVTYPER:
+            raise UgyldigtInput(f"{felt}.type", f"Ukendt opsparingstype: {aktiv.type}")
+        _ikke_negativ(f"{felt}.saldo", aktiv.saldo)
 
     if not 0 <= antagelser.folkepension_opsaettelse_aar <= o.v("opsat.maks_aar"):
         raise UgyldigtInput(

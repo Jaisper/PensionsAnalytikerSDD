@@ -106,3 +106,15 @@ def test_konvergerer_og_er_symmetrisk():
 
 def test_deterministisk():
     assert hus() == hus()
+
+
+def test_partnerens_uroerte_opsparing_taeller_i_min_aeldrecheck():
+    """Feature 013: partnerens opsparing pr. 1. januar indgår i husstandens formue (§ 72 d, stk. 2)."""
+    from pensionskerne import Aktiv
+    b_uden = replace(B, ordninger=())
+    b_med = replace(b_uden, opsparing=(Aktiv("b-bank", 150_000, i_plan=False),))
+    aeldrecheck = lambda res: next((k.brutto for k in raekke(res, 2030).kilder if k.type == "aeldrecheck"), 0.0)
+    assert aeldrecheck(hus(b=b_uden).a) > 0
+    assert aeldrecheck(hus(b=b_med).a) == 0
+    p = partner_fra(hus(b=b_med).b, b_med, A_ANT)
+    assert p.formue_pr_aar[2026] == pytest.approx(150_000)  # i dag: startsaldoen
