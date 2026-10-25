@@ -252,8 +252,8 @@ function ordningsFelt(o, navn, label, hjaelp, input) {
   input.addEventListener("input", () => { o[navn] = input.value; });
   return el("div", { class: "felt", "data-felt": `ordninger[${o.id}].${navn}` },
     el("label", { for: id, tekst: label }),
-    hjaelp ? el("p", { class: "felt__hjaelp", id: `${id}-hjaelp`, tekst: hjaelp }) : null,
-    input);
+    input,
+    hjaelp ? el("p", { class: "felt__hjaelp", id: `${id}-hjaelp`, tekst: hjaelp }) : null);
 }
 
 function tegnOrdninger() {
@@ -266,10 +266,11 @@ function tegnOrdninger() {
       ordningsFelt(o, "saldo", "Opsparing i dag (kr.)", null, tal("saldo")),
       ordningsFelt(o, "aarlig_indbetaling", "Indbetaling pr. år (kr.)", "Efter arbejdsmarkedsbidrag. 0 hvis du ikke indbetaler mere.", tal("aarlig_indbetaling")),
       ordningsFelt(o, "udbetaling_start_alder", o.type === "aldersopsparing" || o.type === "kapitalpension" ? "Udbetales når du er (alder)" : "Udbetalingen starter når du er (alder)",
-        null, el("input", { inputmode: "numeric", value: o.udbetaling_start_alder })),
+        o.tidligste_udbetalingsalder ? `Tidligst udbetaling: ${decimal(o.tidligste_udbetalingsalder)} år (oplyst af selskabet).` : null,
+        el("input", { inputmode: "numeric", value: o.udbetaling_start_alder })),
       o.type === "ratepension" ? ordningsFelt(o, "udbetaling_aar", "Udbetales over (antal år)", "Mindst 10 år.", el("input", { inputmode: "numeric", value: o.udbetaling_aar })) : null,
       o.tidligste_udbetalingsalder
-        ? el("p", { class: "felt__hjaelp", tekst: `Tidligst udbetaling: ${decimal(o.tidligste_udbetalingsalder)} år (oplyst af selskabet).` })
+        ? null
         : ordningsFelt(o, "oprettet", "Hvornår blev ordningen oprettet?", "Bestemmer, hvornår du tidligst må få pengene.", oprettet),
     ];
     const fjern = el("button", { type: "button", class: "knap knap--tekst", "aria-label": `Fjern ${t.titel.toLowerCase()} ${i + 1}`, tekst: "Fjern" });

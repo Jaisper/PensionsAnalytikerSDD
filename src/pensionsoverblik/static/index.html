@@ -70,21 +70,21 @@
                 <label for="pdf-fil">Vælg rapporten (PDF)</label>
                 <input type="file" id="pdf-fil" accept="application/pdf,.pdf">
               </div>
-              <p class="felt__hjaelp">Rapporten læses på vores server og slettes med det samme. Intet sendes til AI-tjenester.</p>
+              <p class="felt__hjaelp">Rapporten læses kun her i din browser. Den sendes ikke nogen steder hen – heller ikke til AI-tjenester.</p>
               <button type="button" class="knap knap--sekundaer" id="pdf-knap">Aflæs rapport</button>
               <div id="pdf-status" class="upload__status" role="status" aria-live="polite"></div>
             </section>
 
             <div class="felt" data-felt="foedselsdato person.foedselsdato">
               <label for="foedselsdato">Fødselsdato</label>
-              <p class="felt__hjaelp" id="foedselsdato-hjaelp">Bestemmer din folkepensionsalder.</p>
               <input type="date" id="foedselsdato" name="foedselsdato" required aria-describedby="foedselsdato-hjaelp" min="1955-07-01">
+              <p class="felt__hjaelp" id="foedselsdato-hjaelp">Bestemmer din folkepensionsalder.</p>
             </div>
 
             <div class="felt" data-felt="kommune person.kommune">
               <label for="kommune">Kommune</label>
-              <p class="felt__hjaelp" id="kommune-hjaelp">Kommuneskatten er forskellig fra kommune til kommune.</p>
               <input id="kommune" name="kommune" list="kommuneliste" autocomplete="off" required aria-describedby="kommune-hjaelp">
+              <p class="felt__hjaelp" id="kommune-hjaelp">Kommuneskatten er forskellig fra kommune til kommune.</p>
               <datalist id="kommuneliste"></datalist>
             </div>
 
@@ -103,8 +103,8 @@
               </div>
               <div class="felt" data-felt="person.partner.oevrig_indkomst_aar">
                 <label for="partner-indkomst">Din partners pension og kapitalindkomst pr. år</label>
-                <p class="felt__hjaelp" id="partner-indkomst-hjaelp">Løn tæller ikke med. Bruges til at beregne dit pensionstillæg.</p>
                 <input id="partner-indkomst" inputmode="numeric" class="beloeb" aria-describedby="partner-indkomst-hjaelp" placeholder="0">
+                <p class="felt__hjaelp" id="partner-indkomst-hjaelp">Løn tæller ikke med. Bruges til at beregne dit pensionstillæg.</p>
               </div>
             </div>
 
@@ -114,14 +114,14 @@
 
             <div class="felt" data-felt="likvid_formue person.likvid_formue">
               <label for="formue">Opsparing uden for pension <span class="valgfri">(valgfri)</span></label>
-              <p class="felt__hjaelp" id="formue-hjaelp">Fx penge i banken. For par: jeres samlede opsparing. Har betydning for ældrechecken.</p>
               <input id="formue" inputmode="numeric" class="beloeb" aria-describedby="formue-hjaelp" placeholder="0">
+              <p class="felt__hjaelp" id="formue-hjaelp">Fx penge i banken. For par: jeres samlede opsparing. Har betydning for ældrechecken.</p>
             </div>
 
             <div class="felt" data-felt="atp_aarlig person.atp_aarlig">
               <label for="atp">Din ATP pr. år <span class="valgfri">(valgfri)</span></label>
-              <p class="felt__hjaelp" id="atp-hjaelp">Står på pensionsinfo.dk. Lader du feltet stå tomt, bruger vi ATP's gennemsnit.</p>
               <input id="atp" inputmode="numeric" class="beloeb" aria-describedby="atp-hjaelp" placeholder="Ved ikke">
+              <p class="felt__hjaelp" id="atp-hjaelp">Står på pensionsinfo.dk. Lader du feltet stå tomt, bruger vi ATP's gennemsnit.</p>
             </div>
           </fieldset>
 
@@ -158,8 +158,8 @@
             </div>
             <div class="felt" data-felt="antagelser.folkepension_opsaettelse_aar">
               <label for="opsaettelse">Udskyd folkepensionen</label>
-              <p class="felt__hjaelp" id="opsaettelse-hjaelp">Udskyder du den, bliver den større. Det kræver, at du arbejder mindst 750 timer om året imens.</p>
               <div class="skyder"><input type="range" id="opsaettelse" min="0" max="10" step="1" value="0" aria-describedby="opsaettelse-hjaelp"><output for="opsaettelse" id="opsaettelse-v">Nej</output></div>
+              <p class="felt__hjaelp" id="opsaettelse-hjaelp">Udskyder du den, bliver den større. Det kræver, at du arbejder mindst 750 timer om året imens.</p>
             </div>
           </fieldset>
 

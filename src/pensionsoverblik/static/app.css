@@ -91,6 +91,7 @@ fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
 .felt { margin: 0 0 22px; }
 .felt label, .felt legend { display: block; font-weight: 700; margin-bottom: 4px; }
 .felt__hjaelp { color: var(--graa-600); font-size: .92rem; margin: 0 0 6px; }
+.felt > .felt__hjaelp { margin: 6px 0 0; }  /* hjælpeteksten står under feltet */
 .felt__fejl { color: var(--fejl); font-weight: 600; font-size: .95rem; margin: 6px 0 0; }
 .valgfri { font-weight: 400; color: var(--graa-600); }
 input[type="date"], input:not([type]), input[inputmode], select { font: inherit; width: 100%; max-width: 360px; padding: 11px 12px; border: 1.5px solid var(--graa-600); border-radius: 6px; background: var(--hvid); color: var(--tekst); min-height: 46px; }
