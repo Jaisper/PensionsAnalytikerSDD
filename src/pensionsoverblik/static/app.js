@@ -77,6 +77,7 @@ const tilstand = {
   panel: false,        // guidens formular står i datapanelet på resultatsiden
   v: null,             // seneste visningsmodel // seneste svar, der kunne beregnes (skydere vender tilbage hertil ved fejl)
   forrigeHovedtal: null, graf: null,
+  tlRaekker: null, valgtRaekke: null, prAar: null,  // tidslinjen (006)
 };
 
 /* ── Hjælpere ──────────────────────────────────────────────────────────── */
@@ -629,59 +630,169 @@ function ordningstitel(o) {
   return selskab ? `${selskab} · ${TYPER[o.type].titel}` : TYPER[o.type].titel;
 }
 
-function tlSkyder(id, label, min, maks, vaerdi, fmt, vedAendring) {
-  const input = el("input", { type: "range", id, min, max: maks, step: 1, value: vaerdi });
-  const output = el("output", { for: id, tekst: fmt(vaerdi) });
-  input.addEventListener("input", () => { output.textContent = fmt(+input.value); vedAendring(+input.value); });
-  return el("div", {}, el("label", { for: id, tekst: label }), el("div", { class: "skyder" }, input, output));
+/* ── Feature 006: bjælker, der trækkes ───────────────────────────────── */
+/* Bjælken (eller punktet) er selv kontrollen: træk med mus/finger, klik for ‹ ›, eller brug
+   tastaturet. Alle tre veje går gennem saetVaerdi, og kernen regner, når ændringen er færdig. */
+
+function tidslinjeRaekker(v) {
+  // Én beskrivelse pr. række og kontrol: hvad den ændrer, grænser (fra kernen og registret) og tekst.
+  const s = tilstand.aktuelleSvar;
+  const g = v.graenser;
+  const aldre = v.graf.aldre;
+  const raekker = s.ordninger.map((o) => {
+    const titel = ordningstitel(o);
+    const engang = ENGANGSTYPER.has(o.type);
+    const tidligste = Math.ceil(g.ordninger[o.id]?.tidligste ?? aldre[0]);
+    const kontroller = {
+      start: { navn: engang ? "Udbetales som" : "Start", label: `${titel}, ${engang ? "udbetales som" : "start"}`,
+        ned: "Start 1 år tidligere", op: "Start 1 år senere", min: tidligste, maks: Math.max(tidligste, aldre.at(-1)),
+        hent: () => o.udbetaling_start_alder, saet: (n) => { o.udbetaling_start_alder = n; }, tekst: (n) => `${n} år` },
+    };
+    if (o.type === "ratepension") {
+      kontroller.varighed = { navn: "Varighed", label: `${titel}, varighed`, ned: "Varighed 1 år kortere", op: "Varighed 1 år længere",
+        min: g.ratepension_aar.min, maks: g.ratepension_aar.maks,
+        hent: () => o.udbetaling_aar || g.ratepension_aar.min, saet: (n) => { o.udbetaling_aar = n; }, tekst: (n) => `${n} år` };
+    }
+    return { id: o.id, type: o.type, titel, farve: TYPER[o.type].farve, engang, kontroller };
+  });
+  raekker.push({ id: "folkepension", type: "folkepension", titel: "Folkepension", farve: "--kilde-folkepension", engang: false,
+    kontroller: { start: { navn: "Udskyd", label: "Folkepension, udskydelse", ned: "Udskyd 1 år mindre", op: "Udskyd 1 år mere",
+      min: 0, maks: g.opsaettelse_maks,
+      hent: () => s.antagelser.folkepension_opsaettelse_aar, saet: (n) => { s.antagelser.folkepension_opsaettelse_aar = n; },
+      tekst: (n) => (n ? `${n} år (fra ${g.folkepensionsalder + n} år)` : `nej (fra ${g.folkepensionsalder} år)`) } } });
+  return raekker;
+}
+
+function spaend(r, v) {
+  // Første og sidste udbetalingsalder for rækkens bjælke, ud fra borgerens aktuelle valg.
+  const sidste = v.graf.aldre.at(-1);
+  const start = r.kontroller.start.hent();
+  if (r.id === "folkepension") return [v.graenser.folkepensionsalder + start, sidste];
+  if (r.kontroller.varighed) return [start, start + r.kontroller.varighed.hent() - 1];
+  return r.engang ? [start, start] : [start, sidste];
+}
+
+function periodeTekst(r, v) {
+  const [fra, til] = spaend(r, v);
+  if (r.kontroller.varighed) return `${fra}–${til} år`;
+  return r.engang ? `udbetales som ${fra}-årig` : `fra ${fra} år, livsvarig`;
 }
 
 function tegnTidslinje(v) {
   if (!v) return;
-  const s = tilstand.aktuelleSvar;
-  const g = v.graenser;
-  const aldre = v.graf.aldre;
-  const sidste = aldre.at(-1);
-  const raekker = [];
-  const aar = (n) => `${n} år`;
-
-  s.ordninger.forEach((o) => {
-    const type = TYPER[o.type];
-    const engang = ENGANGSTYPER.has(o.type);
-    const start = o.udbetaling_start_alder;
-    const slut = o.type === "ratepension" ? start + (o.udbetaling_aar || g.ratepension_aar.min) - 1 : engang ? start : sidste;
-    const tidligste = Math.ceil(g.ordninger[o.id]?.tidligste ?? aldre[0]);
-    const periode = o.type === "ratepension" ? `${start}–${slut} år` : engang ? `udbetales som ${start}-årig` : `fra ${start} år, livsvarig`;
-    const titel = ordningstitel(o);
-    const kontroller = [tlSkyder(`tl-${o.id}-start`, `${engang ? "Udbetales" : "Starter"} som`, tidligste, Math.max(tidligste, sidste), start, aar,
-      (n) => { o.udbetaling_start_alder = n; synkroniserFormular(); placerBjaelker(); genberegn(o.id); })];
-    if (o.type === "ratepension") {
-      kontroller.push(tlSkyder(`tl-${o.id}-aar`, "Udbetales over", g.ratepension_aar.min, g.ratepension_aar.maks, o.udbetaling_aar || g.ratepension_aar.min, aar,
-        (n) => { o.udbetaling_aar = n; synkroniserFormular(); placerBjaelker(); genberegn(o.id); }));
-    }
-    raekker.push(el("div", { class: "tl-raekke", "data-id": o.id },
-      el("div", { class: "tl-hoved" }, el("strong", { tekst: titel }), el("span", { tekst: periode })),
-      el("div", { class: "tl-spor", "aria-hidden": "true" },
-        el("div", { class: `tl-bjaelke${engang ? " tl-bjaelke--engang" : ""}`, style: `--farve: var(${type.farve})`, "data-start": start, "data-slut": slut })),
-      el("div", { class: "tl-kontroller", role: "group", "aria-label": titel }, kontroller)));
+  const fokus = document.activeElement?.dataset?.kontrol;  // bevar fokus, når rækkerne tegnes igen
+  tilstand.tlRaekker = tidslinjeRaekker(v);
+  const raekker = tilstand.tlRaekker.map((r) => {
+    const bjaelke = el("div", { class: `tl-bjaelke${r.engang ? " tl-bjaelke--engang" : ""}`, style: `--farve: var(${r.farve})`,
+      role: "slider", tabindex: "0", "data-kontrol": `${r.id}:start` });
+    const greb = r.kontroller.varighed
+      ? el("div", { class: "tl-greb", style: `--farve: var(${r.farve})`, role: "slider", tabindex: "0", "data-kontrol": `${r.id}:varighed` })
+      : null;
+    forbindKontrol(bjaelke, r, r.kontroller.start);
+    if (greb) forbindKontrol(greb, r, r.kontroller.varighed);
+    const trin = Object.entries(r.kontroller).map(([noegle, k]) => {
+      const knap = (retning) => {
+        const b = el("button", { type: "button", class: "tl-trinknap", "aria-label": retning < 0 ? k.ned : k.op,
+          "data-kontrol": `${r.id}:${noegle}:${retning}`, tekst: retning < 0 ? "‹" : "›" });
+        b.addEventListener("click", () => saetVaerdi(r, k, k.hent() + retning, true));
+        return b;
+      };
+      return el("div", { class: "tl-trin__gruppe", "data-noegle": noegle },
+        el("span", { class: "tl-trin__navn", tekst: k.navn }), knap(-1), el("output", { class: "tl-trin__vaerdi" }), knap(1));
+    });
+    return el("div", { class: "tl-raekke", "data-id": r.id, "data-type": r.type },
+      el("div", { class: "tl-hoved" }, el("strong", { tekst: r.titel }), el("span", { class: "tl-periode" })),
+      el("div", { class: "tl-spor" }, bjaelke, greb),
+      el("div", { class: "tl-trin", hidden: tilstand.valgtRaekke !== r.id }, trin));
   });
-
-  const ops = s.antagelser.folkepension_opsaettelse_aar;
-  raekker.push(el("div", { class: "tl-raekke", "data-id": "folkepension" },
-    el("div", { class: "tl-hoved" }, el("strong", { tekst: "Folkepension" }), el("span", { tekst: `fra ${g.folkepensionsalder + ops} år, livsvarig` })),
-    el("div", { class: "tl-spor", "aria-hidden": "true" },
-      el("div", { class: "tl-bjaelke", style: "--farve: var(--kilde-folkepension)", "data-start": g.folkepensionsalder + ops, "data-slut": sidste })),
-    el("div", { class: "tl-kontroller", role: "group", "aria-label": "Folkepension" },
-      tlSkyder("tl-fp-ops", "Udskyd", 0, g.opsaettelse_maks, ops, (n) => (n ? `${n} år` : "Nej"),
-        (n) => { s.antagelser.folkepension_opsaettelse_aar = n; synkroniserFormular(); genberegn("folkepension"); }))));
   $("#tidslinje").replaceChildren(...raekker);
+  tilstand.tlRaekker.forEach((r) => opdaterRaekke(r));
   placerBjaelker();
+  if (fokus) $(`[data-kontrol="${fokus}"]`)?.focus();
 }
+
+function opdaterRaekke(r) {
+  // Tekst, ARIA og knapper følger borgerens valg med det samme — tallene kommer fra kernen bagefter.
+  const raekke = $(`.tl-raekke[data-id="${r.id}"]`);
+  if (!raekke) return;
+  $(".tl-periode", raekke).textContent = periodeTekst(r, tilstand.v);
+  for (const [noegle, k] of Object.entries(r.kontroller)) {
+    const n = k.hent();
+    const kontrol = $(`[data-kontrol="${r.id}:${noegle}"]`, raekke);
+    kontrol.setAttribute("aria-label", k.label);
+    kontrol.setAttribute("aria-valuemin", k.min);
+    kontrol.setAttribute("aria-valuemax", k.maks);
+    kontrol.setAttribute("aria-valuenow", n);
+    kontrol.setAttribute("aria-valuetext", k.tekst(n));
+    const gruppe = $(`.tl-trin__gruppe[data-noegle="${noegle}"]`, raekke);
+    $(".tl-trin__vaerdi", gruppe).textContent = k.tekst(n);
+    $(`[data-kontrol="${r.id}:${noegle}:-1"]`, gruppe).disabled = n <= k.min;
+    $(`[data-kontrol="${r.id}:${noegle}:1"]`, gruppe).disabled = n >= k.maks;
+  }
+}
+
+function saetVaerdi(r, k, ny, regn) {
+  const n = Math.min(k.maks, Math.max(k.min, Math.round(ny)));
+  if (n === k.hent()) return false;
+  k.saet(n);
+  synkroniserFormular();
+  opdaterRaekke(r);
+  placerBjaelker();
+  if (regn) genberegn(r.id);
+  return true;
+}
+
+function vaelgRaekke(id) {
+  tilstand.valgtRaekke = tilstand.valgtRaekke === id ? null : id;
+  $$(".tl-raekke").forEach((raekke) => { $(".tl-trin", raekke).hidden = raekke.dataset.id !== tilstand.valgtRaekke; });
+}
+
+const TASTER = { ArrowLeft: -1, ArrowDown: -1, ArrowRight: 1, ArrowUp: 1, PageDown: -5, PageUp: 5 };
+
+function forbindKontrol(kontrol, r, k) {
+  kontrol.addEventListener("keydown", (e) => {
+    let ny;
+    if (e.key in TASTER) ny = k.hent() + TASTER[e.key];
+    else if (e.key === "Home") ny = k.min;
+    else if (e.key === "End") ny = k.maks;
+    else return;
+    e.preventDefault();
+    saetVaerdi(r, k, ny, true);
+  });
+  kontrol.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    kontrol.setPointerCapture(e.pointerId);
+    const x0 = e.clientX;
+    const v0 = k.hent();
+    let traekker = false;
+    const flyt = (m) => {
+      const dx = m.clientX - x0;
+      if (!traekker && Math.abs(dx) < 4) return;  // under 4 px er et klik
+      traekker = true;
+      kontrol.classList.add("tl-aktiv");
+      saetVaerdi(r, k, v0 + Math.round(dx / tilstand.prAar), false);
+    };
+    const slip = () => {
+      kontrol.removeEventListener("pointermove", flyt);
+      kontrol.removeEventListener("pointerup", slip);
+      kontrol.removeEventListener("pointercancel", slip);
+      kontrol.classList.remove("tl-aktiv");
+      if (!traekker) vaelgRaekke(r.id);
+      else if (k.hent() !== v0) genberegn(r.id);
+    };
+    kontrol.addEventListener("pointermove", flyt);
+    kontrol.addEventListener("pointerup", slip);
+    kontrol.addEventListener("pointercancel", slip);
+  });
+}
+
+const PUNKT_PX = 24;  // engangsbeløb og greb: mindst 24×24 px (WCAG 2.5.8)
 
 function placerBjaelker() {
   // Bjælkerne følger grafens aldersakse: samme første/sidste år og samme pixel pr. år.
   const v = tilstand.v;
-  if (!v) return;
+  if (!v || !tilstand.tlRaekker) return;
   const aldre = v.graf.aldre;
   const graf = tilstand.graf;
   const spor = $(".tl-spor");
@@ -697,22 +808,25 @@ function placerBjaelker() {
     prAar = bredde / aldre.length;
     x0 = 0;
   }
-  $$(".tl-raekke").forEach((r) => {
-    const b = $(".tl-bjaelke", r);
-    const s = tilstand.aktuelleSvar;
-    const o = s.ordninger.find((x) => x.id === r.dataset.id);
-    let start = +b.dataset.start, slut = +b.dataset.slut;
-    if (o) {  // følg skyderen med det samme, før kernen har regnet
-      start = o.udbetaling_start_alder;
-      slut = o.type === "ratepension" ? start + (o.udbetaling_aar || v.graenser.ratepension_aar.min) - 1
-        : ENGANGSTYPER.has(o.type) ? start : aldre.at(-1);
-    } else if (r.dataset.id === "folkepension") {
-      start = v.graenser.folkepensionsalder + s.antagelser.folkepension_opsaettelse_aar;
-    }
+  tilstand.prAar = prAar;
+  tilstand.tlRaekker.forEach((r) => {
+    const raekke = $(`.tl-raekke[data-id="${r.id}"]`);
+    if (!raekke) return;
+    const b = $(".tl-bjaelke", raekke);
+    const [start, slut] = spaend(r, v);
+    b.dataset.start = start;
+    b.dataset.slut = slut;
     const fra = Math.max(start, aldre[0]) - aldre[0];
     const til = Math.min(slut, aldre.at(-1)) - aldre[0] + 1;
-    b.style.left = `${x0 + fra * prAar}px`;
-    b.style.width = `${Math.max(prAar, (til - fra) * prAar)}px`;
+    if (r.engang) {
+      b.style.left = `${x0 + (fra + 0.5) * prAar - PUNKT_PX / 2}px`;
+      b.style.width = "";
+    } else {
+      b.style.left = `${x0 + fra * prAar}px`;
+      b.style.width = `${Math.max(PUNKT_PX, (til - fra) * prAar)}px`;
+    }
+    const greb = $(".tl-greb", raekke);
+    if (greb) greb.style.left = `${x0 + til * prAar - PUNKT_PX / 2}px`;
   });
 }
 

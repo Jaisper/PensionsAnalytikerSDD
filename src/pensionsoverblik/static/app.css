@@ -232,8 +232,8 @@ thead th { background: var(--graa-50); position: sticky; top: 0; }
 .noegletal div { background: var(--hvid); border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--skygge); }
 .noegletal dt { color: var(--graa-600); font-size: .9rem; }
 .noegletal dd { margin: 4px 0 0; font-size: 1.5rem; font-weight: 800; color: var(--petrol-900); }
-.paneler { display: grid; gap: 20px; padding-top: 40px; padding-bottom: 8px; }
-.panel { border: 1px solid var(--graa-200); border-radius: var(--radius); background: var(--hvid); box-shadow: var(--skygge); }
+.paneler { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; padding-top: 40px; padding-bottom: 8px; }
+.panel { min-width: 0; border: 1px solid var(--graa-200); border-radius: var(--radius); background: var(--hvid); box-shadow: var(--skygge); }
 .panel__titel { margin: 0; font-size: 1.3rem; }
 .panel__knap { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 12px; background: none; border: 0;
   font: inherit; font-weight: 800; color: var(--petrol-900); padding: 18px 24px; cursor: pointer; text-align: left; min-height: 44px; }
@@ -251,12 +251,24 @@ thead th { background: var(--graa-50); position: sticky; top: 0; }
 .tl-hoved { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: .95rem; }
 .tl-hoved strong { color: var(--petrol-900); }
 .tl-hoved span { color: var(--graa-600); }
-.tl-spor { position: relative; height: 22px; margin: 6px 0; background: var(--graa-50); border-radius: 4px; }
-.tl-bjaelke { position: absolute; top: 3px; height: 16px; border-radius: 4px; background: var(--farve); opacity: .9; transition: left .15s, width .15s; }
-.tl-bjaelke--engang { border-radius: 50%; width: 16px !important; }
-.tl-kontroller { display: flex; flex-wrap: wrap; gap: 4px 28px; }
-.tl-kontroller .skyder { max-width: 360px; }
-.tl-kontroller label { font-size: .85rem; font-weight: 600; color: var(--graa-600); display: block; }
+.tl-raekke { padding: 8px 0 4px; }
+.tl-spor { position: relative; height: 32px; margin: 4px 0; background: var(--graa-50); border-radius: 6px; }
+/* Bjælken og grebet er selv kontrollerne (006): mindst 24×24 px (WCAG 2.5.8) og træk uden at scrolle siden. */
+.tl-bjaelke, .tl-greb { position: absolute; top: 4px; height: 24px; touch-action: none; user-select: none; cursor: grab; }
+.tl-bjaelke { border-radius: 6px; background: var(--farve); transition: left .15s, width .15s; }
+.tl-bjaelke--engang { width: 24px; border-radius: 50%; box-shadow: 0 0 0 2px #fff inset; }
+.tl-greb { width: 24px; border-radius: 6px; background: #fff; border: 2px solid var(--farve); cursor: ew-resize; transition: left .15s; }
+.tl-greb::before { content: ""; position: absolute; inset: 5px 8px; border-left: 2px solid var(--farve); border-right: 2px solid var(--farve); }
+.tl-aktiv { cursor: grabbing; transition: none; box-shadow: 0 2px 8px rgba(0, 0, 0, .25); }
+.tl-bjaelke:focus-visible, .tl-greb:focus-visible { outline: 3px solid var(--petrol-900); outline-offset: 2px; z-index: 1; }
+.tl-trin { display: flex; flex-wrap: wrap; gap: 6px 24px; padding: 4px 0; }
+.tl-trin[hidden] { display: none; }
+.tl-trin__gruppe { display: flex; align-items: center; gap: 6px; }
+.tl-trin__navn { font-size: .85rem; font-weight: 600; color: var(--graa-600); min-width: 4.5em; }
+.tl-trin__vaerdi { min-width: 7.5em; text-align: center; font-variant-numeric: tabular-nums; }
+.tl-trinknap { width: 32px; height: 32px; border: 1.5px solid var(--graa-200); border-radius: 50%; background: #fff; color: var(--petrol-900); font-size: 1.2rem; line-height: 1; cursor: pointer; }
+.tl-trinknap:disabled { opacity: .4; cursor: default; }
+.tl-trinknap:focus-visible { outline: 3px solid var(--petrol-900); outline-offset: 2px; }
 .tl-fejl { color: var(--fejl); font-weight: 600; font-size: .9rem; margin: 4px 0 0; }
 @media (max-width: 860px) {
   .hero__noegletal { padding: 24px 16px; }

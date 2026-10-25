@@ -8,6 +8,7 @@ import pytest
 from pensionsoverblik import app
 from tests.app.pensionsinfo_syntetisk import RAPPORT_PDF
 from tests.app.test_oversaet import GUIDE
+from tests.browser.conftest import koer_guide
 
 pytestmark = pytest.mark.browser
 
@@ -96,21 +97,11 @@ def test_intet_forlader_browseren(side, base_url, tmp_path):
     side.click("#pdf-knap")
     side.wait_for_selector("#pdf-status p")
     efter_pdf = len(side.requests)
-    side.fill("#kommune", "Aarhus")
-    side.click("#naeste")
-    for felt in side.query_selector_all(".ordning input[id$='-saldo']"):
-        if not felt.input_value():
-            felt.fill("0")
-    for felt in side.query_selector_all(".ordning input[id$='-udbetaling_start_alder']"):
-        if not felt.input_value():
-            felt.fill("70")
-    side.click("#naeste")
-    side.click("#naeste")
-    side.wait_for_selector("#resultat:not([hidden])")
+    koer_guide(side)
     hovedtal = side.inner_text("#hovedtal")
-    skyder = side.locator(".tl-raekke input[type=range]").first
-    skyder.focus()
-    skyder.press("ArrowRight")
+    bjaelke = side.locator(".tl-raekke .tl-bjaelke").first
+    bjaelke.focus()
+    bjaelke.press("ArrowRight")
     side.wait_for_function("(h) => document.querySelector('#hovedtal').innerText !== h", arg=hovedtal)
     assert all(m == "GET" and u.startswith(base_url) and not data for m, u, data in side.requests), side.requests
     assert side.requests[efter_pdf:] == []
