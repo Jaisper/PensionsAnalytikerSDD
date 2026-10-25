@@ -6,6 +6,11 @@ kirkeskat og i personfradraget, men i mellem- og topskattegrundlaget kun over bu
 (PSL § 7, stk. 1). Den del af et skattebånd, der skyldes kapitalindkomst, har skatteloftet for
 kapitalindkomst (PSL § 19, stk. 2). Kapitalindkomsten lægges oven på den personlige indkomst.
 
+Ægtefæller (feature 012): den uudnyttede skatteværdi af den ene ægtefælles personfradrag
+nedsætter den andens skatter (PSL § 10, stk. 3), og ligger den ene ægtefælles positive
+nettokapitalindkomst under bundfradraget, forhøjes den andens bundfradrag med forskellen
+(PSL § 7, stk. 5). Overførslerne beregnes af husstanden og gives ind her.
+
 Pensionsudbetalinger og offentlige ydelser (folkepension, ATP, ældrecheck, mediecheck)
 er personlig indkomst UDEN arbejdsmarkedsbidrag: AM-bidrag betales ved indbetaling til
 en pensionsordning, aldrig ved udbetaling (domænegrundlag A1).
@@ -30,6 +35,7 @@ class Skatteberegning:
     total: float
     kapitalindkomst: float = 0.0
     skat_kapitalindkomst: float = 0.0   # merskatten af kapitalindkomsten (marginalt, oven på PI)
+    uudnyttet_personfradrag: float = 0.0  # skatteværdi, ægtefællen kan bruge (PSL § 10, stk. 3)
 
 
 def progressiv_skat(pi: float, kommuneskat: float, o: Regelopslag, ki_over: float = 0.0) -> tuple[float, float]:
@@ -65,28 +71,36 @@ def progressiv_skat(pi: float, kommuneskat: float, o: Regelopslag, ki_over: floa
     return brutto, nedslag
 
 
-def _beregn(pi: float, ki: float, kommuneskat: float, kirkeskat: float, o: Regelopslag) -> Skatteberegning:
+def _beregn(pi: float, ki: float, kommuneskat: float, kirkeskat: float, o: Regelopslag,
+            overfoert: float = 0.0, ekstra_ki_bundfradrag: float = 0.0) -> Skatteberegning:
     flad_sats = o.v("skat.bundskat") + kommuneskat + kirkeskat
     grundlag = pi + ki
     flad = grundlag * flad_sats
-    personfradrag = min(o.v("skat.personfradrag"), max(0.0, grundlag)) * flad_sats
-    ki_over = max(0.0, ki - o.v("skat.kapitalindkomst.bundfradrag")) if ki > 0 else 0.0
+    pf = o.v("skat.personfradrag")
+    personfradrag = min(pf, max(0.0, grundlag)) * flad_sats
+    uudnyttet = max(0.0, pf - max(0.0, grundlag)) * flad_sats
+    # Ægtefællens uudnyttede skatteværdi nedsætter skatterne efter § 9 — højst til 0.
+    nedsaettelse = min(overfoert, max(0.0, flad - personfradrag))
+    ki_over = max(0.0, ki - o.v("skat.kapitalindkomst.bundfradrag") - ekstra_ki_bundfradrag) if ki > 0 else 0.0
     progressiv, nedslag = progressiv_skat(pi, kommuneskat, o, ki_over)
-    total = max(0.0, flad - personfradrag + progressiv - nedslag)
-    return Skatteberegning(pi, flad, personfradrag, progressiv, nedslag, total, kapitalindkomst=ki)
+    total = max(0.0, flad - personfradrag - nedsaettelse + progressiv - nedslag)
+    return Skatteberegning(pi, flad, personfradrag, progressiv, nedslag, total, kapitalindkomst=ki,
+                           uudnyttet_personfradrag=uudnyttet)
 
 
 def beregn_skat(pi: float, kommuneskat: float, kirkeskat: float, o: Regelopslag,
-                kapitalindkomst: float = 0.0) -> Skatteberegning:
+                kapitalindkomst: float = 0.0, overfoert_personfradrag: float = 0.0,
+                ekstra_ki_bundfradrag: float = 0.0) -> Skatteberegning:
     """Samlet skat af årets personlige indkomst og positive nettokapitalindkomst. Negativ
-    kapitalindkomst (fradrag) er ikke modelleret og ignoreres."""
-    uden = _beregn(pi, 0.0, kommuneskat, kirkeskat, o)
+    kapitalindkomst (fradrag) er ikke modelleret og ignoreres. `overfoert_personfradrag` og
+    `ekstra_ki_bundfradrag` er ægtefællens uudnyttede (kun gifte, PSL § 10, stk. 3, og § 7, stk. 5)."""
+    uden = _beregn(pi, 0.0, kommuneskat, kirkeskat, o, overfoert_personfradrag)
     ki = max(0.0, kapitalindkomst)
     if ki == 0:
         return uden
-    med = _beregn(pi, ki, kommuneskat, kirkeskat, o)
+    med = _beregn(pi, ki, kommuneskat, kirkeskat, o, overfoert_personfradrag, ekstra_ki_bundfradrag)
     return Skatteberegning(med.personlig_indkomst, med.flad_skat, med.personfradrag_vaerdi, med.progressiv,
-                           med.loftnedslag, med.total, ki, med.total - uden.total)
+                           med.loftnedslag, med.total, ki, med.total - uden.total, med.uudnyttet_personfradrag)
 
 
 def fordel(total: float, brutto_pr_kilde: dict[str, float]) -> dict[str, float]:

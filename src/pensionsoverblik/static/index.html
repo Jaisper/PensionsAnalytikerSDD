@@ -47,7 +47,8 @@
           <ol class="fremdrift" aria-label="Fremdrift">
             <li data-trin="1" aria-current="step"><span>1</span> Om dig</li>
             <li data-trin="2"><span>2</span> Dine ordninger</li>
-            <li data-trin="3"><span>3</span> Forventninger</li>
+            <li data-trin="3" hidden><span>3</span> Din partners ordninger</li>
+            <li data-trin="4"><span>3</span> Forventninger</li>
           </ol>
 
           <div class="motor" id="motor" role="status" aria-live="polite">
@@ -92,7 +93,8 @@
               <fieldset>
                 <legend>Bor du alene eller sammen med en partner?</legend>
                 <label class="valg"><input type="radio" name="civilstand" value="enlig" checked> Alene</label>
-                <label class="valg"><input type="radio" name="civilstand" value="gift_samlevende"> Gift eller samlevende</label>
+                <label class="valg"><input type="radio" name="civilstand" value="gift"> Gift</label>
+                <label class="valg"><input type="radio" name="civilstand" value="samlevende"> Samlevende</label>
               </fieldset>
             </div>
 
@@ -101,7 +103,15 @@
                 <label for="partner-foedselsdato">Din partners fødselsdato</label>
                 <input type="date" id="partner-foedselsdato" min="1955-07-01">
               </div>
-              <div class="felt" data-felt="person.partner.oevrig_indkomst_aar">
+              <div class="felt felt--valg" data-felt="partnerdata">
+                <fieldset>
+                  <legend>Hvor meget vil du fortælle om din partners pension?</legend>
+                  <label class="valg"><input type="radio" name="partnerdata" value="overslag" checked> Et overslag</label>
+                  <label class="valg"><input type="radio" name="partnerdata" value="fuld"> Hele din partners pension</label>
+                </fieldset>
+                <p class="felt__hjaelp">Med hele din partners pension får I hver jeres beregning og en samlet oversigt. Du kan indlæse din partners egen PensionsInfo-rapport i næste trin.</p>
+              </div>
+              <div class="felt" data-felt="person.partner.oevrig_indkomst_aar" id="partner-overslag">
                 <label for="partner-indkomst">Din partners pension og kapitalindkomst pr. år</label>
                 <input id="partner-indkomst" inputmode="numeric" class="beloeb" aria-describedby="partner-indkomst-hjaelp" placeholder="0">
                 <p class="felt__hjaelp" id="partner-indkomst-hjaelp">Løn tæller ikke med. Bruges til at beregne dit pensionstillæg.</p>
@@ -144,8 +154,45 @@
             </div>
           </fieldset>
 
-          <!-- Trin 3 -->
+          <!-- Trin 3: din partners ordninger (feature 012) -->
           <fieldset class="trin" data-trin="3" hidden>
+            <legend><h2 tabindex="-1">Din partners ordninger</h2></legend>
+            <p class="hjaelp">Din partners egne pensionsordninger. I får hver jeres beregning, og jeres pensionstillæg og ældrecheck regnes sammen, som loven siger.</p>
+            <section class="upload" aria-labelledby="p-upload-titel">
+              <h3 id="p-upload-titel">Har din partner sin rapport fra PensionsInfo?</h3>
+              <div class="felt" data-felt="p-pdf">
+                <label for="p-pdf-fil">Vælg din partners rapport (PDF)</label>
+                <input type="file" id="p-pdf-fil" accept="application/pdf,.pdf">
+              </div>
+              <p class="felt__hjaelp">Rapporten læses kun her i din browser. Den sendes ikke nogen steder hen.</p>
+              <button type="button" class="knap knap--sekundaer" id="p-pdf-knap">Aflæs rapport</button>
+              <div id="p-pdf-status" class="upload__status" role="status" aria-live="polite"></div>
+            </section>
+            <div id="p-ordninger" class="ordninger"></div>
+            <div class="tilfoej">
+              <label for="p-ny-type">Tilføj ordning til din partner</label>
+              <div class="tilfoej__raekke">
+                <select id="p-ny-type">
+                  <option value="ratepension">Ratepension</option>
+                  <option value="livsvarig">Livsvarig pension (livrente)</option>
+                  <option value="aldersopsparing">Aldersopsparing</option>
+                  <option value="kapitalpension">Kapitalpension</option>
+                </select>
+                <button type="button" class="knap knap--sekundaer" id="p-tilfoej-ordning">+ Tilføj</button>
+              </div>
+            </div>
+            <div class="felt" data-felt="person.partner.profil.atp_aarlig">
+              <label for="p-atp">Din partners ATP pr. år <span class="valgfri">(valgfri)</span></label>
+              <input id="p-atp" inputmode="numeric" class="beloeb" aria-describedby="p-atp-hjaelp">
+              <p class="felt__hjaelp" id="p-atp-hjaelp">Lader du feltet stå tomt eller skriver 0, bruger vi ATP's gennemsnit.</p>
+            </div>
+            <div class="felt felt--afkrydsning">
+              <label class="valg"><input type="checkbox" id="p-folkekirke"> Min partner er medlem af folkekirken</label>
+            </div>
+          </fieldset>
+
+          <!-- Trin 4 -->
+          <fieldset class="trin" data-trin="4" hidden>
             <legend><h2 tabindex="-1">Dine forventninger</h2></legend>
             <p class="hjaelp">Ingen kender fremtiden. Vi har foreslået almindelige værdier. Du kan ændre dem nu eller senere.</p>
             <div class="felt" data-felt="antagelser.afkast_efter_pal">
@@ -161,6 +208,10 @@
               <div class="skyder"><input type="range" id="opsaettelse" min="0" max="10" step="1" value="0" aria-describedby="opsaettelse-hjaelp"><output for="opsaettelse" id="opsaettelse-v">Nej</output></div>
               <p class="felt__hjaelp" id="opsaettelse-hjaelp">Udskyder du den, bliver den større. Det kræver, at du arbejder mindst 750 timer om året imens.</p>
             </div>
+            <div class="felt" data-felt="person.partner.profil.folkepension_opsaettelse_aar" id="p-opsaettelse-felt" hidden>
+              <label for="p-opsaettelse">Udskyd din partners folkepension</label>
+              <div class="skyder"><input type="range" id="p-opsaettelse" min="0" max="10" step="1" value="0"><output for="p-opsaettelse" id="p-opsaettelse-v">Nej</output></div>
+            </div>
           </fieldset>
 
           <div class="guide__knapper">
@@ -173,6 +224,13 @@
 
     <!-- ── Resultat ────────────────────────────────────────────────────── -->
     <section id="resultat" class="resultat" hidden aria-labelledby="resultat-titel">
+      <div class="person-faner" id="person-faner" hidden>
+        <div class="ramme" role="tablist" aria-label="Vis tallene for">
+          <button type="button" role="tab" id="fane-dig" data-hvem="dig" aria-selected="true" aria-controls="resultat">Dig</button>
+          <button type="button" role="tab" id="fane-partner" data-hvem="partner" aria-selected="false" aria-controls="resultat" tabindex="-1">Partner</button>
+          <button type="button" role="tab" id="fane-samlet" data-hvem="samlet" aria-selected="false" aria-controls="resultat" tabindex="-1">Samlet</button>
+        </div>
+      </div>
       <div class="hero">
         <div class="hero__tekst">
           <p class="hero__lead" id="resultat-titel">Du kan forvente ca.</p>
@@ -183,12 +241,12 @@
             <summary id="forudsaetninger-titel"></summary>
             <ul class="chips" id="hovedtal-advarsler"></ul>
           </details>
-          <a class="pil-link pil-link--lys" href="#sammensaetning">Se hvad beløbet består af <span aria-hidden="true">→</span></a>
+          <a class="pil-link pil-link--lys" id="link-sammensaetning" href="#sammensaetning">Se hvad beløbet består af <span aria-hidden="true">→</span></a>
         </div>
         <div class="hero__noegletal">
-          <h2 class="hero__graf-titel">Dit overblik</h2>
+          <h2 class="hero__graf-titel" id="overblik-titel">Dit overblik</h2>
           <dl class="noegletal" id="noegletal"></dl>
-          <a class="pil-link" href="#graf-panel">Se udbetalingen over tid <span aria-hidden="true">→</span></a>
+          <a class="pil-link" id="link-graf" href="#graf-panel">Se udbetalingen over tid <span aria-hidden="true">→</span></a>
         </div>
       </div>
 
@@ -206,6 +264,20 @@
               <button type="button" class="knap knap--primaer" id="opdater">Opdater beregning</button>
               <span class="panel__status" id="opdater-status" role="status"></span>
             </div>
+          </div>
+        </section>
+
+        <section class="panel" id="samlet-panel" aria-labelledby="samlet-titel" hidden>
+          <h2 class="panel__titel"><span class="panel__knap" id="samlet-titel">Jeres udbetaling over tid</span></h2>
+          <div class="panel__indhold">
+            <p class="sektion__intro">Om måneden efter skat, i dagens kroner, pr. kalenderår. Hver af jer udjævner for sig; den stiplede linje er jeres to faste beløb lagt sammen. Ret jeres ordninger under "Dig" og "Partner".</p>
+            <div class="graf-ramme graf-ramme--bred"><canvas id="samlet-graf" role="img" aria-label="Søjlediagram over jeres udbetaling pr. kalenderår, fordelt på dig og din partner. Tallene findes også som tabel."></canvas></div>
+            <ul class="forklaring-farver" id="samlet-forklaring"></ul>
+            <div class="tidslinje" id="samlet-tidslinje" role="list" aria-label="Jeres ordninger over tid"></div>
+            <details class="tabel-alternativ">
+              <summary>Vis tallene som tabel</summary>
+              <div class="tabel-rul" id="samlet-tabel"></div>
+            </details>
           </div>
         </section>
 

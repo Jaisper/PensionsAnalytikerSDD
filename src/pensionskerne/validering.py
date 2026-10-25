@@ -31,9 +31,9 @@ def valider(profil: Pensionsprofil, antagelser: Antagelser, satsaar: int, beregn
         raise UgyldigtInput("foedselsdato", f"Kernen understøtter kun personer født {foerste:%d.%m.%Y} eller senere")
     fp_alder = folkepensionsalder(profil.foedselsdato, o)
 
-    if profil.civilstand not in ("enlig", "gift_samlevende"):
-        raise UgyldigtInput("civilstand", "Civilstand skal være 'enlig' eller 'gift_samlevende'")
-    if profil.civilstand == "gift_samlevende" and profil.partner is None:
+    if profil.civilstand not in ("enlig", "gift", "samlevende", "gift_samlevende"):
+        raise UgyldigtInput("civilstand", "Civilstand skal være 'enlig', 'gift' eller 'samlevende'")
+    if profil.civilstand != "enlig" and profil.partner is None:
         raise UgyldigtInput("partner", "Gift/samlevende kræver oplysninger om partneren")
     if register.kommune_noegle(satsaar, profil.kommune) is None:
         raise UgyldigtInput("kommune", f"Ukendt kommune: {profil.kommune}")

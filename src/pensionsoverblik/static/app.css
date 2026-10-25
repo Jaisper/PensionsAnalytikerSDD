@@ -69,6 +69,7 @@ a { color: var(--petrol-700); }
 .knap--sekundaer { background: var(--hvid); color: var(--petrol-900); border-color: var(--petrol-900); }
 .knap--tekst { background: none; color: var(--petrol-700); padding-left: 0; padding-right: 0; text-decoration: underline; }
 .pil-link { display: inline-flex; gap: 8px; align-items: center; font-weight: 700; color: var(--petrol-700); text-decoration: none; }
+.pil-link[hidden] { display: none; }
 .pil-link span { color: var(--sand-500); transition: transform .15s; }
 .pil-link:hover span { transform: translateX(3px); }
 .pil-link--lys { color: var(--hvid); }
@@ -254,6 +255,15 @@ thead th { background: var(--graa-50); position: sticky; top: 0; }
 .graf-ramme--buffer[hidden] { display: none; }
 .graf-forklaring { color: var(--graa-600); font-size: .95rem; max-width: 760px; margin: 4px 0 8px; }
 .markeringer .ikon--engangs { color: var(--kilde-engangs); }
+/* Faner Dig / Partner / Samlet (012) */
+.person-faner { background: var(--hvid); border-bottom: 1px solid var(--graa-200); }
+.person-faner[hidden] { display: none; }
+.person-faner [role="tablist"] { display: flex; gap: 4px; padding-top: 8px; }
+.person-faner [role="tab"] { font: inherit; font-weight: 700; color: var(--petrol-900); background: none; border: 0; border-bottom: 3px solid transparent;
+  padding: 10px 18px; min-height: 44px; cursor: pointer; }
+.person-faner [role="tab"][aria-selected="true"] { border-bottom-color: var(--sand-500); }
+.person-faner [role="tab"]:focus-visible { outline: 3px solid var(--petrol-900); outline-offset: -3px; }
+.tl-raekke--visning .tl-bjaelke { cursor: default; }
 .tidslinje { display: grid; gap: 4px; margin-top: 18px; }
 .tl-raekke { border-top: 1px solid var(--graa-200); padding: 10px 0 6px; }
 .tl-hoved { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: .95rem; }

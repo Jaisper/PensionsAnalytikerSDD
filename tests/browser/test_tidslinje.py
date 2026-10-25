@@ -86,8 +86,10 @@ def test_engangsbeloeb_er_et_punkt_der_kan_flyttes(resultat):
 
 
 def test_folkepension_traekkes_til_udskydelse(resultat):
+    marker_resultat(resultat)
     traek(resultat, bjaelke(resultat, "folkepension"), 2)
     assert opsaettelse(resultat) == 2
+    vent_paa_ny_beregning(resultat)  # tidslinjen tegnes igen efter beregningen — træk først derefter
     traek(resultat, bjaelke(resultat, "folkepension"), -5)
     assert opsaettelse(resultat) == 0
 
