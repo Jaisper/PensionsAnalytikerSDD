@@ -74,11 +74,13 @@ def test_skubber_ikke_engangsbeloeb_sent_for_at_hoeje_hovedtallet():
 
 
 def test_finder_en_forbedring_for_en_daarlig_plan():
-    # Ratepensionen starter sent og kort: Det faste beløb kan klart forbedres ved at sprede den.
-    p = profil(Ordning("rate", "ratepension", 1_500_000, 75, oprettet=date(2010, 1, 1), udbetaling_aar=10),
-               Ordning("liv", "livsvarig", 600_000, 66, oprettet=date(2010, 1, 1)))
-    r = optimer(p, A, 2026, BEREGNINGSDATO, maks_evalueringer=600)
-    assert r.bedste is not None and r.bedste_maaned > r.udgangspunkt_maaned
+    """Alt skubbet sent: tidlige år uden udbetaling. Under 009's realistiske buffer er det tydeligt
+    dårligt (≈ 2.000 kr./md.). (Den tidligere profil — én sen ratepension — er efter 009 kun ca.
+    70 kr./md. fra det bedste, fordi opsparing i bufferen nu koster skat og pensionstillæg.)"""
+    p = profil(replace(FIRE[0], udbetaling_start_alder=77, udbetaling_aar=10), replace(FIRE[1], udbetaling_start_alder=75),
+               FIRE[2], replace(FIRE[3], udbetaling_start_alder=78))
+    r = optimer(p, A, 2026, BEREGNINGSDATO, maks_evalueringer=1500)
+    assert r.bedste is not None and r.bedste_maaned > r.udgangspunkt_maaned + 1000
 
 
 def test_deterministisk():

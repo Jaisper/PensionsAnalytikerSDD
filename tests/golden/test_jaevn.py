@@ -42,5 +42,7 @@ def test_fravalgt_engangsbeloeb_indgaar_ikke():
     uden = _res(Ordning("ald", "aldersopsparing", 200_000, 65, oprettet=date(2010, 1, 1), i_buffer=False))
     assert uden.jaevn.niveau_foerste_aar < med.jaevn.niveau_foerste_aar
     assert uden.aar_ved(65).engangsbeloeb_netto == pytest.approx(200_000 * 1.04 ** 2)
-    assert "BUFFER_YDELSE_FORENKLING" in [a.kode for a in med.advarsler]
-    assert "BUFFER_YDELSE_FORENKLING" not in [a.kode for a in uden.advarsler]
+    # Feature 009: forenklingen er erstattet af en model af bufferen (kapitalindkomst og formue).
+    # Engangsbeløbet i bufferen giver mere kapitalindkomst end kun udjævningens overskud.
+    assert "BUFFER_SOM_OPSPARING" in [a.kode for a in med.advarsler]
+    assert sum(a.kapitalindkomst for a in uden.aar) < sum(a.kapitalindkomst for a in med.aar)

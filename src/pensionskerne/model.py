@@ -86,7 +86,6 @@ class Antagelser:
     loenvaekst: float = 0.0
     livsvarig_horisont_alder: int = 90
     livsvarig_min_aar: int = 18
-    buffer_kapitalskat: float = 0.27
     folkepension_opsaettelse_aar: int = 0
 
     @property
@@ -120,6 +119,8 @@ class Aarsresultat:
     engangsbeloeb_netto: float
     sporing: tuple[str, ...]
     flag: tuple[str, ...]
+    kapitalindkomst: float = 0.0        # bufferens afkast (nominelt), positiv nettokapitalindkomst (009)
+    skat_kapitalindkomst: float = 0.0   # merskatten af kapitalindkomsten; betales af bufferen (009)
 
 
 @dataclass(frozen=True)
@@ -168,6 +169,7 @@ class Fremskrivning:
     sporing_samlet: tuple[str, ...]
     jaevn: JaevnUdbetaling | None = None
     engangsbeloeb: tuple[Engangsbeloeb, ...] = ()
+    buffer_iterationer: int = 1         # fastpunkt-iterationer for bufferens kapitalindkomst og formue (009)
 
     def aar_ved(self, alder: int) -> Aarsresultat:
         return next(a for a in self.aar if a.alder == alder)

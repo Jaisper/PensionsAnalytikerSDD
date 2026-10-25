@@ -115,5 +115,4 @@ def valider(profil: Pensionsprofil, antagelser: Antagelser, satsaar: int, beregn
         raise UgyldigtInput("antagelser.satsregulering", "Satsen skal være større end -100 %")
     if antagelser.livsvarig_min_aar < 1:
         raise UgyldigtInput("antagelser.livsvarig_min_aar", "Skal være mindst 1 år")
-    if not 0 <= antagelser.buffer_kapitalskat < 1:
-        raise UgyldigtInput("antagelser.buffer_kapitalskat", "Angives som brøk, fx 0.27")
+
