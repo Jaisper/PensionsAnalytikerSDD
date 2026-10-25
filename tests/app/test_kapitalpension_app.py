@@ -53,7 +53,7 @@ def test_visning_har_kapitalindkomst_i_aarstabellen():
         assert raekke["skat_kapitalindkomst"] == a.skat_kapitalindkomst
     assert any(r["kapitalindkomst"] > 0 for r in v["aar"])
     # Tabellens kolonne "Skat af buffer pr. md." i dagens kroner.
-    assert v["graf"]["skat_buffer"] == [a.skat_kapitalindkomst * a.realfaktor / 12 for a in res.aar]
+    assert [x for x in v["graf"]["skat_buffer"] if x is not None] == [a.skat_kapitalindkomst * a.realfaktor / 12 for a in res.aar]
 
 
 def test_portioner_i_grafens_engangsbeloeb():

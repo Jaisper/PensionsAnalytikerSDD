@@ -12,6 +12,10 @@ from pensionskerne import Fremskrivning, register
 from .katalog import ADVARSLER, DELAAR_FOERST, ENGANGSKORT, KORT, KORT_FOR_KILDETYPE, UKENDT_ADVARSEL
 
 MAANEDER = 12
+# Grafens og tidslinjens akse starter ved en fast alder (eller borgerens alder, hvis den er højere),
+# så aksen ikke hopper, når en ordning trækkes tidligere. 60 år er den tidligste
+# pensionsudbetalingsalder for ordninger i dag. Ren præsentation.
+AKSE_START_ALDER = 60
 BUFFER_NUL_KR = 1.0
 
 
@@ -112,19 +116,23 @@ def byg_visning(res: Fremskrivning) -> dict:
         buffer = [0.0 if abs(b := j.buffer_rest * a.realfaktor) < BUFFER_NUL_KR else b
                   for j, a in zip(res.jaevn.aar, res.aar)]
 
+    alder_nu = res.beregningsdato.year - (res.aar[0].kalenderaar - res.aar[0].alder)
+    akse_start = min(aldre[0], max(AKSE_START_ALDER, alder_nu))
+    foran = aldre[0] - akse_start  # tomme år foran den første udbetaling
+
     return {
         "hovedtal": _hovedtal(res),
         "hovedtal_advarsler": hovedtal_advarsler,
         "folkepensionsalder": res.folkepensionsalder,
         "kort": kort,
         "graf": {
-            "aldre": aldre,
-            "serier": [{"noegle": n, "titel": KORT[n]["titel"], "farve": KORT[n]["farve"], "vaerdier": serier[n]}
-                       for n in KORT if any(serier[n])],
+            "aldre": list(range(akse_start, aldre[0])) + aldre,
+            "serier": [{"noegle": n, "titel": KORT[n]["titel"], "farve": KORT[n]["farve"],
+                        "vaerdier": [0.0] * foran + serier[n]} for n in KORT if any(serier[n])],
             "markeringer": markeringer,
-            "jaevn": jaevn,
-            "buffer": buffer,
-            "skat_buffer": [a.skat_kapitalindkomst * a.realfaktor / MAANEDER for a in res.aar]  # 009
+            "jaevn": None if jaevn is None else [None] * foran + jaevn,
+            "buffer": None if buffer is None else [None] * foran + buffer,
+            "skat_buffer": [None] * foran + [a.skat_kapitalindkomst * a.realfaktor / MAANEDER for a in res.aar]  # 009
             if any(a.skat_kapitalindkomst for a in res.aar) else None,
             "engangs": engangs,
         },

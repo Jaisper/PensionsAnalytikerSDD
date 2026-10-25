@@ -39,7 +39,7 @@ def test_hovedtal_er_fast_beloeb(resultat):
     tekst = resultat.inner_text("#hovedtal-forklaring")
     assert "hvis du selv udjævner" in tekst
     v = resultat.evaluate("tilstand.v")
-    jaevn = v["graf"]["jaevn"]
+    jaevn = [x for x in v["graf"]["jaevn"] if x is not None]
     assert v["hovedtal"]["maaned"] == round(min(jaevn), -2)
 
 
@@ -65,6 +65,6 @@ def test_axe_og_360(resultat):
 
 def test_bufferen_gaar_aldrig_i_minus_og_forklares(resultat):
     """Feature 010: udjævningen låner aldrig."""
-    assert min(resultat.evaluate("tilstand.v.graf.buffer")) >= 0
+    assert min(b for b in resultat.evaluate("tilstand.v.graf.buffer") if b is not None) >= 0
     assert "aldrig i minus" in resultat.inner_text("#jaevn-forklaring")
     assert "opsparing uden for pension" in resultat.evaluate("tilstand.buffergraf.options.plugins.title.text")
