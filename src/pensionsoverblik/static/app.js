@@ -1,5 +1,5 @@
 /* Pensionsoverblik — frontend uden build-trin.
-   Alle tal kommer fra /api/beregn (Princip I). Her formateres og vises de kun. */
+   Alle tal kommer fra Python-kernen i worker.js (Princip I). Her formateres og vises de kun. */
 "use strict";
 
 const $ = (sel, rod = document) => rod.querySelector(sel);
@@ -95,10 +95,76 @@ function el(tag, attrs = {}, ...boern) {
   return e;
 }
 
+/* ── Beregningsmotor (feature 005) ─────────────────────────────────────── */
+/* Kernen kører i browseren (worker.js). Intet sendes til en server. */
+const MAKS_PDF_BYTES = 25 * 1024 * 1024;
+let motor = null;
+let motorKlar = null;
+const ventende = new Map();
+let naesteKald = 1;
+
+function startMotor() {
+  ventende.forEach((v) => v.reject(new Error("genstart")));
+  ventende.clear();
+  motor?.terminate();
+  if (typeof WebAssembly !== "object" || typeof Worker !== "function") {
+    motorKlar = Promise.reject(new Error("ingen WebAssembly"));
+    motorKlar.catch(() => {});
+    visMotor({ fejl: true, tekst: "Din browser kan ikke køre beregningen. Brug en nyere version af Chrome, Edge, Firefox eller Safari." });
+    return;
+  }
+  visMotor({ andel: 0 });
+  motor = new Worker("worker.js", { type: "module" });
+  motorKlar = new Promise((klar, fejl) => {
+    motor.onmessage = ({ data }) => {
+      if (data.status) {
+        visMotor(data.status);
+        if (data.status.klar) klar();
+        if (data.status.fejl) fejl(new Error(data.status.fejl));
+        return;
+      }
+      const v = ventende.get(data.id);
+      ventende.delete(data.id);
+      if (data.fejl) v?.reject(new Error(data.fejl)); else v?.resolve(data.svar);
+    };
+    motor.onerror = (e) => { visMotor({ fejl: true }); fejl(new Error(e.message || "worker")); };
+  });
+  motorKlar.catch(() => {});
+}
+
+function visMotor({ andel, klar, fejl, tekst }) {
+  const boks = $("#motor");
+  if (klar) { boks.hidden = true; return; }
+  boks.hidden = false;
+  boks.classList.toggle("motor--fejl", !!fejl);
+  if (andel !== undefined) $("#motor-fremdrift").value = andel;
+  $("#motor-fremdrift").hidden = !!fejl;
+  $("#motor-igen").hidden = !fejl || typeof WebAssembly !== "object";
+  $("#motor-tekst").textContent = fejl
+    ? (tekst || "Beregningen kunne ikke gøres klar. Tjek din forbindelse, og prøv igen.")
+    : "Gør beregningen klar … Du kan godt begynde at udfylde imens.";
+}
+
+/** Kalder kernen i workeren. Venter selv, til motoren er klar (US3-2). */
+async function kald(op, ...args) {
+  await motorKlar;
+  return new Promise((resolve, reject) => {
+    const id = naesteKald++;
+    ventende.set(id, { resolve, reject });
+    motor.postMessage({ id, op, args }, args.filter((a) => a instanceof ArrayBuffer));
+  });
+}
+
+/** Dagens dato i borgerens tidszone, som kernen regner fra (Princip VI). */
+function idag() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 /* ── Guide ─────────────────────────────────────────────────────────────── */
 async function hentKommuner() {
   try {
-    const liste = await (await fetch("/api/kommuner")).json();
+    const liste = await kald("kommuner");
     $("#kommuneliste").replaceChildren(...liste.map((k) => el("option", { value: k.navn })));
   } catch { /* feltet virker stadig som fri tekst */ }
 }
@@ -243,30 +309,26 @@ function guideSvar() {
 }
 
 /* ── Indlæsning af PensionsInfo-rapport (feature 003) ──────────────────── */
-async function pdfStatus() {
-  try { $("#upload").hidden = !(await (await fetch("/api/pdf/status")).json()).aktiv; } catch { /* manuel indtastning virker */ }
-}
-
 async function aflaesPdf() {
   ryd();
   const status = $("#pdf-status");
   const fil = $("#pdf-fil").files[0];
   if (!fil) { visFejl("pdf", "Vælg din rapport først."); return; }
+  if (fil.size > MAKS_PDF_BYTES) { visFejl("pdf", `Filen er for stor. Den må højst fylde ${MAKS_PDF_BYTES / 1024 / 1024} MB.`); return; }
   const knap = $("#pdf-knap");
   knap.disabled = true;
   status.textContent = "Aflæser rapporten …";
   try {
-    const svar = await fetch("/api/pdf", { method: "POST", headers: { "Content-Type": "application/pdf" }, body: fil });
-    const data = await svar.json().catch(() => ({}));
+    const svar = await kald("pdf", await fil.arrayBuffer());
     if (!svar.ok) {
       status.textContent = "";
-      visFejl(data.felt || "pdf", data.besked || "Rapporten kunne ikke aflæses. Du kan i stedet indtaste dine oplysninger selv.");
+      visFejl(svar.fejl.felt || "pdf", svar.fejl.besked);
       return;
     }
-    udfyldFraRapport(data);
+    udfyldFraRapport(svar.data);
   } catch {
     status.textContent = "";
-    visFejl("pdf", "Rapporten kunne ikke sendes. Prøv igen, eller indtast dine oplysninger selv.");
+    visFejl("pdf", "Rapporten kunne ikke aflæses. Prøv igen, eller indtast dine oplysninger selv.");
   } finally {
     knap.disabled = false;
   }
@@ -294,13 +356,8 @@ function udfyldFraRapport(d) {
 
 /* ── Beregning ─────────────────────────────────────────────────────────── */
 async function hentBeregning(svar) {
-  const svarHttp = await fetch("/api/beregn", {
-    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(svar),
-  });
-  const data = await svarHttp.json().catch(() => ({}));
-  if (svarHttp.status === 422) return { fejl: data };
-  if (!svarHttp.ok) throw new Error("server");
-  return { visning: data };
+  const r = await kald("beregn", JSON.stringify(svar), idag());
+  return r.ok ? { visning: r.data } : { fejl: r.fejl };
 }
 
 async function beregnFraGuide() {
@@ -689,8 +746,9 @@ function visResultat(v, foersteGang = true) {
 
 /* ── Opsætning ─────────────────────────────────────────────────────────── */
 function forbind() {
+  startMotor();
+  $("#motor-igen").addEventListener("click", () => { startMotor(); hentKommuner(); });
   hentKommuner();
-  pdfStatus();
   visTrin(1, false);
   $("#pdf-knap").addEventListener("click", aflaesPdf);
 

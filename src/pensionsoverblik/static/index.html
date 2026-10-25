@@ -6,9 +6,9 @@
   <title>Pensionsoverblik</title>
   <meta name="description" content="Se hvad du kan forvente at få udbetalt i pension efter skat.">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='10' fill='%23123845'/%3E%3Ccircle cx='16' cy='16' r='7' fill='%23f0c46a'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="/static/app.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
-  <script src="/static/app.js" defer></script>
+  <link rel="stylesheet" href="app.css">
+  <script src="chart.umd.min.js" defer></script>
+  <script src="app.js" defer></script>
 </head>
 <body>
   <a class="spring-over" href="#indhold">Gå til indhold</a>
@@ -20,7 +20,7 @@
 
   <header class="topbjaelke">
     <div class="ramme topbjaelke__indhold">
-      <a class="logo" href="/" aria-label="Pensionsoverblik – forside">
+      <a class="logo" href="./" aria-label="Pensionsoverblik – forside">
         <span class="logo__maerke" aria-hidden="true"></span>Pensionsoverblik
       </a>
       <nav aria-label="Hovedmenu" id="menu" hidden>
@@ -50,6 +50,12 @@
             <li data-trin="3"><span>3</span> Forventninger</li>
           </ol>
 
+          <div class="motor" id="motor" role="status" aria-live="polite">
+            <p id="motor-tekst">Gør beregningen klar …</p>
+            <progress id="motor-fremdrift" max="1" value="0" aria-label="Beregningen gøres klar"></progress>
+            <button type="button" class="knap knap--sekundaer" id="motor-igen" hidden>Prøv igen</button>
+          </div>
+
           <div class="fejlboks" id="fejlboks" role="alert" hidden></div>
 
           <!-- Trin 1 -->
@@ -57,7 +63,7 @@
             <legend><h2 tabindex="-1">Om dig</h2></legend>
             <p class="hjaelp">Vi bruger oplysningerne til beregningen og gemmer dem ikke.</p>
 
-            <section class="upload" id="upload" hidden aria-labelledby="upload-titel">
+            <section class="upload" id="upload" aria-labelledby="upload-titel">
               <h3 id="upload-titel">Har du din rapport fra PensionsInfo?</h3>
               <p class="felt__hjaelp">Så kan vi aflæse dine ordninger for dig. Du tjekker tallene bagefter. Rapporten henter du som PDF på pensionsinfo.dk.</p>
               <div class="felt" data-felt="pdf">

@@ -108,6 +108,12 @@ input[type="date"], input:not([type]), input[inputmode], select { font: inherit;
 .usikkerheder li { display: flex; gap: 8px; font-size: .9rem; background: var(--sand-100); border-left: 3px solid var(--sand-500); padding: 6px 10px; border-radius: 4px; }
 .usikkerheder li::before { content: "≈"; font-weight: 800; color: var(--sand-500); }
 .partner { border-left: 4px solid var(--petrol-100); padding-left: 16px; margin-bottom: 22px; }
+.motor { display: grid; gap: 8px; background: var(--sand-100); border-left: 4px solid var(--petrol-700); padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; }
+.motor[hidden] { display: none; }
+.motor p { margin: 0; }
+.motor progress { width: 100%; height: 6px; accent-color: var(--petrol-700); }
+.motor--fejl { background: #fdecea; border-left-color: var(--fejl); color: var(--fejl); font-weight: 600; }
+.motor .knap { justify-self: start; }
 .fejlboks { background: #fdecea; color: var(--fejl); border-left: 4px solid var(--fejl); padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-weight: 600; }
 .guide__knapper { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; border-top: 1px solid var(--graa-200); padding-top: 20px; }
 .guide__knapper .knap--primaer { margin-left: auto; }
