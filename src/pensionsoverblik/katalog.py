@@ -64,6 +64,8 @@ ADVARSLER: dict[str, dict[str, str]] = {
     "BUFFER_YDELSE_FORENKLING": {"placering": "hovedtal", "ikon": "≈", "titel": "Forudsætning"},
     "JAEVN_FORUDSAETTER_SENERE_UDBETALINGER": {"placering": "hovedtal", "ikon": "≈", "titel": "Et gennemsnit"},
     "UDBETALING_FOER_LOVLIG_ALDER": {"placering": "generel", "ikon": "!", "titel": "Tjek din startalder"},
+    "PORTIONER_KRAEVER_AFTALE": {"placering": "generel", "ikon": "≈", "titel": "Kapitalpension i portioner"},
+    "OMLAEGNING_KRAEVER_OVERFOERSEL": {"placering": "generel", "ikon": "≈", "titel": "Omlægning af kapitalpension"},
 }
 
 UKENDT_ADVARSEL = {"placering": "generel", "ikon": "!", "titel": "Bemærk"}

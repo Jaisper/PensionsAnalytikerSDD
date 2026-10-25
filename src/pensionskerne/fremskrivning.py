@@ -23,7 +23,7 @@ from .regler.folkepension import (
     folkepensionsalder, foerste_aar_andel, indtaegtsgrundlag, pensionstillaeg, tillaegsregel,
 )
 from .regler.opsat import ventefaktor
-from .regler.ordninger import engangs_netto, indbetalingsloft, livsvarig_ydelse, rateplan
+from .regler.ordninger import engangs_netto, indbetalingsloft, livsvarig_ydelse, portioner, rateplan
 from .regler.skat import beregn_skat, fordel
 from .regler.udbetalingsalder import tidligste_udbetalingsalder
 from .regler.ydelser import aeldrecheck, mediecheck, tillaegsprocent
@@ -40,7 +40,7 @@ class _Plan:
     start: int
     rater: dict[int, float] = field(default_factory=dict)   # alder → brutto (ratepension)
     livsvarig: float = 0.0                                  # årlig ydelse fra start (livsvarig)
-    engangs_netto: float = 0.0                              # netto i startåret (engangsbeløb)
+    engangs: dict[int, float] = field(default_factory=dict)  # alder → netto (engangsbeløb og portioner)
     i_buffer: bool = True
 
 
@@ -150,19 +150,41 @@ def beregn(
     for ordning in ordninger:
         s = start[ordning.id]
         o = opslag(s)
-        plan = _Plan(ordning.id, ordning.type, s, i_buffer=ordning.i_buffer)
-        if ordning.type == "ratepension":
+        # Kapitalpension omlagt til rate eller livrente (PBL § 41) regnes som den ordning (009).
+        form = ordning.udbetalingsform if ordning.type == "kapitalpension" else "engangs"
+        beregnet_type = form if form in ("ratepension", "livsvarig") else ordning.type
+        plan = _Plan(ordning.id, beregnet_type, s, i_buffer=ordning.i_buffer)
+        if beregnet_type == "ratepension":
             aar = ordning.udbetaling_aar or o.v("ordning.ratepension.min_aar")
             resterende = aar - (alder_nu - ordning.udbetaling_start_alder) if ordning.udbetaling_start_alder < alder_nu else aar
             for i, rate in enumerate(rateplan(saldo[ordning.id], max(0, resterende), afkast)):
                 plan.rater[s + i] = rate
-        elif ordning.type == "livsvarig":
+        elif beregnet_type == "livsvarig":
             horisont = max(antagelser.livsvarig_min_aar, antagelser.livsvarig_horisont_alder - s)
             plan.livsvarig = livsvarig_ydelse(saldo[ordning.id], horisont, afkast)
+        elif form == "portioner":
+            for i, brutto_portion in enumerate(portioner(saldo[ordning.id], ordning.udbetaling_aar, afkast)):
+                plan.engangs[s + i] = engangs_netto(ordning.type, brutto_portion, o, ordning.afgift_betalt)
+            o.v("ordning.kapitalpension.seneste_aar_efter_udbetalingsalder")
         else:
-            plan.engangs_netto = engangs_netto(ordning.type, saldo[ordning.id], o)
+            plan.engangs[s] = engangs_netto(ordning.type, saldo[ordning.id], o, ordning.afgift_betalt)
         samlet.overtag(o)
         planer.append(plan)
+    if any(o.type == "kapitalpension" and o.udbetalingsform == "portioner" for o in ordninger):
+        advarsler.append(Advarsel(
+            "PORTIONER_KRAEVER_AFTALE",
+            "Kapitalpensionen er regnet udbetalt i portioner. Loven giver adgang til delvis udbetaling "
+            "(pensionsbeskatningsloven § 26), og resten bliver i ordningen med lav skat af afkastet. "
+            "Spørg dit pensionsselskab, hvordan de udbetaler i portioner.",
+            registerposter=("ordning.kapitalpension.seneste_aar_efter_udbetalingsalder",),
+        ))
+    if any(o.type == "kapitalpension" and o.udbetalingsform in ("ratepension", "livsvarig") for o in ordninger):
+        advarsler.append(Advarsel(
+            "OMLAEGNING_KRAEVER_OVERFOERSEL",
+            "Kapitalpensionen er regnet omlagt til ratepension eller livrente. Det sker ved en overførsel "
+            "(pensionsbeskatningsloven § 41), som skal aftales med pensionsselskabet, før udbetalingen "
+            "begynder. Udbetalingen beskattes derefter som personlig indkomst og nedsætter pensionstillægget.",
+        ))
 
     tabel_start = max(alder_nu, min([fp_alder] + [p.start for p in planer]))
     tabel_slut = max(
@@ -198,8 +220,8 @@ def beregn(
                 brutto[plan.id] = ("livsvarig", plan.livsvarig)
                 o.antagelse("afkast_efter_pal", afkast)
                 o.antagelse("livsvarig_horisont_alder", antagelser.livsvarig_horisont_alder)
-            elif plan.engangs_netto and alder == plan.start:
-                engangs += plan.engangs_netto
+            elif alder in plan.engangs:
+                engangs += plan.engangs[alder]
         privat_s = sum(b for _, b in brutto.values())
 
         # ATP fra folkepensionsalderen (påvirkes ikke af opsættelse)
@@ -303,8 +325,9 @@ def beregn(
     # ── 5. Jævn udbetaling (US7) ─────────────────────────────────────────────
     engangs_i_buffer: dict[int, float] = {}
     for plan in planer:
-        if plan.engangs_netto and plan.i_buffer:
-            engangs_i_buffer[plan.start] = engangs_i_buffer.get(plan.start, 0.0) + plan.engangs_netto
+        if plan.i_buffer:
+            for alder, beloeb in plan.engangs.items():
+                engangs_i_buffer[alder] = engangs_i_buffer.get(alder, 0.0) + beloeb
     jaevn = beregn_jaevn(
         tuple(aar), engangs_i_buffer, afkast, antagelser.buffer_kapitalskat, antagelser.inflation,
         beregningsdato.year,
@@ -326,8 +349,8 @@ def beregn(
 
     aldre_i_tabel = {a.alder for a in aar}
     engangsbeloeb = tuple(
-        Engangsbeloeb(plan.id, plan.type, plan.start, plan.engangs_netto, plan.i_buffer)
-        for plan in planer if plan.engangs_netto and plan.start in aldre_i_tabel
+        Engangsbeloeb(plan.id, plan.type, alder, beloeb, plan.i_buffer)
+        for plan in planer for alder, beloeb in sorted(plan.engangs.items()) if beloeb and alder in aldre_i_tabel
     )
     return Fremskrivning(
         satsaar=satsaar, beregningsdato=beregningsdato, folkepensionsalder=fp_alder,

@@ -46,9 +46,11 @@ class Ordning:
     udbetaling_start_alder: int
     oprettet: date | None = None
     aarlig_indbetaling: float = 0.0
-    udbetaling_aar: int | None = None   # kun ratepension; None = registrets minimum
+    udbetaling_aar: int | None = None   # ratepension (None = registrets minimum); kapitalpension i portioner/omlagt
     i_buffer: bool = True               # kun engangsbeløb (US7)
     tidligste_udbetalingsalder: float | None = None  # oplyst af pensionsselskabet (PensionsInfo); overstyrer reglen
+    afgift_betalt: bool = False         # kapitalpension, hvor afgiften er betalt (fx omlagt 2013–2014): skattefri (009)
+    udbetalingsform: str = "engangs"    # kapitalpension: engangs | portioner | ratepension | livsvarig (009)
 
 
 @dataclass(frozen=True)

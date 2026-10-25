@@ -11,6 +11,7 @@ from .regler.udbetalingsalder import tidligste_udbetalingsalder
 from .register.opslag import Regelopslag
 
 ORDNINGSTYPER = ("ratepension", "livsvarig", "aldersopsparing", "kapitalpension")
+UDBETALINGSFORMER = ("engangs", "portioner", "ratepension", "livsvarig")
 
 
 def _ikke_negativ(felt: str, vaerdi: float | None) -> None:
@@ -68,7 +69,30 @@ def valider(profil: Pensionsprofil, antagelser: Antagelser, satsaar: int, beregn
                 f"Ordningen kan tidligst udbetales fra {tidligste:g} år"
                 + ("" if ordning.tidligste_udbetalingsalder is not None else " (afhænger af oprettelsesdatoen)"),
             )
-        if ordning.type == "ratepension" and ordning.udbetaling_aar is not None:
+        form = ordning.udbetalingsform
+        if form not in UDBETALINGSFORMER:
+            raise UgyldigtInput(f"{felt}.udbetalingsform", f"Ukendt udbetalingsform: {form}")
+        if form != "engangs" and ordning.type != "kapitalpension":
+            raise UgyldigtInput(f"{felt}.udbetalingsform",
+                                "Kun en kapitalpension kan udbetales i portioner eller omlægges")
+        if ordning.type == "kapitalpension":
+            if form in ("ratepension", "livsvarig") and ordning.afgift_betalt:
+                raise UgyldigtInput(f"{felt}.udbetalingsform",
+                                    "En kapitalpension, hvor afgiften er betalt, kan ikke omlægges til rate eller livrente")
+            seneste = math.ceil(tidligste) + o.v("ordning.kapitalpension.seneste_aar_efter_udbetalingsalder")
+            if form == "engangs" and ordning.udbetaling_start_alder > seneste:
+                raise UgyldigtInput(f"{felt}.udbetaling_start_alder",
+                                    f"Kapitalpensionen skal udbetales senest som {seneste}-årig "
+                                    "(20 år efter pensionsudbetalingsalderen)")
+            if form == "portioner":
+                if ordning.udbetaling_aar is None or ordning.udbetaling_aar < 2:
+                    raise UgyldigtInput(f"{felt}.udbetaling_aar", "Vælg mindst 2 portioner")
+                if ordning.udbetaling_start_alder + ordning.udbetaling_aar - 1 > seneste:
+                    raise UgyldigtInput(f"{felt}.udbetaling_aar",
+                                        f"Sidste portion skal udbetales senest som {seneste}-årig "
+                                        "(20 år efter pensionsudbetalingsalderen)")
+        er_rate = ordning.type == "ratepension" or (ordning.type == "kapitalpension" and form == "ratepension")
+        if er_rate and ordning.udbetaling_aar is not None:
             min_aar = o.v("ordning.ratepension.min_aar")
             if ordning.udbetaling_aar < min_aar:
                 raise UgyldigtInput(f"{felt}.udbetaling_aar", f"En ratepension udbetales over mindst {min_aar} år")
