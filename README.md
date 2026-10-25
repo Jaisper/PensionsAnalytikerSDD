@@ -19,12 +19,15 @@ spec-driven development ([Spec Kit](https://github.com/github/spec-kit)).
 
 | [002 Pensionsoverblik](specs/002-pensionsoverblik/) | Brugerflade: guide → resultat med hovedtal, graf, kort og skydere. axe-core 0 fejl, heuristisk evaluering i [ux-evaluering.md](specs/002-pensionsoverblik/ux-evaluering.md) |
 | [004 Tidslinje og datapanel](specs/004-tidslinje/) | Legacy-mønstret: datapanel ("Dine oplysninger"), graf i fuld bredde og en tidslinje under grafen, hvor hver ordning flyttes i tid med skydere |
+| [005 Kør i browseren](specs/005-browser/) | Hele beregningen og PDF-aflæsningen kører i browseren (Pyodide). Ingen server, og intet forlader borgerens computer. Udgives som statisk side på GitHub Pages |
 | [003 Indlæsning af PensionsInfo-rapport](specs/003-pdf-import/) | Upload af PDF → guiden udfyldes. Lokal, regelbaseret parser (ingen AI, Princip XI), testet mod en rigtig rapport |
 
 ```bash
 uv sync
-uv run pytest
-uv run uvicorn pensionsoverblik.api:app --port 8002   # åbn http://127.0.0.1:8002
+uv run pytest                                  # CPython-suiten
+uv run python scripts/byg_side.py              # statisk side i _site/
+uv run python -m http.server -d _site 8002     # åbn http://127.0.0.1:8002
+uv run pytest -m browser                       # samme kode i Pyodide, sammenlignet med CPython
 ```
 
 ## Legacy-løsningen

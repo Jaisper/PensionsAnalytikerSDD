@@ -19,15 +19,15 @@
 
 ## Fase 4: Indlæsning (US3)
 
-- [ ] T009 Indlæsningsbanner med statuslinje, kø for "Beregn", fejl med "Prøv igen" og besked uden WebAssembly
-- [ ] T010 Gennemgang i headless Chrome: første og andet besøg (tider mod SC-002), skydere (SC-003), axe og 360 px
+- [x] T009 Indlæsningsbanner med statuslinje, kø for "Beregn", fejl med "Prøv igen" og besked uden WebAssembly
+- [x] T010 Gennemgang i headless Chrome: første og andet besøg (tider mod SC-002), skydere (SC-003), axe og 360 px
 
 ## Fase 5: Udgivelse (US2)
 
-- [ ] T011 `.github/workflows/pages.yml` (D7)
-- [ ] T012 `scripts/scan_historik.py` (D8). Kør på hele historikken og rapportér fund til brugeren
+- [x] T011 `.github/workflows/pages.yml` (D7)
+- [x] T012 `scripts/scan_historik.py` (D8). Kør på hele historikken og rapportér fund til brugeren
 - [ ] T013 **Kræver brugerens bekræftelse:** ryd eventuelle fund, gør repoet offentligt, slå Pages til og verificér den udgivne side
 
 ## Fase 6: Afslutning
 
-- [ ] T014 README, CLAUDE.md (kommandoer uden uvicorn), research R002 og UX-evaluering
+- [x] T014 README, CLAUDE.md (kommandoer uden uvicorn), research R002 og UX-evaluering

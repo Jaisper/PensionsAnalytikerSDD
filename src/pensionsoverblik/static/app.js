@@ -128,6 +128,11 @@ function startMotor() {
       if (data.fejl) v?.reject(new Error(data.fejl)); else v?.resolve(data.svar);
     };
     motor.onerror = (e) => { visMotor({ fejl: true }); fejl(new Error(e.message || "worker")); };
+    // Pyodide melder ikke altid fejl, hvis en fil ikke kan hentes — den venter bare. Fristen giver
+    // langsomme forbindelser tid til de cirka 15 MB og fanger resten (tests sætter en kortere frist).
+    const fristMs = globalThis.motorFristMs ?? 120_000;
+    const frist = setTimeout(() => { motor.terminate(); visMotor({ fejl: true }); fejl(new Error("frist")); }, fristMs);
+    motor.addEventListener("message", ({ data }) => { if (data.status?.klar || data.status?.fejl) clearTimeout(frist); });
   });
   motorKlar.catch(() => {});
 }

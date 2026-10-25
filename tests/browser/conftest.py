@@ -55,3 +55,15 @@ def side(browser, base_url):
     page.evaluate("motorKlar")
     yield page
     ctx.close()
+
+
+@pytest.fixture
+def ny_side(browser, base_url):
+    """En tom side, som testen selv indlæser (fx med forsinket eller blokeret motor)."""
+    ctx = browser.new_context(locale="da-DK")
+    page = ctx.new_page()
+    page.fejl = []
+    page.on("pageerror", lambda e: page.fejl.append(str(e)))
+    page.base_url = base_url
+    yield page
+    ctx.close()

@@ -43,3 +43,35 @@ Overført cirka 16 MB.
 
 **Afvist alternativ:** At skrive kernen om til JavaScript ville give to implementeringer af
 reglerne og bryde med Princip I og II.
+
+## R002 pydantic fjernet
+
+`aflaeser.py` brugte `BaseModel` som ren datastruktur. Det var en rest fra AI-tiden, hvor JSON
+skulle valideres. Ingen kode brugte validering eller serialisering, så modellerne blev erstattet
+af `@dataclass`. Det sparer pydantic, pydantic_core, typing_extensions og annotated_types i
+browseren. `tests/kontrakt/test_browserpakker.py` sikrer, at `src/` kun importerer stdlib,
+egne pakker og PDF-læseren.
+
+## R003 Pyodide melder ikke altid fejl
+
+Hvis `pyodide.asm.wasm` ikke kan hentes, logger Pyodide en advarsel ("wasm instantiation
+failed"), men `loadPyodide` hverken afviser eller afslutter. Derfor har `app.js` en frist på
+120 s, som giver langsomme forbindelser tid til de cirka 15 MB. Når fristen udløber, stoppes
+workeren, og borgeren får "Prøv igen" (testet med en frist på 3 s).
+
+## R004 Scanning af historikken før offentligt repo (2026-10-25)
+
+`scripts/scan_historik.py --rapport <rigtig rapport>` blev kørt på alle 23 commits og 278
+filversioner.
+
+- **Fra den rigtige rapport** (navn, CPR, 3 aftalenumre og 7 ticifrede numre): 0
+  fund.
+- **PDF-filer og nøgler** (Anthropic, OpenAI, GitHub, AWS, private nøgler): 0 fund.
+- **Generelt CPR-mønster:** 17 fund, alle fiktive eller falske positiver:
+  - testværdier, der ender på `-1234`, i `tests/app/pdfhjaelp.py` og
+    `tests/app/test_pdf_tekst.py`
+  - et eksempel i den gamle AI-prompt i `legacy/prompts.py`
+  - cifre i wheel-URL'er i `uv.lock`
+
+Konklusion: historikken kan gøres offentlig uden oprydning. Commit-forfatter (navn og e-mail)
+bliver synlig, som det altid er tilfældet på GitHub.
