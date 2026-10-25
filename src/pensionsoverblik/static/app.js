@@ -444,18 +444,31 @@ function advarselEl(a, klasse = "advarsel") {
 function tegnGraf(v) {
   const serier = v.graf.serier;
   $("#farveforklaring").replaceChildren(...serier.map((s) => el("li", {}, el("i", { style: `background: var(${s.farve})`, "aria-hidden": "true" }), s.titel)),
-    ...(v.graf.jaevn ? [el("li", {}, el("i", { class: "linje", "aria-hidden": "true" }), "Jævnt fordelt (beløbet øverst)")] : []));
-  $("#graf-markeringer").replaceChildren(...v.graf.markeringer.map((m) =>
-    el("li", {}, el("span", { class: "ikon", "aria-hidden": "true", tekst: "!" }), `${m.titel}: som ${m.fra}–${m.til}-årig`)));
+    ...(v.graf.jaevn ? [el("li", {}, el("i", { class: "linje", "aria-hidden": "true" }), JAEVN_NAVN)] : []));
+  const forklaring = $("#jaevn-forklaring");
+  forklaring.hidden = !v.graf.jaevn;
+  forklaring.textContent = "Den stiplede linje er det faste beløb, du kan bruge hver måned, hvis du selv udjævner: "
+    + "Når søjlen er under linjen, bruger du af din buffer – dine engangsbeløb og det, du har sparet op. "
+    + "Når søjlen er over linjen, sparer du op. Den nederste graf viser, hvor meget der står i bufferen.";
+  const engangs = engangsMarkoerer(v);
+  $("#graf-markeringer").replaceChildren(
+    ...engangs.map((e) => el("li", {}, el("span", { class: "ikon ikon--engangs", "aria-hidden": "true", tekst: "◆" }), e.lang)),
+    ...v.graf.markeringer.map((m) =>
+      el("li", {}, el("span", { class: "ikon", "aria-hidden": "true", tekst: "!" }), `${m.titel}: som ${m.fra}–${m.til}-årig`)));
 
   // Tabelalternativ (FR-023)
   const jaevn = v.graf.jaevn;
   const hoved = el("tr", {}, el("th", { scope: "col", tekst: "Alder" }), ...serier.map((s) => el("th", { scope: "col", tekst: s.titel })),
-    el("th", { scope: "col", tekst: "I alt" }), jaevn ? el("th", { scope: "col", tekst: "Jævnt fordelt" }) : null);
+    el("th", { scope: "col", tekst: "I alt" }), jaevn ? el("th", { scope: "col", tekst: JAEVN_NAVN }) : null,
+    el("th", { scope: "col", tekst: "Engangsbeløb" }), v.graf.buffer ? el("th", { scope: "col", tekst: "Buffer" }) : null);
+  const engangsPrAlder = new Map();
+  for (const e of v.graf.engangs) engangsPrAlder.set(e.alder, (engangsPrAlder.get(e.alder) || 0) + e.netto_real);
   const raekker = v.graf.aldre.map((alder, i) => el("tr", {}, el("th", { scope: "row", tekst: `${alder} år` }),
     ...serier.map((s) => el("td", { tekst: s.vaerdier[i] ? `${kr(s.vaerdier[i])} kr.` : "–" })),
     el("td", { tekst: `${kr(serier.reduce((sum, s) => sum + s.vaerdier[i], 0))} kr.` }),
-    jaevn ? el("td", { tekst: `${kr(jaevn[i])} kr.` }) : null));
+    jaevn ? el("td", { tekst: `${kr(jaevn[i])} kr.` }) : null,
+    el("td", { tekst: engangsPrAlder.has(alder) ? `${kr(engangsPrAlder.get(alder))} kr.` : "–" }),
+    v.graf.buffer ? el("td", { tekst: `${kr(v.graf.buffer[i])} kr.` }) : null));
   $("#graf-tabel").replaceChildren(el("table", {}, el("caption", { class: "sr-only", tekst: "Udbetaling pr. måned efter skat i dagens kroner, pr. alder og kilde" }), el("thead", {}, hoved), el("tbody", {}, raekker)));
 
   if (typeof Chart === "undefined") {
@@ -466,7 +479,7 @@ function tegnGraf(v) {
   const data = {
     labels: v.graf.aldre.map((a) => `${a}`),
     datasets: [
-      ...(jaevn ? [{ type: "line", label: "Jævnt fordelt", data: jaevn.map((x) => Math.round(x)), borderColor: css("--jaevn-linje"),
+      ...(jaevn ? [{ type: "line", label: JAEVN_NAVN, data: jaevn.map((x) => Math.round(x)), borderColor: css("--jaevn-linje"),
         borderDash: [6, 4], borderWidth: 3, pointRadius: 0, tension: 0, order: 0 }] : []),
       ...serier.map((s) => ({ label: s.titel, data: s.vaerdier.map((x) => Math.round(x)), backgroundColor: css(s.farve),
         borderWidth: 0, borderRadius: 2, stack: "netto", order: 1 })),
@@ -482,11 +495,101 @@ function tegnGraf(v) {
     onResize: () => requestAnimationFrame(placerBjaelker),
     scales: {
       x: { stacked: true, grid: { display: false }, title: { display: true, text: "Alder" }, ticks: { maxRotation: 0, autoSkipPadding: 8 } },
-      y: { stacked: true, ticks: { callback: (x) => `${kr(x)} kr.` }, grid: { color: css("--graa-200") } },
+      y: { stacked: true, ticks: { callback: (x) => `${kr(x)} kr.` }, grid: { color: css("--graa-200") }, afterFit: fastYAkse },
     },
   };
-  if (tilstand.graf) { tilstand.graf.data = data; tilstand.graf.update(); }
-  else tilstand.graf = new Chart($("#graf"), { type: "bar", data, options: valg });
+  if (tilstand.graf) { tilstand.graf.$engangs = engangs; tilstand.graf.data = data; tilstand.graf.update(); }
+  else {
+    tilstand.graf = new Chart($("#graf"), { type: "bar", data, options: valg, plugins: [ENGANGS_PLUGIN] });
+    tilstand.graf.$engangs = engangs;
+    tilstand.graf.update();
+  }
+  tegnBuffergraf(v);
+}
+
+/* ── Feature 008: engangsbeløb og buffer i grafen ────────────────────── */
+const JAEVN_NAVN = "Fast beløb, hvis du udjævner";
+const Y_AKSE_PX = 84;  // samme y-aksebredde i begge grafer, så aldrene flugter
+const fastYAkse = (skala) => { skala.width = Y_AKSE_PX; };
+
+function engangsMarkoerer(v) {
+  return v.graf.engangs.map((e) => {
+    const o = tilstand.aktuelleSvar?.ordninger.find((x) => x.id === e.ordning_id);
+    const navn = TYPER[e.type]?.titel ?? "Engangsbeløb";
+    const hvor = e.i_buffer ? "→ buffer" : "→ udbetales";
+    return {
+      alder: e.alder, farve: css(TYPER[e.type]?.farve ?? "--kilde-engangs"),
+      kort: `${navn} ca. ${kr(Math.round(e.netto_real / 1000) * 1000)} kr. ${hvor}`,  // kort tekst i grafen; præcist beløb i listen
+      lang: `${o ? ordningstitel(o) : navn}: ${kr(e.netto_real)} kr. som ${e.alder}-årig ${hvor}`,
+    };
+  });
+}
+
+const ENGANGS_PLUGIN = {
+  // Tegner engangsbeløb som en rombe med tekst øverst i plotområdet ved udbetalingsåret.
+  id: "engangs",
+  afterDatasetsDraw(chart) {
+    const liste = chart.$engangs || [];
+    const aldre = tilstand.v?.graf.aldre || [];
+    if (!liste.length) return;
+    const { ctx, chartArea, scales } = chart;
+    const stak = new Map();
+    ctx.save();
+    ctx.font = "600 12px system-ui, sans-serif";
+    ctx.textBaseline = "middle";
+    for (const e of liste) {
+      const i = aldre.indexOf(e.alder);
+      if (i < 0) continue;
+      const n = stak.get(i) || 0;
+      stak.set(i, n + 1);
+      const x = scales.x.getPixelForValue(i);
+      const y = chartArea.top + 10 + n * 18;
+      ctx.fillStyle = e.farve;
+      ctx.beginPath();
+      ctx.moveTo(x, y - 6); ctx.lineTo(x + 6, y); ctx.lineTo(x, y + 6); ctx.lineTo(x - 6, y);
+      ctx.closePath();
+      ctx.fill();
+      const hoejre = x > (chartArea.left + chartArea.right) / 2;
+      ctx.textAlign = hoejre ? "right" : "left";
+      ctx.fillStyle = css("--petrol-900");
+      ctx.fillText(e.kort, hoejre ? x - 10 : x + 10, y);
+    }
+    ctx.restore();
+  },
+};
+
+function tegnBuffergraf(v) {
+  const ramme = $("#buffergraf-ramme");
+  const buffer = v.graf.buffer;
+  if (!buffer || typeof Chart === "undefined") {
+    ramme.hidden = true;
+    return;
+  }
+  ramme.hidden = false;
+  const farve = css("--kilde-engangs");
+  const roed = css("--fejl");
+  const data = {
+    labels: v.graf.aldre.map((a) => `${a}`),
+    datasets: [{
+      label: "Buffer", data: buffer.map((x) => Math.round(x)), borderColor: farve, borderWidth: 2, pointRadius: 0, tension: 0,
+      fill: { target: "origin", above: `${farve}33`, below: `${roed}33` },
+      segment: { borderColor: (c) => (c.p0.parsed.y < 0 || c.p1.parsed.y < 0 ? roed : farve) },
+    }],
+  };
+  const valg = {
+    responsive: true, maintainAspectRatio: false, animation: { duration: 250 },
+    plugins: {
+      legend: { display: false },
+      title: { display: true, text: "Din buffer (opsparing uden for pension), i dagens kroner", align: "start", color: css("--petrol-900") },
+      tooltip: { callbacks: { title: (t) => `${t[0].label} år`, label: (c) => ` I bufferen: ${kr(c.raw)} kr.` } },
+    },
+    scales: {
+      x: { offset: true, grid: { display: false }, ticks: { display: false } },  // samme kolonner som søjlegrafen
+      y: { ticks: { callback: (x) => `${kr(x)} kr.`, maxTicksLimit: 4 }, grid: { color: css("--graa-200") }, afterFit: fastYAkse },
+    },
+  };
+  if (tilstand.buffergraf) { tilstand.buffergraf.data = data; tilstand.buffergraf.update(); }
+  else tilstand.buffergraf = new Chart($("#buffergraf"), { type: "line", data, options: valg });
 }
 
 function tegnKort(v) {
@@ -512,8 +615,11 @@ function tegnKort(v) {
       return el("article", { class: "kort", style: `--farve: var(${k.farve})` },
         el("div", { class: "kort__ikon", "aria-hidden": "true" }),
         el("h3", { class: "kort__titel" }, k.titel, info), infoTekst,
-        el("ul", { class: "engangsliste" }, k.engangs.map((e) => el("li", {}, `${kr(e.netto)} kr. `,
-          el("small", { tekst: `som ${e.alder}-årig – ${kr(e.netto_real)} kr. i dagens kroner` })))),
+        el("ul", { class: "engangsliste" }, k.engangs.map((e) => {
+          const o = tilstand.aktuelleSvar?.ordninger.find((x) => x.id === e.ordning_id);
+          return el("li", {}, `${o ? ordningstitel(o) : TYPER[e.type]?.titel}: ${kr(e.netto)} kr. `,
+            el("small", { tekst: `som ${e.alder}-årig – ${kr(e.netto_real)} kr. i dagens kroner – ${e.i_buffer ? "til buffer" : "udbetales direkte"}` }));
+        })),
         el("p", { class: "kort__periode", tekst: "Efter eventuel afgift. Udbetales én gang." }));
     }
     return el("article", { class: "kort", style: `--farve: var(${k.farve})` },
@@ -976,8 +1082,8 @@ function visResultat(v, foersteGang = true) {
   $("#hovedtal").textContent = `${kr(h.maaned)} kr.`;
   $("#hovedtal").dataset.vaerdi = h.maaned;
   $("#hovedtal-forklaring").textContent = h.type === "jaevn"
-    ? `Når dine udbetalinger fordeles jævnt, fra du er ${h.fra_alder} år. I dagens kroner, så beløbet er lige meget værd hele livet.`
-      + (h.foer ? ` De første år, fra du er ${h.foer.fra_alder}, er det ca. ${kr(h.foer.maaned)} kr., indtil dit engangsbeløb er udbetalt.` : "")
+    ? `Det faste beløb, du kan bruge hver måned fra du er ${h.fra_alder} år, hvis du selv udjævner (den stiplede linje i grafen). I dagens kroner, så beløbet er lige meget værd hele livet.`
+      + (h.senere ? ` Fra du er ${h.senere.fra_alder}, stiger det til ca. ${kr(h.senere.maaned)} kr., når dit engangsbeløb er udbetalt.` : "")
       + ` Din folkepensionsalder er ${v.folkepensionsalder} år.`
     : `Efter skat og i dagens kroner, i dit første hele år med folkepension (${h.fra_alder} år).`;
   const foer = tilstand.forrigeHovedtal;

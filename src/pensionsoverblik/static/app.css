@@ -249,6 +249,11 @@ thead th { background: var(--graa-50); position: sticky; top: 0; }
 .form--panel .trin { border-top: 1px solid var(--graa-200); padding-top: 16px; margin-top: 8px; }
 .form--panel .trin h2 { font-size: 1.15rem; }
 .graf-ramme--bred { height: 360px; }
+/* Feature 008: bufferen år for år under hovedgrafen, på samme aldersakse. */
+.graf-ramme--buffer { height: 150px; margin-top: 4px; }
+.graf-ramme--buffer[hidden] { display: none; }
+.graf-forklaring { color: var(--graa-600); font-size: .95rem; max-width: 760px; margin: 4px 0 8px; }
+.markeringer .ikon--engangs { color: var(--kilde-engangs); }
 .tidslinje { display: grid; gap: 4px; margin-top: 18px; }
 .tl-raekke { border-top: 1px solid var(--graa-200); padding: 10px 0 6px; }
 .tl-hoved { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: .95rem; }

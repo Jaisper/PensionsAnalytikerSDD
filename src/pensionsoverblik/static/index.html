@@ -218,7 +218,9 @@
           <div class="panel__indhold" id="graf-panel-indhold">
             <p class="sektion__intro">Om måneden efter skat, i dagens kroner. Træk i bjælkerne under grafen for at flytte dine ordninger i tid – eller klik på en bjælke og justér år for år. Vi regner forfra med det samme.</p>
             <div class="graf-ramme graf-ramme--bred"><canvas id="graf" role="img" aria-label="Søjlediagram over din udbetaling pr. år, fordelt på kilder. Tallene findes også som tabel under diagrammet."></canvas></div>
+            <div class="graf-ramme graf-ramme--buffer" id="buffergraf-ramme" hidden><canvas id="buffergraf" role="img" aria-label="Linjediagram over din buffer pr. år i dagens kroner. Tallene findes også i tabellen under diagrammet."></canvas></div>
             <ul class="forklaring-farver" id="farveforklaring"></ul>
+            <p class="graf-forklaring" id="jaevn-forklaring" hidden></p>
             <ul class="markeringer" id="graf-markeringer"></ul>
             <div class="optimering">
               <div class="optimering__top">

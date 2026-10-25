@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from datetime import date
 
 from .model import (
+    Engangsbeloeb,
     Aarsresultat, Advarsel, Antagelser, Fremskrivning, Indkomstkilde, Ordning,
     Partner, PartnerIndkomst, Pensionsprofil,
 )
@@ -323,8 +324,13 @@ def beregn(
             "du først får senere.",
         ))
 
+    aldre_i_tabel = {a.alder for a in aar}
+    engangsbeloeb = tuple(
+        Engangsbeloeb(plan.id, plan.type, plan.start, plan.engangs_netto, plan.i_buffer)
+        for plan in planer if plan.engangs_netto and plan.start in aldre_i_tabel
+    )
     return Fremskrivning(
         satsaar=satsaar, beregningsdato=beregningsdato, folkepensionsalder=fp_alder,
         aar=tuple(aar), advarsler=tuple(advarsler), antagelser=antagelser,
-        sporing_samlet=tuple(samlet.brugt), jaevn=jaevn,
+        sporing_samlet=tuple(samlet.brugt), jaevn=jaevn, engangsbeloeb=engangsbeloeb,
     )

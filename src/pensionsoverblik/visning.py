@@ -12,6 +12,7 @@ from pensionskerne import Fremskrivning, register
 from .katalog import ADVARSLER, DELAAR_FOERST, ENGANGSKORT, KORT, KORT_FOR_KILDETYPE, UKENDT_ADVARSEL
 
 MAANEDER = 12
+BUFFER_NUL_KR = 1.0
 
 
 def _advarsel(a) -> dict:
@@ -22,15 +23,16 @@ def _advarsel(a) -> dict:
 
 def _hovedtal(res: Fremskrivning) -> dict:
     if res.jaevn:
-        # Det jævne niveau stiger kun, når et engangsbeløb lander (det lånes ikke på forhånd).
-        # Hovedtallet er niveauet efter det sidste skridt — det gælder i de fleste år.
+        # Hovedtallet er det faste beløb hele perioden: det laveste jævne beløb (feature 008) — det
+        # samme, som "Find bedste plan" bruger. Niveauet stiger kun, når et engangsbeløb lander
+        # (det lånes ikke på forhånd); et senere spring oplyses som "senere".
         real = [j.jaevn * a.realfaktor / MAANEDER for j, a in zip(res.jaevn.aar, res.aar)]
         ref = max([0] + [i for i in range(1, len(real)) if real[i] > real[i - 1] + 1])
-        foer = {"maaned": round(real[0], -2), "fra_alder": res.aar[0].alder} if ref else None
-        return {"type": "jaevn", "maaned": round(real[ref], -2), "fra_alder": res.aar[ref].alder, "foer": foer}
+        senere = {"maaned": round(real[ref], -2), "fra_alder": res.aar[ref].alder} if ref else None
+        return {"type": "jaevn", "maaned": round(min(real), -2), "fra_alder": res.aar[0].alder, "senere": senere}
     foerste_hele = next((a for a in res.aar if a.alder > res.folkepensionsalder), res.aar[-1])
     return {"type": "foerste_fp_aar", "maaned": round(foerste_hele.netto_real / MAANEDER, -2),
-            "fra_alder": foerste_hele.alder, "foer": None}
+            "fra_alder": foerste_hele.alder, "senere": None}
 
 
 def _satser(res: Fremskrivning) -> list[dict]:
@@ -95,16 +97,20 @@ def byg_visning(res: Fremskrivning) -> dict:
             "advarsler": kort_advarsler[noegle], "detaljer": detaljer[noegle],
         })
 
-    engangs = [{"alder": a.alder, "netto": a.engangsbeloeb_netto, "netto_real": a.engangsbeloeb_netto * a.realfaktor}
-               for a in res.aar if a.engangsbeloeb_netto > 0]
+    realfaktor = {a.alder: a.realfaktor for a in res.aar}
+    engangs = [{"ordning_id": e.ordning_id, "type": e.type, "alder": e.alder, "i_buffer": e.i_buffer,
+                "netto": e.netto, "netto_real": e.netto * realfaktor[e.alder]} for e in res.engangsbeloeb]
     if engangs:
         kort.append({"noegle": "engangsbeloeb", **ENGANGSKORT, "netto_maaned": None, "repraesentativ_alder": None,
                      "fra_alder": engangs[0]["alder"], "til_alder": engangs[-1]["alder"],
                      "advarsler": [], "detaljer": [], "engangs": engangs})
 
-    jaevn = None
+    jaevn = buffer = None
     if res.jaevn:
         jaevn = [j.jaevn * a.realfaktor / MAANEDER for j, a in zip(res.jaevn.aar, res.aar)]
+        # Bufferen i dagens kroner. Den ender i 0; under 1 kr. er regnestøj (007 R002).
+        buffer = [0.0 if abs(b := j.buffer_rest * a.realfaktor) < BUFFER_NUL_KR else b
+                  for j, a in zip(res.jaevn.aar, res.aar)]
 
     return {
         "hovedtal": _hovedtal(res),
@@ -117,6 +123,8 @@ def byg_visning(res: Fremskrivning) -> dict:
                        for n in KORT if any(serier[n])],
             "markeringer": markeringer,
             "jaevn": jaevn,
+            "buffer": buffer,
+            "engangs": engangs,
         },
         "generelle_advarsler": generelle,
         "antagelser": {**asdict(res.antagelser), "satsregulering": res.antagelser.effektiv_satsregulering},

@@ -12,7 +12,7 @@ from hypothesis import HealthCheck, given, settings, strategies as st
 
 from pensionskerne import Antagelser, Ordning, beregn
 from pensionskerne import optimering as opt
-from pensionskerne.optimering import Plan, anvend, fast_niveau, maaned, optimer, vindue
+from pensionskerne.optimering import Plan, anvend, fast_niveau, optimer, slutniveau, vindue
 from pensionsoverblik.visning import byg_visning, graenser
 from tests.conftest import BEREGNINGSDATO, enlig_profil
 
@@ -36,10 +36,17 @@ def resultat(p, a=A):
 
 # ── Mål ─────────────────────────────────────────────────────────────────────────────────────────
 
-def test_maaned_er_visningens_hovedtal():
+def test_maalet_er_visningens_hovedtal():
+    """Feature 008: hovedtallet er det faste beløb hele perioden — samme tal som målet."""
     for p in (profil(), profil(FIRE[0]), profil(FIRE[1], FIRE[3])):
         res = resultat(p)
-        assert round(maaned(res), -2) == byg_visning(res)["hovedtal"]["maaned"]
+        assert round(fast_niveau(res, vindue(res)), -2) == byg_visning(res)["hovedtal"]["maaned"]
+
+
+def test_slutniveau_er_visningens_senere_niveau():
+    res = resultat(profil(FIRE[0], FIRE[2]))
+    h = byg_visning(res)["hovedtal"]
+    assert round(slutniveau(res), -2) == (h["senere"] or h)["maaned"]
 
 
 # ── Forslaget ───────────────────────────────────────────────────────────────────────────────────

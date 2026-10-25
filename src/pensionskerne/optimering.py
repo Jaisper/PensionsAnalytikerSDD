@@ -105,9 +105,9 @@ def vindue(res: Fremskrivning) -> range:
     return range(res.aar[0].alder, res.aar[-1].alder + 1)
 
 
-def maaned(res: Fremskrivning) -> float:
-    """Hovedtallet (kr./md., dagens kroner) — samme regel som visningen: det jævne niveau efter
-    det sidste spring; uden jævn udbetaling det første hele folkepensionsår."""
+def slutniveau(res: Fremskrivning) -> float:
+    """Det jævne niveau efter det sidste spring (kr./md., dagens kroner) — visningens "senere"
+    niveau. Bruges kun ved uafgjort; uden jævn udbetaling det første hele folkepensionsår."""
     if res.jaevn:
         real = _jaevn_real(res)
         ref = max([0] + [i for i in range(1, len(real)) if real[i] > real[i - 1] + MAANEDER])
@@ -259,7 +259,7 @@ def _evaluer_plan(plan: Plan, profil: Pensionsprofil, antagelser: Antagelser, sa
     m = _gennemfoerlig(res, ref)
     if m is None:
         return None
-    return m, maaned(res), sum(x.netto_real for x in res.aar)
+    return m, slutniveau(res), sum(x.netto_real for x in res.aar)
 
 
 # ── Søgning ─────────────────────────────────────────────────────────────────────────────────────
@@ -285,7 +285,7 @@ def optimer(
     def evaluer(vektor: tuple) -> tuple | None:
         if vektor not in score:
             r = _evaluer_plan(_plan(vektor, udgangspunkt), profil, antagelser, satsaar, beregningsdato, ref)
-            # Rangering: fast beløb hele perioden, så hovedtallet, så samlet real netto — alle i hele
+            # Rangering: fast beløb hele perioden (= hovedtallet), så det senere niveau, så samlet real netto — i hele
             # kroner. Uafrundede tal ville lade forskelle i sidste decimal mellem CPython og
             # WebAssembly (research R001) afgøre uafgjorte og sende søgningen ad en anden vej.
             score[vektor] = None if r is None else (round(r[0]), round(r[1]), round(r[2]))

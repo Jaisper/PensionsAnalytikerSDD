@@ -146,6 +146,16 @@ class JaevnUdbetaling:
 
 
 @dataclass(frozen=True)
+class Engangsbeloeb:
+    """Et engangsbeløb fra en ordning (feature 008) — oplysning, ingen ny beregning."""
+    ordning_id: str
+    type: str
+    alder: int
+    netto: float                # nominelt, i udbetalingsåret (efter evt. afgift)
+    i_buffer: bool              # True = indgår i den jævne udbetaling; False = udbetales direkte
+
+
+@dataclass(frozen=True)
 class Fremskrivning:
     satsaar: int
     beregningsdato: date
@@ -155,6 +165,7 @@ class Fremskrivning:
     antagelser: Antagelser
     sporing_samlet: tuple[str, ...]
     jaevn: JaevnUdbetaling | None = None
+    engangsbeloeb: tuple[Engangsbeloeb, ...] = ()
 
     def aar_ved(self, alder: int) -> Aarsresultat:
         return next(a for a in self.aar if a.alder == alder)

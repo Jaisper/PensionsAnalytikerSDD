@@ -32,27 +32,71 @@ def res_og_visning(request):
     return res, byg_visning(res)
 
 
-def test_hovedtal_er_jaevn_udbetaling_efter_sidste_engangsbeloeb(res_og_visning):
+def test_hovedtal_er_fast_beloeb_hele_perioden(res_og_visning):
+    """Feature 008 (FR-003): hovedtallet er det laveste jævne beløb — det, man kan leve af hele
+    perioden. Før 008 var det niveauet efter sidste engangsbeløb (fund E1 i 007)."""
     res, v = res_og_visning
     if not res.jaevn:
         return
     real = [j.jaevn * a.realfaktor / 12 for j, a in zip(res.jaevn.aar, res.aar)]
-    # Niveauet stiger kun, når et engangsbeløb lander. Hovedtallet er niveauet derefter.
     ref = max([0] + [i for i in range(1, len(real)) if real[i] > real[i - 1] + 1])
     h = v["hovedtal"]
     assert h["type"] == "jaevn"
-    assert h["maaned"] == round(real[ref], -2)
-    assert h["fra_alder"] == res.aar[ref].alder
-    assert h["foer"] == (None if ref == 0 else {"maaned": round(real[0], -2), "fra_alder": res.aar[0].alder})
+    assert h["maaned"] == round(min(real), -2)
+    assert h["fra_alder"] == res.aar[0].alder
+    assert h["senere"] == (None if ref == 0 else {"maaned": round(real[ref], -2), "fra_alder": res.aar[ref].alder})
+    assert "foer" not in h
 
 
 def test_hovedtal_med_senere_engangsbeloeb():
     rate = Ordning("rate", "ratepension", 800_000, 65, oprettet=date(2010, 1, 1), udbetaling_aar=10)
     ald = Ordning("ald", "aldersopsparing", 300_000, 66, oprettet=date(2015, 1, 1))
     v = byg_visning(beregn(enlig_profil(ordninger=(rate, ald)), Antagelser(), 2026, BEREGNINGSDATO))
-    assert v["hovedtal"]["fra_alder"] == 66
-    assert v["hovedtal"]["foer"]["fra_alder"] == 65
-    assert v["hovedtal"]["foer"]["maaned"] < v["hovedtal"]["maaned"]
+    assert v["hovedtal"]["fra_alder"] == 65
+    assert v["hovedtal"]["senere"]["fra_alder"] == 66
+    assert v["hovedtal"]["senere"]["maaned"] > v["hovedtal"]["maaned"]
+
+
+def test_hovedtal_er_optimeringens_faste_beloeb(res_og_visning):
+    """SC-001: samme tal som "Find bedste plan" bruger (lukker E1 fra 007)."""
+    from pensionskerne.optimering import fast_niveau, vindue
+
+    res, v = res_og_visning
+    if res.jaevn:
+        assert v["hovedtal"]["maaned"] == round(fast_niveau(res, vindue(res)), -2)
+
+
+def test_engangsbeloeb_og_buffer_i_grafen():
+    """Feature 008 (FR-002, SC-002): hvert engangsbeløb med ordning og buffer/direkte, og
+    bufferen år for år i dagens kroner."""
+    rate = Ordning("rate", "ratepension", 800_000, 65, oprettet=date(2010, 1, 1), udbetaling_aar=10)
+    ald = Ordning("ald", "aldersopsparing", 300_000, 66, oprettet=date(2015, 1, 1))
+    kap = Ordning("kap", "kapitalpension", 400_000, 66, oprettet=date(2000, 1, 1), i_buffer=False)
+    res = beregn(enlig_profil(ordninger=(rate, ald, kap)), Antagelser(), 2026, BEREGNINGSDATO)
+    v = byg_visning(res)
+    engangs = v["graf"]["engangs"]
+    assert {(e["ordning_id"], e["type"], e["alder"], e["i_buffer"]) for e in engangs} == {
+        ("ald", "aldersopsparing", 66, True), ("kap", "kapitalpension", 66, False)}
+    pr_aar = {a.alder: a.engangsbeloeb_netto * a.realfaktor for a in res.aar}
+    assert sum(e["netto_real"] for e in engangs) == pytest.approx(pr_aar[66])
+    buffer = v["graf"]["buffer"]
+    assert len(buffer) == len(res.aar)
+    for b, j, a in zip(buffer, res.jaevn.aar, res.aar):
+        forventet = j.buffer_rest * a.realfaktor
+        assert b == pytest.approx(0 if abs(forventet) < 1 else forventet)
+    assert buffer[-1] == 0
+    kort = next(k for k in v["kort"] if k["noegle"] == "engangsbeloeb")
+    assert {(e["ordning_id"], e["i_buffer"]) for e in kort["engangs"]} == {("ald", True), ("kap", False)}
+
+
+def test_buffer_uden_engangsbeloeb_kan_vaere_negativ():
+    """Uden engangsbeløb udjævnes de løbende udbetalinger alligevel; tidlige år kan "låne" af
+    senere (negativ buffer). Det er netop det, advarslen JAEVN_FORUDSAETTER_... siger."""
+    res = beregn(enlig_profil(ordninger=(), atp_aarlig=15_000), Antagelser(), 2026, BEREGNINGSDATO)
+    v = byg_visning(res)
+    assert v["graf"]["engangs"] == []
+    if min(v["graf"]["buffer"]) < 0:
+        assert "JAEVN_FORUDSAETTER_SENERE_UDBETALINGER" in [a.kode for a in res.advarsler]
 
 
 def test_graf_matcher_kernen(res_og_visning):
@@ -137,6 +181,7 @@ def test_engangsbeloeb_faar_eget_kort():
     res = beregn(enlig_profil(ordninger=(ald,)), Antagelser(afkast_efter_pal=0, inflation=0), 2026, BEREGNINGSDATO)
     v = byg_visning(res)
     kort = next(k for k in v["kort"] if k["noegle"] == "engangsbeloeb")
-    assert kort["engangs"] == [{"alder": 66, "netto": pytest.approx(300_000), "netto_real": pytest.approx(300_000)}]
+    assert kort["engangs"] == [{"ordning_id": "ald", "type": "aldersopsparing", "alder": 66, "i_buffer": True,
+                                "netto": pytest.approx(300_000), "netto_real": pytest.approx(300_000)}]
     assert kort["netto_maaned"] is None
     assert "engangsbeloeb" not in [s["noegle"] for s in v["graf"]["serier"]]

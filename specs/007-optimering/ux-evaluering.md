@@ -31,5 +31,5 @@ skærmbilleder af den er gemt).
 
 | # | Fund | Alv. |
 |---|---|---|
-| E1 | "Fast beløb hele perioden" og hovedtallet kan afvige, når der er engangsbeløb senere. Forslaget forklarer det faste beløb, men hovedtallet viser niveauet efter sidste engangsbeløb | 2 |
+| E1 | ~~Fast beløb og hovedtal kan afvige~~ Løst i [008](../008-buffer-i-grafen/): hovedtallet er nu det faste beløb hele perioden | – |
 | E2 | Mens optimeringen kører (cirka 3 s), venter andre beregninger i køen | 1 |
