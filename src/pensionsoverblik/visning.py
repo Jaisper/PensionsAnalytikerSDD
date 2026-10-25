@@ -133,6 +133,7 @@ def byg_visning(res: Fremskrivning) -> dict:
             "skat": a.skat_i_alt, "netto": a.netto_i_alt, "netto_real": a.netto_real,
             "indtaegtsgrundlag": a.indtaegtsgrundlag, "tillaegsprocent": a.tillaegsprocent,
             "engangsbeloeb": a.engangsbeloeb_netto,
+            "kapitalindkomst": a.kapitalindkomst, "skat_kapitalindkomst": a.skat_kapitalindkomst,
         } for a in res.aar],
         "satser": _satser(res),
     }
@@ -151,12 +152,19 @@ def graenser(profil, satsaar: int) -> dict:
     o = Regelopslag(satsaar, satsaar, 0.0)
     fp_alder = folkepensionsalder(profil.foedselsdato, o)
     ordninger = {}
+    import math
+
     for ordning in profil.ordninger:
         if ordning.tidligste_udbetalingsalder is not None:
             ordninger[ordning.id] = {"tidligste": ordning.tidligste_udbetalingsalder, "oplyst": True}
         else:
             alder, _ = tidligste_udbetalingsalder(profil.foedselsdato, ordning.oprettet, fp_alder, o)
             ordninger[ordning.id] = {"tidligste": alder, "oplyst": False}
+        if ordning.type == "kapitalpension":
+            # Feature 009: seneste udbetaling (PBL § 25, stk. 1, nr. 7) og om omlægning er mulig (§ 41).
+            ordninger[ordning.id]["seneste"] = math.ceil(ordninger[ordning.id]["tidligste"]) + \
+                o.v("ordning.kapitalpension.seneste_aar_efter_udbetalingsalder")
+            ordninger[ordning.id]["kan_omlaegges"] = not ordning.afgift_betalt
     return {
         "folkepensionsalder": fp_alder,
         "ordninger": ordninger,

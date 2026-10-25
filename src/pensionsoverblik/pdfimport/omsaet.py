@@ -47,8 +47,7 @@ def _ordning(o: AflaestOrdning, fp_alder: int | None, regler: Regelopslag) -> di
     usikkerheder: list[str] = list(o.noter)
     type_ = o.kategori
     if o.kategori == "kapitalpension" and o.afgift_betalt:
-        type_ = "aldersopsparing"
-        usikkerheder.append("Kapitalpension med betalt afgift – regnet som skattefri udbetaling.")
+        usikkerheder.append("Rapporten viser, at afgiften er betalt – kapitalpensionen udbetales skattefrit.")
     elif o.kategori == "ukendt":
         type_ = "livsvarig"
         usikkerheder.append(f"Typen kunne ikke aflæses ({o.produkttype}). Vi har gættet på livsvarig pension – tjek det.")
@@ -80,6 +79,7 @@ def _ordning(o: AflaestOrdning, fp_alder: int | None, regler: Regelopslag) -> di
         "type": type_, "saldo": o.saldo, "aarlig_indbetaling": o.aarlig_indbetaling,
         "udbetaling_start_alder": start, "udbetaling_aar": udbetaling_aar, "oprettet": oprettet,
         "tidligste_udbetalingsalder": o.tidligste_udbetalingsalder,
+        "afgift_betalt": bool(o.afgift_betalt) if type_ == "kapitalpension" else False,
         "kilde": kilde, "produkttype": o.produkttype, "usikkerheder": usikkerheder,
     }
 

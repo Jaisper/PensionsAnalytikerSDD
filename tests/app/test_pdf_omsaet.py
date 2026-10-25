@@ -53,10 +53,14 @@ def test_atp_fra_topniveau_vinder():
     assert guide(atp=17_000)["atp_aarlig"] == 17_000
 
 
-def test_kapitalpension_med_betalt_afgift_er_skattefri():
+def test_kapitalpension_med_betalt_afgift_bevarer_typen():
+    """Feature 009 (FR-011): typen bevares, og afgift_betalt sættes — før blev den stille lavet
+    om til aldersopsparing."""
     o = guide(ordning(kategori="kapitalpension", afgift_betalt=True))["ordninger"][0]
-    assert o["type"] == "aldersopsparing" and any("skattefri" in u for u in o["usikkerheder"])
-    assert guide(ordning(kategori="kapitalpension", afgift_betalt=False))["ordninger"][0]["type"] == "kapitalpension"
+    assert o["type"] == "kapitalpension" and o["afgift_betalt"] is True
+    assert any("afgiften er betalt" in u for u in o["usikkerheder"])
+    ikke = guide(ordning(kategori="kapitalpension", afgift_betalt=False))["ordninger"][0]
+    assert ikke["type"] == "kapitalpension" and ikke["afgift_betalt"] is False
 
 
 def test_ukendt_type_gaettes_og_markeres():
