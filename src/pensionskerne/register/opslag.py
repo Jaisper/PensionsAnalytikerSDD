@@ -50,6 +50,13 @@ class Regelopslag:
         self._vaerdier[id] = vaerdi
         return vaerdi
 
+    def husk(self, noegle: str, lav):
+        """Afledte værdier (fx listen af skattetrin), lavet én gang pr. år af `lav()` — kun ud fra
+        opslag i dette år, så de registreres i sporingen første gang."""
+        if noegle not in self._vaerdier:
+            self._vaerdier[noegle] = lav()
+        return self._vaerdier[noegle]
+
     def antagelse(self, navn: str, vaerdi: Any) -> Any:
         id = f"antagelse.{navn}"
         if id not in self.brugt:

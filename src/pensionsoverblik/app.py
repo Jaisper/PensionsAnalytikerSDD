@@ -85,11 +85,18 @@ def optimer(guide_json: str, idag: str, fremdrift=None) -> dict:
                 aendringer.append({"id": oid, "felt": "start", "fra": r.udgangspunkt.starter[oid], "til": til})
             if oid in plan.varighed and plan.varighed[oid] != r.udgangspunkt.varighed[oid]:
                 aendringer.append({"id": oid, "felt": "varighed", "fra": r.udgangspunkt.varighed[oid], "til": plan.varighed[oid]})
+        for oid, til in plan.form.items():
+            fra = r.udgangspunkt.form.get(oid)
+            if til != fra:
+                aendringer.append({"id": oid, "felt": "form", "fra": {"form": fra[0], "aar": fra[1]},
+                                   "til": {"form": til[0], "aar": til[1]}})
         if plan.opsaettelse != r.udgangspunkt.opsaettelse:
             aendringer.append({"id": "folkepension", "felt": "opsaettelse", "fra": r.udgangspunkt.opsaettelse, "til": plan.opsaettelse})
     ordninger = {oid: {"udbetaling_start_alder": start} for oid, start in plan.starter.items()}
     for oid, aar in plan.varighed.items():
         ordninger.setdefault(oid, {})["udbetaling_aar"] = aar
+    for oid, (form, aar) in plan.form.items():
+        ordninger.setdefault(oid, {}).update({"udbetalingsform": form, "udbetaling_aar": aar})
     return _ok({
         "forbedret": forbedret, "foer": foer, "efter": efter if forbedret else foer,
         "aendringer": aendringer,

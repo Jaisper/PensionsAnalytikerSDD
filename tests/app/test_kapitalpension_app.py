@@ -59,3 +59,13 @@ def test_portioner_i_grafens_engangsbeloeb():
     v = app.beregn(json.dumps(guide), "2026-10-25")["data"]
     assert [e["alder"] for e in v["graf"]["engangs"]] == [65, 66, 67, 68, 69]
     assert {e["ordning_id"] for e in v["graf"]["engangs"]} == {"k1"}
+
+
+def test_optimer_beskriver_formaendring():
+    guide = {**GUIDE, "ordninger": [{**KAP, "udbetaling_start_alder": 70}]}
+    d = app.optimer(json.dumps(guide), "2026-10-25")["data"]
+    ordning = d["plan"]["ordninger"]["k1"]
+    assert {"udbetaling_start_alder", "udbetalingsform"} <= set(ordning)
+    for a in d["aendringer"]:
+        if a["felt"] == "form":
+            assert set(a["fra"]) == {"form", "aar"} and set(a["til"]) == {"form", "aar"}

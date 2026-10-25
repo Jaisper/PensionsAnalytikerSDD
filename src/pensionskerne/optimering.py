@@ -28,8 +28,12 @@ Konstanterne er modelvalg fra legacy (se dens docstring for hvorfor hvert værn 
 ikke lovsatser — derfor står de her og ikke i registret.
 
 **Søgerum**: startalder pr. ordning (fra tidligste lovlige alder til folkepensionsalderen plus
-den maksimale opsættelse), ratepensionens varighed og folkepensionens opsættelse — alle grænser
-fra registret og kernens regler (Princip II). Engangsbeløb, der ikke er buffer, er faste.
+den maksimale opsættelse), ratepensionens varighed, folkepensionens opsættelse og — for
+kapitalpension (feature 009) — udbetalingsformen: engangsbeløb, portioner over 2–20 år (PBL
+§ 26) eller omlægning til ratepension (10–30 år) eller livrente (PBL § 41; ikke når afgiften er
+betalt). Alle grænser fra registret og kernens regler (Princip II); kombinationer, kernen
+afviser (fx portioner ud over fristen), tæller som ikke gennemførlige. Engangsbeløb, der ikke
+er buffer, er faste.
 
 **Søgning**: udtømmende, hvis søgerummet er lille nok; ellers multi-start grådig
 koordinatsøgning fra udgangspunktet og fra kvantilerne 0, ¼, ½, ¾ og 1 af hver dimension.
@@ -37,7 +41,7 @@ koordinatsøgning fra udgangspunktet og fra kvantilerne 0, ¼, ½, ¾ og 1 af hv
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from datetime import date
 from itertools import product
 from typing import Callable
@@ -69,9 +73,11 @@ class Plan:
     starter: dict[str, int]      # ordnings-id → startalder (kun ordninger i søgerummet)
     varighed: dict[str, int]     # ratepension-id → udbetalingsår
     opsaettelse: int             # folkepensionens opsættelse i år
+    form: dict[str, tuple[str, int | None]] = field(default_factory=dict)  # kapitalpension → (udbetalingsform, år)
 
     def noegle(self) -> tuple:
-        return (tuple(sorted(self.starter.items())), tuple(sorted(self.varighed.items())), self.opsaettelse)
+        return (tuple(sorted(self.starter.items())), tuple(sorted(self.varighed.items())), self.opsaettelse,
+                tuple(sorted(self.form.items())))
 
 
 @dataclass(frozen=True)
@@ -131,15 +137,24 @@ def _udgangspunkt(profil: Pensionsprofil, antagelser: Antagelser, satsaar: int |
         starter={x.id: x.udbetaling_start_alder for x in profil.ordninger if _i_soegerum(x)},
         varighed={x.id: x.udbetaling_aar or min_aar for x in profil.ordninger if x.type == "ratepension"},
         opsaettelse=antagelser.folkepension_opsaettelse_aar,
+        form={x.id: _form(x) for x in profil.ordninger if x.type == "kapitalpension" and _i_soegerum(x)},
     )
+
+
+def _form(o) -> tuple[str, int | None]:
+    return o.udbetalingsform, (o.udbetaling_aar if o.udbetalingsform in ("portioner", "ratepension") else None)
 
 
 def anvend(profil: Pensionsprofil, antagelser: Antagelser, plan: Plan) -> tuple[Pensionsprofil, Antagelser]:
-    ordninger = tuple(
-        replace(o, udbetaling_start_alder=plan.starter.get(o.id, o.udbetaling_start_alder),
-                udbetaling_aar=plan.varighed.get(o.id, o.udbetaling_aar))
-        for o in profil.ordninger
-    )
+    def ny(o):
+        o = replace(o, udbetaling_start_alder=plan.starter.get(o.id, o.udbetaling_start_alder),
+                    udbetaling_aar=plan.varighed.get(o.id, o.udbetaling_aar))
+        if o.id in plan.form:
+            form, aar = plan.form[o.id]
+            o = replace(o, udbetalingsform=form, udbetaling_aar=aar)
+        return o
+
+    ordninger = tuple(ny(o) for o in profil.ordninger)
     return replace(profil, ordninger=ordninger), replace(antagelser, folkepension_opsaettelse_aar=plan.opsaettelse)
 
 
@@ -147,7 +162,7 @@ def anvend(profil: Pensionsprofil, antagelser: Antagelser, plan: Plan) -> tuple[
 
 def soegerum(profil: Pensionsprofil, antagelser: Antagelser, satsaar: int) -> tuple[Plan, list[list[tuple]]]:
     """(udgangspunkt, dimensioner) — én dimension pr. beslutning: ("start", id, alder),
-    ("varighed", id, år) eller ("opsaet", None, år)."""
+    ("varighed", id, år), ("form", id, (udbetalingsform, år)) eller ("opsaet", None, år)."""
     o = Regelopslag(satsaar, satsaar, 0.0)
     fp_alder = folkepensionsalder(profil.foedselsdato, o)
     opsat_maks = int(o.v("opsat.maks_aar"))
@@ -169,20 +184,29 @@ def soegerum(profil: Pensionsprofil, antagelser: Antagelser, satsaar: int) -> tu
         dimensioner.append([("start", x.id, a) for a in sorted(aldre)])
         if x.type == "ratepension":
             dimensioner.append([("varighed", x.id, n) for n in range(min_aar, maks_aar + 1)])
+        if x.type == "kapitalpension":
+            seneste = int(o.v("ordning.kapitalpension.seneste_aar_efter_udbetalingsalder"))
+            former = [("engangs", None)] + [("portioner", n) for n in range(2, seneste + 1)]
+            if not x.afgift_betalt:
+                former += [("ratepension", n) for n in range(min_aar, maks_aar + 1)] + [("livsvarig", None)]
+            dimensioner.append([("form", x.id, f) for f in former])
     dimensioner.append([("opsaet", None, n) for n in range(0, opsat_maks + 1)])
     return udgangspunkt, dimensioner
 
 
 def _plan(vektor: tuple, udgangspunkt: Plan) -> Plan:
     starter, varighed, opsaettelse = dict(udgangspunkt.starter), dict(udgangspunkt.varighed), udgangspunkt.opsaettelse
+    form = dict(udgangspunkt.form)
     for slag, oid, v in vektor:
         if slag == "start":
             starter[oid] = v
         elif slag == "varighed":
             varighed[oid] = v
+        elif slag == "form":
+            form[oid] = v
         else:
             opsaettelse = v
-    return Plan(starter, varighed, opsaettelse)
+    return Plan(starter, varighed, opsaettelse, form)
 
 
 def _vektor(plan: Plan, dimensioner: list[list[tuple]]) -> tuple:
@@ -190,6 +214,10 @@ def _vektor(plan: Plan, dimensioner: list[list[tuple]]) -> tuple:
     ud = []
     for dim in dimensioner:
         slag, oid, _ = dim[0]
+        if slag == "form":
+            nu = plan.form.get(oid)
+            ud.append(next((t for t in dim if t[2] == nu), dim[0]))
+            continue
         nu = plan.starter.get(oid) if slag == "start" else plan.varighed.get(oid) if slag == "varighed" else plan.opsaettelse
         ud.append(min(dim, key=lambda t: (abs(t[2] - nu), t[2])))
     return tuple(ud)
@@ -264,6 +292,13 @@ def _evaluer_plan(plan: Plan, profil: Pensionsprofil, antagelser: Antagelser, sa
 
 # ── Søgning ─────────────────────────────────────────────────────────────────────────────────────
 
+def _ordensnoegle(v) -> tuple:
+    """Deterministisk orden for værdier i søgerummet (tal eller (form, år) med år = None)."""
+    if isinstance(v, tuple):
+        return (v[0], v[1] if v[1] is not None else -1)
+    return ("", v)
+
+
 def optimer(
     profil: Pensionsprofil,
     antagelser: Antagelser,
@@ -327,7 +362,7 @@ def optimer(
     gennemfoerlige = [(s, v) for v, s in score.items() if s is not None]
     if not gennemfoerlige:
         return Optimering(udgangspunkt, udgangspunkt_maaned, None, None, len(score), mulige, udtoemmende)
-    (bedste_s, bedste_v) = max(gennemfoerlige, key=lambda sv: (sv[0], tuple(t[2] for t in sv[1])))
+    (bedste_s, bedste_v) = max(gennemfoerlige, key=lambda sv: (sv[0], tuple(_ordensnoegle(t[2]) for t in sv[1])))
     bedste_plan = _plan(bedste_v, udgangspunkt)
     if bedste_s[0] <= round(udgangspunkt_maaned) or bedste_plan.noegle() == udgangspunkt.noegle():
         return Optimering(udgangspunkt, udgangspunkt_maaned, None, None, len(score), mulige, udtoemmende)

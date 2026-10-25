@@ -43,10 +43,10 @@ def progressiv_skat(pi: float, kommuneskat: float, o: Regelopslag, ki_over: floa
     båndet, der ligger over den personlige indkomst. Kirkeskat indgår ikke i loftet.
     """
     bundskat = o.v("skat.bundskat")
-    trin = [
+    trin = o.husk("skat.trin", lambda: [
         (o.v(f"skat.{navn}.graense"), o.v(f"skat.{navn}.sats"), o.v(f"skat.skatteloft.{navn}"))
         for navn in TRIN
-    ]
+    ])
     loft_ki = o.v("skat.skatteloft.kapitalindkomst") if ki_over > 0 else None
     grundlag = pi + ki_over
     brutto = nedslag = 0.0

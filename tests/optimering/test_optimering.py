@@ -195,3 +195,52 @@ def test_buffer_der_ender_i_nul_er_ikke_et_hul():
     for stoej in (-1e-9, 1e-9):
         rykket = replace(res, jaevn=replace(res.jaevn, aar=(*res.jaevn.aar[:-1], replace(res.jaevn.aar[-1], buffer_rest=stoej))))
         assert opt._reference(rykket, profil()).buffer_hul_aar == ref.buffer_hul_aar
+
+
+# ── Feature 009: kapitalpensionens udbetalingsform (US5) ─────────────────────────────────────────
+
+def _former(p):
+    _, dimensioner = opt.soegerum(p, A, 2026)
+    return {d[0][1]: [t[2] for t in d] for d in dimensioner if d[0][0] == "form"}
+
+
+def test_soegerum_har_udbetalingsform_for_kapitalpension():
+    former = _former(profil())
+    assert set(former) == {"kap"}
+    slags = {f for f, _ in former["kap"]}
+    assert slags == {"engangs", "portioner", "ratepension", "livsvarig"}
+    assert ("engangs", None) in former["kap"] and ("portioner", 2) in former["kap"]
+    assert all(10 <= n <= 30 for f, n in former["kap"] if f == "ratepension")
+
+
+def test_ingen_omlaegning_naar_afgiften_er_betalt():
+    p = profil(FIRE[0], replace(FIRE[3], afgift_betalt=True))
+    assert {f for f, _ in _former(p)["kap"]} == {"engangs", "portioner"}
+
+
+def test_kapitalpension_uden_buffer_flyttes_ikke():
+    assert "kap" not in _former(profil(FIRE[0], replace(FIRE[3], i_buffer=False)))
+
+
+def test_anvend_saetter_udbetalingsform():
+    p = profil()
+    plan = replace(opt._udgangspunkt(p, A), form={"kap": ("portioner", 6)})
+    p2, _ = anvend(p, A, plan)
+    kap = next(o for o in p2.ordninger if o.id == "kap")
+    assert (kap.udbetalingsform, kap.udbetaling_aar) == ("portioner", 6)
+
+
+def test_optimeringen_afproever_former_og_holder_graenserne(monkeypatch):
+    p = profil()
+    set_former = []
+    original = opt._evaluer_plan
+
+    def spion(plan, *a, **kw):
+        set_former.append(plan.form.get("kap"))
+        return original(plan, *a, **kw)
+
+    monkeypatch.setattr(opt, "_evaluer_plan", spion)
+    r = optimer(p, A, 2026, BEREGNINGSDATO, maks_evalueringer=800)
+    assert {f for f, _ in set_former} >= {"engangs", "portioner"}
+    if r.bedste is not None:
+        assert r.bedste.form["kap"][0] in ("engangs", "portioner", "ratepension", "livsvarig")
