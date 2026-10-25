@@ -37,9 +37,10 @@ selvstændige features oven på 013. Se også den foreslåede opdeling af 013 si
   - Fire sekundære kilder siger "5.000 kr. for hver" eller "10.000 kr. for gifte/samlevende":
     Danica, Jyske Bank, Faglig Senior og Seniorhåndbogen. Ældre Sagen har et eksempel med
     15.000 kr. for et par, som ingen andre kilder støtter.
-  - Kernen bruger derfor 5.000 kr. pr. person. Posten registreres med status `sekundær kilde`
+  - Kernen bruger derfor 5.000 kr. pr. person. Posten registreres med status `sekundaer`
     og noten "skriftlig bekræftelse fra Udbetaling Danmark afventes". Effekten er højst 5.000 kr.
-    i indtægtsgrundlaget for et par.
+    i indtægtsgrundlaget for et par. Streng tilstand (`Regelopslag.streng`) afviser posten, til
+    den er `verificeret`. Det skal håndteres i 013b's plan.
   - Afkast på aktiesparekonto beskattes efter aktiesparekontoloven og ikke efter PSL § 8 a. Det
     indgår derfor ikke i § 29.
 - **Likvid formue (ældrecheck)**: Ja. Værdien af en aktiesparekonto og af et frit depot (aktier,
