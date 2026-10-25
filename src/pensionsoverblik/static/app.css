@@ -262,6 +262,20 @@ thead th { background: var(--graa-50); position: sticky; top: 0; }
 .tl-bjaelke--engang { width: 24px; border-radius: 50%; box-shadow: 0 0 0 2px #fff inset; }
 .tl-greb { width: 24px; border-radius: 6px; background: #fff; border: 2px solid var(--farve); cursor: ew-resize; transition: left .15s; }
 .tl-greb::before { content: ""; position: absolute; inset: 5px 8px; border-left: 2px solid var(--farve); border-right: 2px solid var(--farve); }
+.tl-bjaelke--direkte { background: var(--hvid); box-shadow: inset 0 0 0 5px var(--farve); }
+/* Forslag fra "Find bedste plan" (007): stiplet kontur bag bjælken. */
+.tl-spoegelse { position: absolute; top: 2px; height: 28px; border: 2px dashed var(--farve); border-radius: 6px; pointer-events: none; transition: left .15s, width .15s; }
+.tl-spoegelse--engang { width: 24px; border-radius: 50%; top: 2px; }
+.optimering { margin-top: 18px; display: grid; gap: 12px; }
+.optimering__top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; }
+.optimering__top .felt__hjaelp { flex: 1 1 280px; margin: 0; }
+.forslag { border-left: 4px solid var(--sand-500); background: var(--sand-100); border-radius: 6px; padding: 14px 18px; }
+.forslag[hidden] { display: none; }
+.forslag h3 { margin: 0 0 4px; }
+.forslag p { margin: 4px 0; }
+.forslag progress { width: 100%; height: 6px; accent-color: var(--petrol-700); }
+.forslag__liste { margin: 8px 0; padding-left: 20px; }
+.forslag__knapper { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; margin-top: 10px; }
 .tl-aktiv { cursor: grabbing; transition: none; box-shadow: 0 2px 8px rgba(0, 0, 0, .25); }
 .tl-bjaelke:focus-visible, .tl-greb:focus-visible { outline: 3px solid var(--petrol-900); outline-offset: 2px; z-index: 1; }
 .tl-trin { display: flex; flex-wrap: wrap; gap: 6px 24px; padding: 4px 0; }

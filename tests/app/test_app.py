@@ -135,3 +135,65 @@ def test_ingen_filer_skrevet(falsk, tmp_path, monkeypatch):
     foer = set(Path(os.getcwd()).rglob("*"))
     app.pdf(lav_pdf(RAPPORT))
     assert set(Path(os.getcwd()).rglob("*")) == foer
+
+
+# --- optimer (feature 007) ----------------------------------------------------------------------
+
+DAARLIG_PLAN = {
+    **GUIDE,
+    "ordninger": [
+        {"id": "o1", "type": "ratepension", "saldo": 1500000, "aarlig_indbetaling": 0, "udbetaling_start_alder": 75,
+         "udbetaling_aar": 10, "oprettet": "2010-01-01"},
+        {"id": "o2", "type": "livsvarig", "saldo": 600000, "aarlig_indbetaling": 0, "udbetaling_start_alder": 66,
+         "oprettet": "2010-01-01"},
+    ],
+}
+
+
+def anvend_plan(guide, plan):
+    ny = json.loads(json.dumps(guide))
+    for o in ny["ordninger"]:
+        o.update(plan["ordninger"].get(o["id"], {}))
+    ny["antagelser"]["folkepension_opsaettelse_aar"] = plan["folkepension_opsaettelse_aar"]
+    return ny
+
+
+def test_optimer_format_og_anvendt_plan_giver_efter():
+    from datetime import date
+
+    from pensionskerne import beregn as kerne_beregn
+    from pensionskerne.optimering import fast_niveau, vindue
+    from pensionsoverblik.oversaet import til_kerne
+
+    fremdrift = []
+    r = app.optimer(json.dumps(DAARLIG_PLAN), IDAG, lambda n, i_alt: fremdrift.append((n, i_alt)))
+    assert r["ok"] is True
+    d = r["data"]
+    assert d["forbedret"] is True and d["efter"] > d["foer"]
+    assert d["efter"] % 100 == 0 and d["foer"] % 100 == 0
+    assert {"id", "felt", "fra", "til"} <= set(d["aendringer"][0])
+    assert all(a["fra"] != a["til"] for a in d["aendringer"])
+    assert d["evalueret"] <= d["mulige"] and isinstance(d["udtoemmende"], bool)
+    assert fremdrift and fremdrift[-1][0] == fremdrift[-1][1]
+    json.dumps(r, allow_nan=False)
+
+    def niveau(guide):
+        p, a = til_kerne(guide)
+        return fast_niveau(kerne_beregn(p, a, 2026, date.fromisoformat(IDAG)), vindue(kerne_beregn(*til_kerne(DAARLIG_PLAN), 2026, date.fromisoformat(IDAG))))
+
+    assert round(niveau(anvend_plan(DAARLIG_PLAN, d["plan"])), -2) == d["efter"]
+    assert round(niveau(DAARLIG_PLAN), -2) == d["foer"]
+
+
+def test_optimer_feltfejl_som_beregn():
+    r = app.optimer(json.dumps({"person": {}, "ordninger": []}), IDAG)
+    assert r["ok"] is False and r["fejl"]["felt"].startswith("person.")
+
+
+def test_optimer_i_buffer_fra_guiden():
+    guide = {**GUIDE, "ordninger": [*GUIDE["ordninger"],
+             {"id": "o9", "type": "aldersopsparing", "saldo": 200000, "aarlig_indbetaling": 0,
+              "udbetaling_start_alder": 67, "oprettet": "2010-01-01", "i_buffer": False}]}
+    d = app.optimer(json.dumps(guide), IDAG)["data"]
+    assert "o9" not in d["plan"]["ordninger"]
+    assert all(a["id"] != "o9" for a in d["aendringer"])

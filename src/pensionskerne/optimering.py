@@ -4,9 +4,11 @@ Optimeringen er en søgning over kernens egne beregninger (Princip I): hver kand
 fuldt kald af `beregn` med skat, modregning i pensionstillæg og ældrecheck. Der er ingen
 tilfældighed — samme input giver altid samme forslag.
 
-**Mål** (som legacy): det faste månedsbeløb efter skat i dagens kroner, som borgeren ser som
-hovedtal — det jævne niveau efter det sidste engangsbeløb. Ikke den samlede nutidsværdi, der
-belønner skæve, bagtunge forløb.
+**Mål** (som legacy): det faste månedsbeløb efter skat i dagens kroner, som borgeren kan leve
+af HELE perioden — det laveste jævne beløb fra udgangspunktets første udbetaling (år uden
+udbetaling tæller som 0). Ikke den samlede nutidsværdi, der belønner skæve, bagtunge forløb, og
+heller ikke hovedtallet alene: det er niveauet efter det sidste engangsbeløb og ville belønne
+at skubbe engangsbeløb sent, så de første år bliver lavere (opdaget i T003).
 
 **Værn** i forhold til borgerens nuværende plan (legacy's fire tjek plus gulvet, tilpasset
 kernens jævne model, hvor tidlige år kan "låne" af senere udbetalinger via en negativ buffer).
@@ -14,7 +16,7 @@ Alle regnes på årene fra udgangspunktets første udbetaling, i dagens kroner. 
 den løbende nettoudbetaling uden udjævning; direkte engangsbeløb (ikke buffer) flyttes ikke og
 er ens i alle kandidater, så de holdes ude af sammenligningen.
 
-1. GULV: det faste beløb må i intet år være under GULV_ANDEL af udgangspunktets hovedtal.
+1. GULV: det faste beløb må ikke være under GULV_ANDEL af udgangspunktets.
 2. DYBDE: laveste rå udbetaling må ikke være under DYBDE_TOLERANCE af udgangspunktets laveste.
 3. VARIGHED: antallet af år med rå udbetaling under HARDSHIP_ANDEL af kandidatens eget faste
    beløb må ikke overstige udgangspunktets antal.
@@ -55,6 +57,9 @@ GULV_ANDEL = 0.70
 DYBDE_TOLERANCE = 0.97
 HARDSHIP_ANDEL = 0.85
 BUFFER_TOLERANCE_MAANEDER = 1.0
+# Bufferen går op i nul i sidste år; om det bliver -1e-9 eller +1e-9 afhænger af platformens
+# regnefejl (CPython 3.11/3.12 og WebAssembly). Under 1 kr. tæller derfor som nul.
+BUFFER_NUL_KR = 1.0
 
 ENGANGSTYPER = ("aldersopsparing", "kapitalpension")
 
@@ -72,7 +77,7 @@ class Plan:
 @dataclass(frozen=True)
 class Optimering:
     udgangspunkt: Plan
-    udgangspunkt_maaned: float
+    udgangspunkt_maaned: float   # fast beløb hele perioden (kr./md., dagens kroner)
     bedste: Plan | None          # None = ingen bedre gennemførlig plan fundet
     bedste_maaned: float | None
     evalueret: int
@@ -84,6 +89,20 @@ class Optimering:
 
 def _jaevn_real(res: Fremskrivning) -> list[float]:
     return [j.jaevn * a.realfaktor for j, a in zip(res.jaevn.aar, res.aar)]
+
+
+def fast_niveau(res: Fremskrivning, vindue: range) -> float:
+    """Det faste beløb hele perioden (kr./md., dagens kroner): det laveste jævne beløb i vinduet."""
+    if res.jaevn:
+        pr_alder = dict(zip((a.alder for a in res.aar), _jaevn_real(res)))
+    else:
+        pr_alder = {a.alder: a.netto_real for a in res.aar}
+    return min(pr_alder.get(alder, 0.0) for alder in vindue) / MAANEDER
+
+
+def vindue(res: Fremskrivning) -> range:
+    """Aldrene fra første udbetaling til tabellens slutning."""
+    return range(res.aar[0].alder, res.aar[-1].alder + 1)
 
 
 def maaned(res: Fremskrivning) -> float:
@@ -200,22 +219,21 @@ def _buffer_real(res: Fremskrivning) -> list[float]:
 
 
 def _reference(res: Fremskrivning, profil: Pensionsprofil) -> _Reference:
-    vindue = range(res.aar[0].alder, res.aar[-1].alder + 1)
-    m = maaned(res)
-    raa = _raa(res, vindue)
+    v = vindue(res)
+    m = fast_niveau(res, v)
+    raa = _raa(res, v)
     buffer = _buffer_real(res)
     return _Reference(
-        vindue=vindue, maaned=m, laveste_raa=min(raa.values()),
+        vindue=v, maaned=m, laveste_raa=min(raa.values()),
         hardship_aar=sum(1 for v in raa.values() if v < HARDSHIP_ANDEL * m * MAANEDER),
-        laveste_buffer=min(buffer, default=0.0), buffer_hul_aar=sum(1 for b in buffer if b < 0),
+        laveste_buffer=min(buffer, default=0.0), buffer_hul_aar=sum(1 for b in buffer if b < -BUFFER_NUL_KR),
     )
 
 
 def _gennemfoerlig(res: Fremskrivning, ref: _Reference) -> float | None:
-    """Kandidatens månedsbeløb, eller None hvis et værn brydes."""
-    m = maaned(res)
-    jaevn = dict(zip((a.alder for a in res.aar), _jaevn_real(res))) if res.jaevn else {a.alder: a.netto_real for a in res.aar}
-    if any(jaevn.get(alder, 0.0) < GULV_ANDEL * ref.maaned * MAANEDER for alder in ref.vindue):
+    """Kandidatens faste beløb hele perioden, eller None hvis et værn brydes."""
+    m = fast_niveau(res, ref.vindue)
+    if m < GULV_ANDEL * ref.maaned:
         return None
     raa = _raa(res, ref.vindue)
     if min(raa.values()) < DYBDE_TOLERANCE * ref.laveste_raa:
@@ -225,14 +243,14 @@ def _gennemfoerlig(res: Fremskrivning, ref: _Reference) -> float | None:
     buffer = _buffer_real(res)
     if min(buffer, default=0.0) < ref.laveste_buffer - BUFFER_TOLERANCE_MAANEDER * m:
         return None
-    if sum(1 for b in buffer if b < 0) > ref.buffer_hul_aar:
+    if sum(1 for b in buffer if b < -BUFFER_NUL_KR) > ref.buffer_hul_aar:
         return None
     return m
 
 
 def _evaluer_plan(plan: Plan, profil: Pensionsprofil, antagelser: Antagelser, satsaar: int,
                   beregningsdato: date, ref: _Reference) -> tuple[float, float] | None:
-    """(månedsbeløb, samlet real netto) for en gennemførlig kandidat, ellers None."""
+    """(fast beløb, hovedtal, samlet real netto) for en gennemførlig kandidat, ellers None."""
     p, a = anvend(profil, antagelser, plan)
     try:
         res = beregn(p, a, satsaar, beregningsdato)
@@ -241,7 +259,7 @@ def _evaluer_plan(plan: Plan, profil: Pensionsprofil, antagelser: Antagelser, sa
     m = _gennemfoerlig(res, ref)
     if m is None:
         return None
-    return m, sum(x.netto_real for x in res.aar)
+    return m, maaned(res), sum(x.netto_real for x in res.aar)
 
 
 # ── Søgning ─────────────────────────────────────────────────────────────────────────────────────
@@ -267,8 +285,10 @@ def optimer(
     def evaluer(vektor: tuple) -> tuple | None:
         if vektor not in score:
             r = _evaluer_plan(_plan(vektor, udgangspunkt), profil, antagelser, satsaar, beregningsdato, ref)
-            # Rangering: månedsbeløb (afrundet til hele kr.), derefter samlet real netto.
-            score[vektor] = None if r is None else (round(r[0]), r[1])
+            # Rangering: fast beløb hele perioden, så hovedtallet, så samlet real netto — alle i hele
+            # kroner. Uafrundede tal ville lade forskelle i sidste decimal mellem CPython og
+            # WebAssembly (research R001) afgøre uafgjorte og sende søgningen ad en anden vej.
+            score[vektor] = None if r is None else (round(r[0]), round(r[1]), round(r[2]))
             if fremdrift:
                 fremdrift(min(len(score), budget), budget)
         return score[vektor]
@@ -303,7 +323,7 @@ def optimer(
     if fremdrift:
         fremdrift(budget, budget)
 
-    udgangspunkt_maaned = maaned(basis)
+    udgangspunkt_maaned = ref.maaned
     gennemfoerlige = [(s, v) for v, s in score.items() if s is not None]
     if not gennemfoerlige:
         return Optimering(udgangspunkt, udgangspunkt_maaned, None, None, len(score), mulige, udtoemmende)
@@ -312,5 +332,5 @@ def optimer(
     if bedste_s[0] <= round(udgangspunkt_maaned) or bedste_plan.noegle() == udgangspunkt.noegle():
         return Optimering(udgangspunkt, udgangspunkt_maaned, None, None, len(score), mulige, udtoemmende)
     p, a = anvend(profil, antagelser, bedste_plan)
-    return Optimering(udgangspunkt, udgangspunkt_maaned, bedste_plan, maaned(beregn(p, a, satsaar, beregningsdato)),
-                      len(score), mulige, udtoemmende)
+    return Optimering(udgangspunkt, udgangspunkt_maaned, bedste_plan,
+                      fast_niveau(beregn(p, a, satsaar, beregningsdato), ref.vindue), len(score), mulige, udtoemmende)

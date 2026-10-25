@@ -12,7 +12,7 @@ from hypothesis import HealthCheck, given, settings, strategies as st
 
 from pensionskerne import Antagelser, Ordning, beregn
 from pensionskerne import optimering as opt
-from pensionskerne.optimering import Plan, anvend, maaned, optimer
+from pensionskerne.optimering import Plan, anvend, fast_niveau, maaned, optimer, vindue
 from pensionsoverblik.visning import byg_visning, graenser
 from tests.conftest import BEREGNINGSDATO, enlig_profil
 
@@ -47,11 +47,23 @@ def test_maaned_er_visningens_hovedtal():
 def test_forslag_er_mindst_lige_saa_godt_og_kan_anvendes():
     p = profil()
     r = optimer(p, A, 2026, BEREGNINGSDATO, maks_evalueringer=400)
-    assert r.udgangspunkt_maaned == pytest.approx(maaned(resultat(p)))
+    v = vindue(resultat(p))
+    assert r.udgangspunkt_maaned == pytest.approx(fast_niveau(resultat(p), v))
     if r.bedste is not None:
         assert r.bedste_maaned > r.udgangspunkt_maaned
         p2, a2 = anvend(p, A, r.bedste)
-        assert maaned(resultat(p2, a2)) == pytest.approx(r.bedste_maaned)
+        assert fast_niveau(resultat(p2, a2), v) == pytest.approx(r.bedste_maaned)
+
+
+def test_skubber_ikke_engangsbeloeb_sent_for_at_hoeje_hovedtallet():
+    """T003: at flytte et engangsbeløb sent hæver hovedtallet, men sænker de første år."""
+    p = profil()
+    r = optimer(p, A, 2026, BEREGNINGSDATO)
+    if r.bedste is not None:
+        p2, a2 = anvend(p, A, r.bedste)
+        res = resultat(p2, a2)
+        assert fast_niveau(res, vindue(resultat(p))) >= fast_niveau(resultat(p), vindue(resultat(p)))
+        assert r.bedste.starter.get("ald", 0) <= r.udgangspunkt.starter["ald"] + 2
 
 
 def test_finder_en_forbedring_for_en_daarlig_plan():
@@ -160,3 +172,17 @@ def test_egenskab_aldrig_daarligere_og_inden_for_graenser(rate_start, rate_aar, 
         g = graenser(p, 2026)
         for oid, start in r.bedste.starter.items():
             assert g["ordninger"][oid]["tidligste"] - 1e-9 <= start <= g["folkepensionsalder"] + g["opsaettelse_maks"]
+
+
+def test_buffer_der_ender_i_nul_er_ikke_et_hul():
+    """Bufferen går op i nul i sidste år. Regnestøj (±1e-9) må ikke tælle som et hul — ellers
+    vælger CPython og WebAssembly forskellige planer (fundet i T006, SC-002)."""
+    res = resultat(profil())
+    sidste = res.jaevn.aar[-1].buffer_rest
+    assert abs(sidste) < 1
+    ref = opt._reference(res, profil())
+    negative = [j.buffer_rest * a.realfaktor for j, a in zip(res.jaevn.aar, res.aar)]
+    assert ref.buffer_hul_aar == sum(1 for b in negative if b < -1)
+    for stoej in (-1e-9, 1e-9):
+        rykket = replace(res, jaevn=replace(res.jaevn, aar=(*res.jaevn.aar[:-1], replace(res.jaevn.aar[-1], buffer_rest=stoej))))
+        assert opt._reference(rykket, profil()).buffer_hul_aar == ref.buffer_hul_aar

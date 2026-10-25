@@ -95,8 +95,10 @@ beløbet direkte det år og indgår ikke i det faste månedsbeløb.
 - **FR-001**: Optimeringen MUST ligge i kernen som en ren, deterministisk funktion
   (`pensionskerne.optimering.optimer`). Hver kandidat regnes med `beregn` (Princip I). Der må
   ikke være AI eller tilfældighed.
-- **FR-002**: **Mål**: det faste månedsbeløb efter skat i dagens kroner, som borgeren ser som
-  hovedtal (det jævne niveau efter det sidste engangsbeløb).
+- **FR-002**: **Mål**: det faste månedsbeløb efter skat i dagens kroner, som borgeren kan leve af
+  i hele perioden, dvs. det laveste jævne beløb fra udgangspunktets første udbetaling. År uden
+  udbetaling tæller som 0. *Ændret i T003:* Hovedtallet alene (niveauet efter det sidste
+  engangsbeløb) belønnede at skubbe engangsbeløb sent, så de første år blev lavere.
 - **FR-003**: **Værn** i forhold til borgerens nuværende plan (fra legacy, tilpasset kernens
   jævne model). En kandidat forkastes, hvis den:
   1. har et lavere fast beløb end 70 % af udgangspunktets hovedtal i et år fra den første
@@ -132,7 +134,7 @@ beløbet direkte det år og indgår ikke i det faste månedsbeløb.
   grænser og værn (egenskabstest).
 - **SC-002**: Samme input giver samme forslag i CPython og Pyodide.
 - **SC-003**: Optimeringen er færdig på under 10 s i browseren for en profil med 4 ordninger.
-- **SC-004**: Efter "Anvend" er hovedtallet lig forslagets beløb.
+- **SC-004**: Efter "Anvend" er det faste beløb hele perioden lig forslagets beløb.
 
 ## Assumptions
 

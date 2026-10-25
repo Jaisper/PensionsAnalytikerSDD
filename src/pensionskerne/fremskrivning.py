@@ -316,7 +316,7 @@ def beregn(
             "pension. Afkastet af den opsparing kan nedsætte pensionstillæg og ældrecheck — det "
             "er ikke regnet med.",
         ))
-    if jaevn and min(a.buffer_rest for a in jaevn.aar) < 0:
+    if jaevn and min(a.buffer_rest for a in jaevn.aar) < -1.0:  # < 1 kr. er regnestøj (bufferen ender i nul)
         advarsler.append(Advarsel(
             "JAEVN_FORUDSAETTER_SENERE_UDBETALINGER",
             "Den jævne udbetaling er et gennemsnit. I nogle år forudsætter den penge fra udbetalinger, "

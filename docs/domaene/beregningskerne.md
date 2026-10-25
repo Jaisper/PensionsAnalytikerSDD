@@ -214,6 +214,19 @@ satsår ad gangen pr. beregning, men flere satsår i registret.*
   overgangstabel efter fødselsdato gav fp-alder − 3 = 67 og ville have afvist rigtige aftaler.
   Rettet til 60 år (`sekundaer`). Selskabets oplyste alder overstyrer nu altid reglen.
 
+## 7c. Optimeringen i forhold til legacy (feature 007)
+
+`pensionskerne/optimering.py` porterer `legacy/sekventering.py`. Afvigelser:
+
+| # | Legacy | Ny | Hvorfor |
+|---|---|---|---|
+| O1 | Mål: legacys ene jævne niveau | Det laveste jævne beløb fra første udbetaling ("fast beløb hele perioden") | Kernens jævne model stiger ved senere engangsbeløb. Hovedtallet alene belønnede at skubbe engangsbeløb sent (fundet i T003) |
+| O2 | Engangsbeløb kunne spredes ("kapital_rate") | Ikke med | Kernen har ikke den udbetalingsform |
+| O3 | Opsættelse {0, 1, 2, 3, 5} | 0 til registrets maksimum (10) | Grænsen fra registret (Princip II) |
+| O4 | Startalder til pensionsalder + 10 | Til folkepensionsalder + registrets maksimale opsættelse | Kernen har ingen pensionsalder |
+| O5 | Værn på legacys tabel | Samme fem værn på kernens jævne model, med "under 1 kr." som nul for bufferen | Regnestøj ved bufferens nulpunkt gav forskellige planer i CPython og WebAssembly (T006) |
+| O6 | Top 5 og følsomhed | Kun bedste forslag | Princip X (klarhed før fuldstændighed) |
+
 ## 8. Uden for denne feature (kommer i senere features)
 
 PDF-import fra PensionsInfo · AI-forklaring/chat · Optimering af udbetalingsrækkefølge

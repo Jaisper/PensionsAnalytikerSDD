@@ -78,6 +78,7 @@ const tilstand = {
   v: null,             // seneste visningsmodel // seneste svar, der kunne beregnes (skydere vender tilbage hertil ved fejl)
   forrigeHovedtal: null, graf: null,
   tlRaekker: null, valgtRaekke: null, prAar: null,  // tidslinjen (006)
+  forslag: null,       // forslag fra "Find bedste plan" (007): { d, noegle }
 };
 
 /* ── Hjælpere ──────────────────────────────────────────────────────────── */
@@ -124,6 +125,7 @@ function startMotor() {
         if (data.status.fejl) fejl(new Error(data.status.fejl));
         return;
       }
+      if (data.fremdrift !== undefined) { ventende.get(data.id)?.fremdrift?.(data.fremdrift); return; }
       const v = ventende.get(data.id);
       ventende.delete(data.id);
       if (data.fejl) v?.reject(new Error(data.fejl)); else v?.resolve(data.svar);
@@ -152,11 +154,16 @@ function visMotor({ andel, klar, fejl, tekst }) {
 }
 
 /** Kalder kernen i workeren. Venter selv, til motoren er klar (US3-2). */
-async function kald(op, ...args) {
+function kald(op, ...args) {
+  return kaldMedFremdrift(op, args, null);
+}
+
+/** Som kald, men vedFremdrift(andel 0–1) kaldes undervejs (optimeringen, feature 007). */
+async function kaldMedFremdrift(op, args, vedFremdrift) {
   await motorKlar;
   return new Promise((resolve, reject) => {
     const id = naesteKald++;
-    ventende.set(id, { resolve, reject });
+    ventende.set(id, { resolve, reject, fremdrift: vedFremdrift });
     motor.postMessage({ id, op, args }, args.filter((a) => a instanceof ArrayBuffer));
   });
 }
@@ -284,8 +291,19 @@ function tegnOrdninger() {
       infoTekst,
       o.kilde ? el("p", { class: "aflaest", tekst: `Aflæst fra rapporten: ${o.kilde}` }) : null,
       o.usikkerheder?.length ? el("ul", { class: "usikkerheder", "aria-label": "Tjek disse oplysninger" }, o.usikkerheder.map((u) => el("li", { tekst: u }))) : null,
-      el("div", { class: "ordning__felter" }, felter));
+      el("div", { class: "ordning__felter" }, felter),
+      ENGANGSTYPER.has(o.type) ? bufferFelt(o) : null);
   }));
+}
+
+function bufferFelt(o) {
+  // Engangsbeløb som buffer (feature 007, US2): fordeles i det faste beløb eller udbetales direkte.
+  const id = `${o.id}-i_buffer`;
+  const boks = el("input", { type: "checkbox", id, checked: o.i_buffer !== false, "aria-describedby": `${id}-hjaelp` });
+  boks.addEventListener("change", () => { o.i_buffer = boks.checked; });
+  return el("div", { class: "felt", "data-felt": `ordninger[${o.id}].i_buffer` },
+    el("label", { class: "valg", for: id }, boks, " Brug som buffer"),
+    el("p", { class: "felt__hjaelp", id: `${id}-hjaelp`, tekst: "Beløbet fordeles over årene i dit faste månedsbeløb. Slår du det fra, får du hele beløbet udbetalt det år." }));
 }
 
 function guideSvar() {
@@ -306,6 +324,7 @@ function guideSvar() {
       udbetaling_aar: o.type === "ratepension" ? beloeb(o.udbetaling_aar) : null,
       oprettet: OPRETTET[o.oprettet].dato,
       tidligste_udbetalingsalder: o.tidligste_udbetalingsalder ?? null,
+      i_buffer: o.i_buffer !== false,
     })),
     antagelser: {
       afkast_efter_pal: +$("#afkast").value / 100,
@@ -654,7 +673,7 @@ function tidslinjeRaekker(v) {
         min: g.ratepension_aar.min, maks: g.ratepension_aar.maks,
         hent: () => o.udbetaling_aar || g.ratepension_aar.min, saet: (n) => { o.udbetaling_aar = n; }, tekst: (n) => `${n} år` };
     }
-    return { id: o.id, type: o.type, titel, farve: TYPER[o.type].farve, engang, kontroller };
+    return { id: o.id, type: o.type, titel, farve: TYPER[o.type].farve, engang, direkte: engang && o.i_buffer === false, kontroller };
   });
   raekker.push({ id: "folkepension", type: "folkepension", titel: "Folkepension", farve: "--kilde-folkepension", engang: false,
     kontroller: { start: { navn: "Udskyd", label: "Folkepension, udskydelse", ned: "Udskyd 1 år mindre", op: "Udskyd 1 år mere",
@@ -676,7 +695,8 @@ function spaend(r, v) {
 function periodeTekst(r, v) {
   const [fra, til] = spaend(r, v);
   if (r.kontroller.varighed) return `${fra}–${til} år`;
-  return r.engang ? `udbetales som ${fra}-årig` : `fra ${fra} år, livsvarig`;
+  if (r.engang) return `${fra} år · ${r.direkte ? "udbetales direkte" : "til buffer"}`;
+  return `fra ${fra} år, livsvarig`;
 }
 
 function tegnTidslinje(v) {
@@ -684,7 +704,7 @@ function tegnTidslinje(v) {
   const fokus = document.activeElement?.dataset?.kontrol;  // bevar fokus, når rækkerne tegnes igen
   tilstand.tlRaekker = tidslinjeRaekker(v);
   const raekker = tilstand.tlRaekker.map((r) => {
-    const bjaelke = el("div", { class: `tl-bjaelke${r.engang ? " tl-bjaelke--engang" : ""}`, style: `--farve: var(${r.farve})`,
+    const bjaelke = el("div", { class: `tl-bjaelke${r.engang ? " tl-bjaelke--engang" : ""}${r.direkte ? " tl-bjaelke--direkte" : ""}`, style: `--farve: var(${r.farve})`,
       role: "slider", tabindex: "0", "data-kontrol": `${r.id}:start` });
     const greb = r.kontroller.varighed
       ? el("div", { class: "tl-greb", style: `--farve: var(${r.farve})`, role: "slider", tabindex: "0", "data-kontrol": `${r.id}:varighed` })
@@ -735,6 +755,7 @@ function opdaterRaekke(r) {
 function saetVaerdi(r, k, ny, regn) {
   const n = Math.min(k.maks, Math.max(k.min, Math.round(ny)));
   if (n === k.hent()) return false;
+  if (tilstand.forslag) fjernForslag();
   k.saet(n);
   synkroniserFormular();
   opdaterRaekke(r);
@@ -788,6 +809,107 @@ function forbindKontrol(kontrol, r, k) {
   });
 }
 
+/* ── Feature 007: find bedste plan ─────────────────────────────────────── */
+/* Kernen afprøver kombinationer i workeren og foreslår det højeste faste beløb hele perioden.
+   Forslaget vises med spøgelsesbjælker og ændres først, når borgeren trykker "Anvend". */
+const svarNoegle = () => JSON.stringify(tilstand.aktuelleSvar);
+const stortTal = (n) => (n >= 1e6 ? `${String(+(n / 1e6).toFixed(1)).replace(".", ",")} mio.` : kr(n));
+
+function fjernForslag() {
+  tilstand.forslag = null;
+  const boks = $("#forslag");
+  boks.hidden = true;
+  boks.replaceChildren();
+  $$(".tl-spoegelse").forEach((e) => e.remove());
+}
+
+async function findBedstePlan() {
+  fjernForslag();
+  const knap = $("#optimer-knap");
+  const noegle = svarNoegle();
+  const boks = $("#forslag");
+  const fremdrift = el("progress", { max: 1, value: 0, "aria-label": "Afprøver kombinationer" });
+  boks.replaceChildren(el("p", { tekst: "Afprøver kombinationer …" }), fremdrift);
+  boks.hidden = false;
+  knap.disabled = true;
+  try {
+    const r = await kaldMedFremdrift("optimer", [noegle, idag()], (andel) => { fremdrift.value = andel; });
+    if (svarNoegle() !== noegle) return;  // planen er ændret, mens vi søgte
+    if (!r.ok) { boks.replaceChildren(el("p", { class: "forslag__resultat", tekst: r.fejl.besked })); return; }
+    visForslag(r.data, noegle);
+  } catch {
+    boks.replaceChildren(el("p", { class: "forslag__resultat", tekst: "Vi kunne ikke søge efter en bedre plan lige nu. Prøv igen." }));
+  } finally {
+    knap.disabled = false;
+  }
+}
+
+function aendringTekst(a, engang) {
+  if (a.felt === "varighed") return `varighed ${a.fra} → ${a.til} år`;
+  if (a.felt === "opsaettelse") return `udskyd ${a.fra} → ${a.til} år`;
+  return `${engang ? "udbetales som" : "start"} ${a.fra} → ${a.til} år`;
+}
+
+function visForslag(d, noegle) {
+  const afproevet = d.udtoemmende
+    ? `Vi har afprøvet alle ${kr(d.mulige)} mulige kombinationer.`
+    : `Vi har afprøvet ${kr(d.evalueret)} af ${stortTal(d.mulige)} mulige kombinationer – de mest lovende, men ikke alle.`;
+  const boks = $("#forslag");
+  if (!d.forbedret) {
+    boks.replaceChildren(
+      el("p", { class: "forslag__resultat", tekst: "Din plan er allerede den bedste, vi kan finde." }),
+      el("p", { class: "felt__hjaelp", tekst: afproevet }));
+    return;
+  }
+  const pr = new Map();
+  for (const a of d.aendringer) pr.set(a.id, [...(pr.get(a.id) || []), a]);
+  const linjer = [...pr].map(([id, aendringer]) => {
+    const o = tilstand.aktuelleSvar.ordninger.find((x) => x.id === id);
+    const titel = o ? ordningstitel(o) : "Folkepension";
+    return el("li", {}, el("strong", { tekst: `${titel}: ` }), aendringer.map((a) => aendringTekst(a, o && ENGANGSTYPER.has(o.type))).join(", "));
+  });
+  const anvend = el("button", { type: "button", class: "knap knap--primaer", tekst: "Anvend" });
+  const behold = el("button", { type: "button", class: "knap knap--tekst", tekst: "Behold min plan" });
+  anvend.addEventListener("click", anvendForslag);
+  behold.addEventListener("click", fjernForslag);
+  boks.replaceChildren(
+    el("h3", { class: "forslag__resultat", tekst: `Forslag: ${kr(d.efter - d.foer)} kr. mere om måneden` }),
+    el("p", { tekst: `Fast beløb hele perioden: ${kr(d.efter)} kr. i stedet for ${kr(d.foer)} kr. Efter skat og i dagens kroner. De stiplede bjælker viser forslaget.` }),
+    el("ul", { class: "forslag__liste" }, linjer),
+    el("p", { class: "felt__hjaelp", tekst: afproevet }),
+    el("div", { class: "forslag__knapper" }, anvend, behold));
+  tilstand.forslag = { d, noegle };
+  placerBjaelker();
+}
+
+function anvendForslag() {
+  const { d } = tilstand.forslag;
+  const s = tilstand.aktuelleSvar;
+  for (const [id, felter] of Object.entries(d.plan.ordninger)) Object.assign(s.ordninger.find((o) => o.id === id), felter);
+  s.antagelser.folkepension_opsaettelse_aar = d.plan.folkepension_opsaettelse_aar;
+  fjernForslag();
+  synkroniserFormular();
+  tegnTidslinje(tilstand.v);
+  genberegn();
+  $("#hovedtal").scrollIntoView?.({ block: "center" });
+}
+
+function forslagSpaend(r, v, plan) {
+  // Forslagets første og sidste alder for rækken — null, hvis forslaget ikke ændrer den.
+  const sidste = v.graf.aldre.at(-1);
+  if (r.id === "folkepension") {
+    const ops = plan.folkepension_opsaettelse_aar;
+    return ops === r.kontroller.start.hent() ? null : [v.graenser.folkepensionsalder + ops, sidste];
+  }
+  const p = plan.ordninger[r.id];
+  if (!p) return null;
+  const start = p.udbetaling_start_alder;
+  const aar = p.udbetaling_aar ?? r.kontroller.varighed?.hent();
+  if (start === r.kontroller.start.hent() && aar === r.kontroller.varighed?.hent()) return null;
+  if (r.kontroller.varighed) return [start, start + aar - 1];
+  return r.engang ? [start, start] : [start, sidste];
+}
+
 const PUNKT_PX = 24;  // engangsbeløb og greb: mindst 24×24 px (WCAG 2.5.8)
 
 function placerBjaelker() {
@@ -810,6 +932,18 @@ function placerBjaelker() {
     x0 = 0;
   }
   tilstand.prAar = prAar;
+  const placer = (e, start, slut, engang) => {
+    const fra = Math.max(start, aldre[0]) - aldre[0];
+    const til = Math.min(slut, aldre.at(-1)) - aldre[0] + 1;
+    if (engang) {
+      e.style.left = `${x0 + (fra + 0.5) * prAar - PUNKT_PX / 2}px`;
+      e.style.width = "";
+    } else {
+      e.style.left = `${x0 + fra * prAar}px`;
+      e.style.width = `${Math.max(PUNKT_PX, (til - fra) * prAar)}px`;
+    }
+    return til;
+  };
   tilstand.tlRaekker.forEach((r) => {
     const raekke = $(`.tl-raekke[data-id="${r.id}"]`);
     if (!raekke) return;
@@ -817,17 +951,18 @@ function placerBjaelker() {
     const [start, slut] = spaend(r, v);
     b.dataset.start = start;
     b.dataset.slut = slut;
-    const fra = Math.max(start, aldre[0]) - aldre[0];
-    const til = Math.min(slut, aldre.at(-1)) - aldre[0] + 1;
-    if (r.engang) {
-      b.style.left = `${x0 + (fra + 0.5) * prAar - PUNKT_PX / 2}px`;
-      b.style.width = "";
-    } else {
-      b.style.left = `${x0 + fra * prAar}px`;
-      b.style.width = `${Math.max(PUNKT_PX, (til - fra) * prAar)}px`;
-    }
+    const til = placer(b, start, slut, r.engang);
     const greb = $(".tl-greb", raekke);
     if (greb) greb.style.left = `${x0 + til * prAar - PUNKT_PX / 2}px`;
+    // Spøgelse: forslagets placering (feature 007).
+    const forslag = tilstand.forslag?.d.forbedret ? forslagSpaend(r, v, tilstand.forslag.d.plan) : null;
+    let spoegelse = $(".tl-spoegelse", raekke);
+    if (!forslag) { spoegelse?.remove(); return; }
+    if (!spoegelse) {
+      spoegelse = el("div", { class: `tl-spoegelse${r.engang ? " tl-spoegelse--engang" : ""}`, style: `--farve: var(${r.farve})`, "aria-hidden": "true" });
+      $(".tl-spor", raekke).prepend(spoegelse);
+    }
+    placer(spoegelse, forslag[0], forslag[1], r.engang);
   });
 }
 
@@ -854,6 +989,7 @@ function visResultat(v, foersteGang = true) {
   $("#forudsaetninger-titel").textContent = `≈ ${antal === 1 ? "Én forudsætning" : `${antal} forudsætninger`} bag tallet →`;
 
   tilstand.v = v;
+  if (tilstand.forslag && tilstand.forslag.noegle !== svarNoegle()) fjernForslag();
   flytFormularTilPanel();
   tegnNoegletal(v);
   tegnGraf(v);
@@ -867,6 +1003,7 @@ function visResultat(v, foersteGang = true) {
 /* ── Opsætning ─────────────────────────────────────────────────────────── */
 function forbind() {
   startMotor();
+  $("#optimer-knap").addEventListener("click", findBedstePlan);
   $("#motor-igen").addEventListener("click", () => { startMotor(); hentKommuner(); });
   hentKommuner();
   visTrin(1, false);
