@@ -46,6 +46,15 @@ def _linjer(start_top: float, linjer: list[str], x=60, str_=7.0, afstand=12.0):
 FORSIDE = [(650, 450, "Pensionsoplysninger for:", 9), (650, 462, "Test Testesen", 9),
            (650, 485, "150368-xxxx", 9), (650, 505, "Udskrevet:", 9), (650, 517, "01. oktober 2026", 9)]
 
+# Indholdsfortegnelse i højre kolonne; venstre kolonnes brødtekst flettes ind i linjerne (som i
+# en rigtig rapport). Sidetallene passer til rækkefølgen i RAPPORT_PDF.
+INDHOLD = [(130, 120, "Information", 14), (450, 120, "Indhold", 14),
+           (130, 150, "PensionsInfo er en forening af omkring 80", 8), (450, 150, "3 Dine aftaler", 8),
+           (130, 162, "pensionskasser og banker.", 8), (450, 162, "4 Hvis du går på pension som 62-årig får du", 8),
+           (450, 174, "5 Pension - flere oplysninger", 8), (450, 186, "6 Bilag", 8)]
+
+BILAG = [(60, 30, "Bilag", 14), (60, 60, "Dine aftaler og Pension - flere oplysninger nævnes også her.", 8)]
+
 AFTALER = [
     (60, 30, "Dine aftaler", 14),
     (65, 64, "Leverandør", 6), (211, 64, "Aftalenr.", 6), (356, 64, "Bemærkninger", 6),
@@ -114,4 +123,5 @@ FLERE = ([(60, 28, "Pension - flere oplysninger", 14), (65, 81, "Leverandør, af
                   "fra 67 år (pr. 01.04.2035)."])
          + [(92, 560, "S Skattepligtig F Skatte- og afgiftsfri A Afgiftspligtig", 5.5)])
 
-RAPPORT_PDF = lav_pdf_placeret([FORSIDE, AFTALER, SCENARIE, FLERE])
+RAPPORT_PDF = lav_pdf_placeret([FORSIDE, INDHOLD, AFTALER, SCENARIE, FLERE, BILAG])
+RAPPORT_UDEN_INDHOLD_PDF = lav_pdf_placeret([FORSIDE, AFTALER, SCENARIE, FLERE])

@@ -8,7 +8,7 @@ import pytest
 from pensionsoverblik.pdfimport.aflaeser import vaelg_aflaeser
 from pensionsoverblik.pdfimport.pensionsinfo import PensionsInfoAflaeser
 from pensionsoverblik.pdfimport.tekst import foedselsdato_fra_rapport, udtraek_sider
-from tests.app.pensionsinfo_syntetisk import RAPPORT_PDF
+from tests.app.pensionsinfo_syntetisk import RAPPORT_PDF, RAPPORT_UDEN_INDHOLD_PDF
 
 AFLAESER = PensionsInfoAflaeser(rateloft=68_700, am_bidrag=0.08)
 
@@ -84,6 +84,26 @@ def test_hele_vejen_til_beregning():
     profil, antagelser = til_kerne(guide)
     res = beregn(profil, antagelser, 2026, date(2026, 10, 25))
     assert res.folkepensionsalder == 69 and res.aar
+
+
+def test_kun_de_noedvendige_sider_laeses(monkeypatch):
+    """PensionsInfo-rapporter har altid samme hovedsektioner: indholdsfortegnelsen udpeger de få
+    sider, der skal læses. Forsiden læses af API'et, bilag og øvrige sider aldrig."""
+    from pensionsoverblik.pdfimport import pensionsinfo as pi
+    laest = []
+    original = pi._tekst
+    def spion(side):
+        if id(side) not in pi._TEKST:
+            laest.append(side.page_number)
+        return original(side)
+    monkeypatch.setattr(pi, "_tekst", spion)
+    AFLAESER.aflaes_sync(RAPPORT_PDF)
+    assert laest == [2, 3, 4, 5]  # indhold, aftaler, udbetalingstabel, flere oplysninger
+
+
+def test_uden_indholdsfortegnelse_bruges_fallback():
+    a = AFLAESER.aflaes_sync(RAPPORT_UDEN_INDHOLD_PDF)
+    assert {o.aftalenr for o in a.ordninger} == {"1234567890", "5555555555", "9999999999"}
 
 
 def test_vaelg_aflaeser_er_den_lokale_parser():

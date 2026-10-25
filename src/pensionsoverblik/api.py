@@ -18,8 +18,8 @@ from pensionskerne import UgyldigtInput, beregn, register
 from .oversaet import til_kerne
 from .pdfimport.aflaeser import AflaesningFejl, vaelg_aflaeser
 from .pdfimport.omsaet import til_guide
-from .pdfimport.tekst import PdfFejl, foedselsdato_fra_rapport, udtraek_sider
-from .visning import byg_visning
+from .pdfimport.tekst import PdfFejl, foedselsdato_fra_rapport, udtraek_forside
+from .visning import byg_visning, graenser
 
 STATIC = Path(__file__).parent / "static"
 MAKS_PDF_BYTES = 25 * 1024 * 1024
@@ -56,11 +56,18 @@ async def beregn_api(request: Request) -> dict:
     except ValueError:
         raise UgyldigtInput("body", "Forespørgslen kunne ikke læses") from None
     profil, antagelser = til_kerne(data)
-    return byg_visning(beregn(profil, antagelser, _satsaar(), date.today()))
+    visning = byg_visning(beregn(profil, antagelser, _satsaar(), date.today()))
+    visning["graenser"] = graenser(profil, _satsaar())
+    return visning
 
 
 def _fejl(status: int, kode: str, besked: str, felt: str | None = None) -> JSONResponse:
     return JSONResponse({"kode": kode, "besked": besked, "felt": felt}, status_code=status)
+
+
+def _aflaes_sync(data: bytes):
+    """Kører aflæseren (CPU-tung pdfminer) uden at blokere event-loopet."""
+    return asyncio.run(AFLAESER.aflaes(data))
 
 
 @app.get("/api/pdf/status")
@@ -79,13 +86,13 @@ async def pdf_import(request: Request):
     if len(data) > MAKS_PDF_BYTES:
         return _fejl(413, "for_stor", f"Filen er for stor. Den må højst fylde {MAKS_PDF_BYTES // 1024 // 1024} MB.")
     try:
-        sider = await asyncio.to_thread(udtraek_sider, data)
+        forside = await asyncio.to_thread(udtraek_forside, data)
     except PdfFejl as e:
         return _fejl(422, e.kode, e.besked)
 
-    foedselsdato = foedselsdato_fra_rapport(sider[0])
+    foedselsdato = foedselsdato_fra_rapport(forside)
     try:
-        aflaesning = await AFLAESER.aflaes(data)
+        aflaesning = await asyncio.to_thread(_aflaes_sync, data)
     except AflaesningFejl as e:
         return _fejl(422, e.kode, f"{e.besked} Du kan i stedet indtaste dine oplysninger selv.")
     return til_guide(aflaesning, foedselsdato, _satsaar())

@@ -51,6 +51,67 @@ FORDELING_RENTE = 0.04
 FORDELING_LIVSVARIG_AAR = 25
 
 
+# Sektionerne, parseren skal bruge — slås op i rapportens indholdsfortegnelse, så kun 3–5 af
+# rapportens typisk ~30 sider læses (pdfminer bruger ~0,1 s pr. side).
+SEKTIONER = {
+    "aftaler": "Dine aftaler",
+    "scenarie": "Hvis du går på pension som",
+    "flere": "Pension - flere oplysninger",
+}
+_TEKST: dict[int, str] = {}
+
+
+def _tekst(side) -> str:
+    """Sidens tekst, udtrukket højst én gang pr. aflæsning (cachen nulstilles i aflaes_sync)."""
+    if id(side) not in _TEKST:
+        _TEKST[id(side)] = side.extract_text() or ""
+    return _TEKST[id(side)]
+
+
+def _fra_indhold(sider, indhold: str) -> dict[str, list] | None:
+    """Sektionernes sider ud fra indholdsfortegnelsen. Teksten er ofte flettet med en nabokolonne,
+    så sidetal + titel søges hvor som helst i teksten."""
+    start: dict[str, int] = {}
+    for noegle, titel in SEKTIONER.items():
+        if m := re.search(rf"(\d{{1,3}})\s+{re.escape(titel)}", indhold):
+            start[noegle] = int(m.group(1)) - 1
+    if len(start) != len(SEKTIONER) or max(start.values()) >= len(sider):
+        return None
+    # Alle sektionsstarter i fortegnelsen (sidetal efterfulgt af en titel med stort bogstav) giver
+    # hver sektions sidste side, så nabosider aldrig læses.
+    starter = sorted({int(n) - 1 for n in re.findall(r"(\d{1,3})\s+[A-ZÆØÅ]", indhold)} | set(start.values()))
+    def sider_for(noegle: str) -> list:
+        s = start[noegle]
+        slut = min((x for x in starter if x > s), default=s + 1)
+        return list(sider[s:min(slut, len(sider))])
+    fundet = {noegle: sider_for(noegle) for noegle in SEKTIONER}
+    # Kontrol (kun sektionernes første side, som alligevel skal læses): ellers bruges fallback.
+    if all(fundet[k] and SEKTIONER[k] in _tekst(fundet[k][0]) for k in fundet):
+        return fundet
+    return None
+
+
+def _relevante_sider(sider) -> dict[str, list]:
+    """Sider pr. sektion. Bruger indholdsfortegnelsen (side 2-3); falder ellers tilbage til at
+    gennemløbe siderne (uden indholdsfortegnelsen) og stopper, når alle sektioner er fundet."""
+    for side in sider[1:3]:  # forsiden (side 1) har API'et allerede læst
+        if "Indhold" in (tekst := _tekst(side)):
+            if fundet := _fra_indhold(sider, tekst):
+                return fundet
+            break
+    fundet: dict[str, list] = {}
+    for side in sider:
+        tekst = _tekst(side)
+        if "Indhold" in tekst:
+            continue
+        for noegle, titel in SEKTIONER.items():
+            if titel in tekst:
+                fundet.setdefault(noegle, []).append(side)
+        if "flere" in fundet and SEKTIONER["flere"] not in tekst:
+            break  # efter sidste side med "flere oplysninger" er der intet mere at hente
+    return fundet
+
+
 def _kr(tekst: str) -> int:
     return int(tekst.replace(".", "").replace("kr", "").strip())
 
@@ -135,13 +196,14 @@ def _udbetalingstabel(sider) -> tuple[int, list[str], list[_Produkt]]:
     gruppe = None
     aktuel: _Produkt | None = None
     for side in sider:
-        tekst = side.extract_text() or ""
+        tekst = _tekst(side)
         m = SCENARIE.search(tekst)
         if not m or "Pensioner" not in tekst:
             continue
         if alder is not None and int(m.group(1)) != alder:
             break  # kun det første scenarie
         alder = int(m.group(1))
+        tabel_slut = False
         for linje in tekst.splitlines():
             linje = linje.strip()
             if linje.startswith("Pensioner") or (not kolonner and KOLONNE.search(linje) and "kr." not in linje):
@@ -150,6 +212,7 @@ def _udbetalingstabel(sider) -> tuple[int, list[str], list[_Produkt]]:
                 continue
             if linje.startswith("I alt"):
                 aktuel = None
+                tabel_slut = True
                 continue
             ny_gruppe = next((g for navn, g in GRUPPER.items() if linje.startswith(navn) and "kr." in linje
                               and not linje.startswith(("S ", "A ", "F "))), None)
@@ -169,6 +232,8 @@ def _udbetalingstabel(sider) -> tuple[int, list[str], list[_Produkt]]:
                 if p := PERIODE.search(linje):
                     aktuel.periode_aar = int(p.group(1))
                 aktuel.type_tekst = (aktuel.type_tekst + " " + re.sub(r"\s*(Udbetales|·).*$", "", linje)).strip()
+        if tabel_slut:
+            break  # "I alt årligt" — resten af sektionen (forklaringer) skal ikke læses
     if alder is None or not kolonner:
         raise AflaesningFejl("ukendt_format", "Udbetalingstabellen i rapporten blev ikke fundet.")
     return alder, kolonner, produkter
@@ -179,7 +244,7 @@ def _udbetalingstabel(sider) -> tuple[int, list[str], list[_Produkt]]:
 def _flere_oplysninger(sider) -> list[dict]:
     blokke: list[dict] = []
     for side in sider:
-        if "Pension - flere oplysninger" not in (side.extract_text() or ""):
+        if "Pension - flere oplysninger" not in _tekst(side):
             continue
         ord_ = side.extract_words()
         udb = next((w for w in ord_ if w["text"] == "Udbetaling"), None)
@@ -282,20 +347,22 @@ class PensionsInfoAflaeser:
         return self.aflaes_sync(data)
 
     def aflaes_sync(self, data: bytes) -> Aflaesning:
+        _TEKST.clear()
         try:
             with pdfplumber.open(io.BytesIO(data)) as pdf:
-                sider = pdf.pages
-                aftaleside = next((s for s in sider if "Dine aftaler" in (s.extract_text() or "")
-                                   and "Aftalenr." in (s.extract_text() or "")), None)
-                if aftaleside is None:
+                sektioner = _relevante_sider(pdf.pages)
+                aftaleside = next((s for s in sektioner.get("aftaler", []) if "Aftalenr." in _tekst(s)), None)
+                if aftaleside is None or "scenarie" not in sektioner:
                     raise AflaesningFejl("ukendt_format", "Det ligner ikke en rapport fra PensionsInfo.")
                 aftaler = _dine_aftaler(aftaleside)
-                scenariealder, kolonner, produkter = _udbetalingstabel(sider)
-                detaljer = _flere_oplysninger(sider)
+                scenariealder, kolonner, produkter = _udbetalingstabel(sektioner["scenarie"])
+                detaljer = _flere_oplysninger(sektioner.get("flere", []))
         except AflaesningFejl:
             raise
         except Exception:
             raise AflaesningFejl("ulaeselig", "Rapporten kunne ikke læses.") from None
+        finally:
+            _TEKST.clear()
 
         atp = next((b for p in produkter if p.selskab == "ATP" for b in p.beloeb if b), None)
         private = [p for p in produkter if p.selskab != "ATP" and not p.selskab.startswith("Folkepension")]

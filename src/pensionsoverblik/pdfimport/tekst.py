@@ -43,6 +43,21 @@ def udtraek_sider(data: bytes) -> list[str]:
     return sider
 
 
+def udtraek_forside(data: bytes) -> str:
+    """Kun forsidens tekst (fødselsdato, og om PDF'en har et tekstlag) — billigt frem for alle sider."""
+    if not data.startswith(b"%PDF-"):
+        raise PdfFejl("ikke_pdf", "Filen er ikke en PDF. Hent rapporten som PDF fra pensionsinfo.dk.")
+    try:
+        with pdfplumber.open(io.BytesIO(data)) as pdf:
+            forside = (pdf.pages[0].extract_text() or "") if pdf.pages else ""
+    except Exception:
+        raise PdfFejl("ulaeselig", "PDF'en kunne ikke læses. Prøv at hente en ny rapport fra pensionsinfo.dk.") from None
+    if not forside.strip():
+        raise PdfFejl("ingen_tekst", "Vi kunne ikke finde tekst i PDF'en. Den er måske scannet. "
+                                     "Hent rapporten som PDF direkte fra pensionsinfo.dk.")
+    return forside
+
+
 def relevante_sider(sider: list[str]) -> str:
     """Kun sider om ordninger og udbetaling sendes videre (mindre data, færre tokens)."""
     valgte = [f"=== SIDE {i + 1} ===\n{s}" for i, s in enumerate(sider) if any(n in s for n in RELEVANTE_NOEGLEORD)]
