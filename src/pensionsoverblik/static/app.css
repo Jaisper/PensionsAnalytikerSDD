@@ -208,7 +208,9 @@ thead th { background: var(--graa-50); position: sticky; top: 0; }
   .topbjaelke__indhold { gap: 12px; min-height: 60px; }
   .logo { font-size: 1.05rem; }
   .topbjaelke .knap--primaer { padding: 8px 12px; font-size: .9rem; white-space: nowrap; min-height: 40px; }
-  .menu { display: none; }
+  .topbjaelke nav { display: none; }  /* ellers giver den tomme menu et ekstra mellemrum */
+  .logo { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .logo__maerke { flex: none; }
   .hero { grid-template-columns: 1fr; }
   .hero__tekst { clip-path: polygon(0 0, 100% 0, 100% 92%, 0 100%); padding: 40px 16px 56px; }
   .hero__graf { padding: 24px 16px; }
