@@ -79,7 +79,7 @@ def test_engangsbeloeb_og_buffer_i_grafen():
         ("ald", "aldersopsparing", 66, True), ("kap", "kapitalpension", 66, False)}
     pr_aar = {a.alder: a.engangsbeloeb_netto * a.realfaktor for a in res.aar}
     assert sum(e["netto_real"] for e in engangs) == pytest.approx(pr_aar[66])
-    buffer = v["graf"]["buffer"]
+    buffer = [b for b in v["graf"]["buffer"] if b is not None]
     assert len(buffer) == len(res.aar)
     for b, j, a in zip(buffer, res.jaevn.aar, res.aar):
         forventet = j.buffer_rest * a.realfaktor
@@ -93,22 +93,36 @@ def test_buffer_er_aldrig_negativ(res_og_visning):
     """Feature 010: udjævningen låner aldrig — bufferen er altid 0 eller mere."""
     _, v = res_og_visning
     if v["graf"]["buffer"]:
-        assert min(v["graf"]["buffer"]) >= 0
+        assert min(b for b in v["graf"]["buffer"] if b is not None) >= 0
 
 
 def test_graf_matcher_kernen(res_og_visning):
+    """Grafen starter ved en fast alder (aksen hopper ikke, når ordninger flyttes); årene før den
+    første udbetaling er tomme. Resten er kernens år, uændret."""
     res, v = res_og_visning
-    assert v["graf"]["aldre"] == [a.alder for a in res.aar]
+    foran = len(v["graf"]["aldre"]) - len(res.aar)
+    assert v["graf"]["aldre"][foran:] == [a.alder for a in res.aar]
     for serie in v["graf"]["serier"]:
+        assert serie["vaerdier"][:foran] == [0.0] * foran
         for i, a in enumerate(res.aar):
             forventet = sum(k.netto for k in a.kilder if KORT_FOR_KILDETYPE[k.type] == serie["noegle"])
-            assert serie["vaerdier"][i] == pytest.approx(forventet * a.realfaktor / 12)
+            assert serie["vaerdier"][foran + i] == pytest.approx(forventet * a.realfaktor / 12)
+
+
+def test_aksen_starter_ved_60_eller_nuvaerende_alder():
+    for foedt, forventet in ((date(1968, 3, 15), 60), (date(1963, 5, 1), 63)):  # 58 og 63 år i 2026
+        rate = Ordning("rate", "ratepension", 800_000, 66, oprettet=date(2010, 1, 1), udbetaling_aar=10)
+        v = byg_visning(beregn(enlig_profil(foedselsdato=foedt, ordninger=(rate,)), Antagelser(), 2026, BEREGNINGSDATO))
+        assert v["graf"]["aldre"][0] == forventet
+        foran = v["graf"]["aldre"].index(66) if 66 in v["graf"]["aldre"] else 0
+        assert v["graf"]["jaevn"][:foran] == [None] * foran and v["graf"]["buffer"][:foran] == [None] * foran
 
 
 def test_graf_summer_til_netto_real(res_og_visning):
     res, v = res_og_visning
+    foran = len(v["graf"]["aldre"]) - len(res.aar)
     for i, a in enumerate(res.aar):
-        assert sum(s["vaerdier"][i] for s in v["graf"]["serier"]) == pytest.approx(a.netto_real / 12)
+        assert sum(s["vaerdier"][foran + i] for s in v["graf"]["serier"]) == pytest.approx(a.netto_real / 12)
 
 
 def test_kort_matcher_kernen(res_og_visning):
@@ -170,7 +184,7 @@ def test_jaevn_linje_i_dagens_kroner(res_og_visning):
         assert v["graf"]["jaevn"] is None
         return
     for i, (j, a) in enumerate(zip(res.jaevn.aar, res.aar)):
-        assert v["graf"]["jaevn"][i] == pytest.approx(j.jaevn * a.realfaktor / 12)
+        assert v["graf"]["jaevn"][len(v["graf"]["aldre"]) - len(res.aar) + i] == pytest.approx(j.jaevn * a.realfaktor / 12)
 
 
 def test_engangsbeloeb_faar_eget_kort():

@@ -377,7 +377,7 @@ function guideSvar() {
       kommune: $("#kommune").value.trim(),
       folkekirkemedlem: $("#folkekirke").checked,
       likvid_formue: beloeb($("#formue").value) ?? 0,
-      atp_aarlig: beloeb($("#atp").value),
+      atp_aarlig: beloeb($("#atp").value) || null,  // tomt eller 0: ATP's gennemsnit (kernens fallback)
       partner: gift ? { foedselsdato: $("#partner-foedselsdato").value, oevrig_indkomst_aar: beloeb($("#partner-indkomst").value) ?? 0 } : null,
     },
     ordninger: tilstand.ordninger.map((o) => ({
@@ -534,9 +534,9 @@ function tegnGraf(v) {
   const raekker = v.graf.aldre.map((alder, i) => el("tr", {}, el("th", { scope: "row", tekst: `${alder} år` }),
     ...serier.map((s) => el("td", { tekst: s.vaerdier[i] ? `${kr(s.vaerdier[i])} kr.` : "–" })),
     el("td", { tekst: `${kr(serier.reduce((sum, s) => sum + s.vaerdier[i], 0))} kr.` }),
-    jaevn ? el("td", { tekst: `${kr(jaevn[i])} kr.` }) : null,
+    jaevn ? el("td", { tekst: jaevn[i] === null ? "–" : `${kr(jaevn[i])} kr.` }) : null,
     el("td", { tekst: engangsPrAlder.has(alder) ? `${kr(engangsPrAlder.get(alder))} kr.` : "–" }),
-    v.graf.buffer ? el("td", { tekst: `${kr(v.graf.buffer[i])} kr.` }) : null,
+    v.graf.buffer ? el("td", { tekst: v.graf.buffer[i] === null ? "–" : `${kr(v.graf.buffer[i])} kr.` }) : null,
     v.graf.skat_buffer ? el("td", { tekst: v.graf.skat_buffer[i] ? `${kr(v.graf.skat_buffer[i])} kr.` : "–" }) : null));
   $("#graf-tabel").replaceChildren(el("table", {}, el("caption", { class: "sr-only", tekst: "Udbetaling pr. måned efter skat i dagens kroner, pr. alder og kilde" }), el("thead", {}, hoved), el("tbody", {}, raekker)));
 
@@ -548,7 +548,7 @@ function tegnGraf(v) {
   const data = {
     labels: v.graf.aldre.map((a) => `${a}`),
     datasets: [
-      ...(jaevn ? [{ type: "line", label: JAEVN_NAVN, data: jaevn.map((x) => Math.round(x)), borderColor: css("--jaevn-linje"),
+      ...(jaevn ? [{ type: "line", label: JAEVN_NAVN, data: jaevn.map((x) => (x === null ? null : Math.round(x))), borderColor: css("--jaevn-linje"),
         borderDash: [6, 4], borderWidth: 3, pointRadius: 0, tension: 0, order: 0 }] : []),
       ...serier.map((s) => ({ label: s.titel, data: s.vaerdier.map((x) => Math.round(x)), backgroundColor: css(s.farve),
         borderWidth: 0, borderRadius: 2, stack: "netto", order: 1 })),
@@ -607,33 +607,48 @@ function engangsMarkoerer(v) {
 }
 
 const ENGANGS_PLUGIN = {
-  // Tegner engangsbeløb som en rombe med tekst øverst i plotområdet ved udbetalingsåret.
+  // Tegner engangsbeløb som en rombe med tekst øverst i plotområdet ved udbetalingsåret. Teksterne
+  // lægges i den første række, hvor de ikke overlapper en anden markør, og får en hvid kant, så de
+  // kan læses oven på søjlerne. De placerede felter gemmes i chart.$engangsBokse (tests).
   id: "engangs",
   afterDatasetsDraw(chart) {
     const liste = chart.$engangs || [];
     const aldre = tilstand.v?.graf.aldre || [];
+    chart.$engangsBokse = [];
     if (!liste.length) return;
     const { ctx, chartArea, scales } = chart;
-    const stak = new Map();
+    const RAEKKE_PX = 18;
+    const midt = (chartArea.left + chartArea.right) / 2;
     ctx.save();
     ctx.font = "600 12px system-ui, sans-serif";
     ctx.textBaseline = "middle";
+    const optaget = [];  // [{x0, x1, raekke}]
     for (const e of liste) {
       const i = aldre.indexOf(e.alder);
       if (i < 0) continue;
-      const n = stak.get(i) || 0;
-      stak.set(i, n + 1);
       const x = scales.x.getPixelForValue(i);
-      const y = chartArea.top + 10 + n * 18;
+      const hoejre = x > midt;
+      const bredde = ctx.measureText(e.kort).width + 16;  // rombe, mellemrum og tekst
+      const x0 = hoejre ? x - bredde : x - 7;
+      const x1 = hoejre ? x + 7 : x + bredde;
+      let raekke = 0;
+      while (optaget.some((o) => o.raekke === raekke && x0 < o.x1 + 6 && o.x0 < x1 + 6)) raekke += 1;
+      optaget.push({ x0, x1, raekke });
+      const y = chartArea.top + 10 + raekke * RAEKKE_PX;
+      chart.$engangsBokse.push({ x0, x1, y0: y - RAEKKE_PX / 2, y1: y + RAEKKE_PX / 2 });
       ctx.fillStyle = e.farve;
       ctx.beginPath();
       ctx.moveTo(x, y - 6); ctx.lineTo(x + 6, y); ctx.lineTo(x, y + 6); ctx.lineTo(x - 6, y);
       ctx.closePath();
       ctx.fill();
-      const hoejre = x > (chartArea.left + chartArea.right) / 2;
       ctx.textAlign = hoejre ? "right" : "left";
+      const tx = hoejre ? x - 10 : x + 10;
+      ctx.lineWidth = 4;
+      ctx.lineJoin = "round";
+      ctx.strokeStyle = css("--hvid") || "#fff";
+      ctx.strokeText(e.kort, tx, y);
       ctx.fillStyle = css("--petrol-900");
-      ctx.fillText(e.kort, hoejre ? x - 10 : x + 10, y);
+      ctx.fillText(e.kort, tx, y);
     }
     ctx.restore();
   },
@@ -652,7 +667,7 @@ function tegnBuffergraf(v) {
   const data = {
     labels: v.graf.aldre.map((a) => `${a}`),
     datasets: [{
-      label: "Buffer", data: buffer.map((x) => Math.round(x)), borderColor: farve, borderWidth: 2, pointRadius: 0, tension: 0,
+      label: "Buffer", data: buffer.map((x) => (x === null ? null : Math.round(x))), borderColor: farve, borderWidth: 2, pointRadius: 0, tension: 0,
       fill: { target: "origin", above: `${farve}33`, below: `${roed}33` },
       segment: { borderColor: (c) => (c.p0.parsed.y < 0 || c.p1.parsed.y < 0 ? roed : farve) },
     }],
