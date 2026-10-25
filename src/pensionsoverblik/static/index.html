@@ -179,16 +179,48 @@
           </details>
           <a class="pil-link pil-link--lys" href="#sammensaetning">Se hvad beløbet består af <span aria-hidden="true">→</span></a>
         </div>
-        <div class="hero__graf">
-          <h2 class="hero__graf-titel">Om måneden efter skat, i dagens kroner</h2>
-          <div class="graf-ramme"><canvas id="graf" role="img" aria-label="Søjlediagram over din udbetaling pr. år, fordelt på kilder. Tallene findes også som tabel under diagrammet."></canvas></div>
-          <ul class="forklaring-farver" id="farveforklaring"></ul>
-          <ul class="markeringer" id="graf-markeringer"></ul>
-          <details class="tabel-alternativ">
-            <summary>Vis tallene som tabel</summary>
-            <div class="tabel-rul" id="graf-tabel"></div>
-          </details>
+        <div class="hero__noegletal">
+          <h2 class="hero__graf-titel">Dit overblik</h2>
+          <dl class="noegletal" id="noegletal"></dl>
+          <a class="pil-link" href="#graf-panel">Se udbetalingen over tid <span aria-hidden="true">→</span></a>
         </div>
+      </div>
+
+      <div class="ramme paneler">
+        <section class="panel" id="data-panel" aria-labelledby="data-panel-knap">
+          <h2 class="panel__titel">
+            <button type="button" class="panel__knap" id="data-panel-knap" aria-expanded="false" aria-controls="data-panel-indhold">
+              <span>Dine oplysninger</span><span class="panel__pil" aria-hidden="true">▸</span>
+            </button>
+          </h2>
+          <div class="panel__indhold" id="data-panel-indhold" hidden>
+            <p class="sektion__intro">Ret dine oplysninger og ordninger her, og tryk "Opdater beregning".</p>
+            <div id="data-panel-form"></div>
+            <div class="panel__handling">
+              <button type="button" class="knap knap--primaer" id="opdater">Opdater beregning</button>
+              <span class="panel__status" id="opdater-status" role="status"></span>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel" id="graf-panel" aria-labelledby="graf-panel-knap">
+          <h2 class="panel__titel">
+            <button type="button" class="panel__knap" id="graf-panel-knap" aria-expanded="true" aria-controls="graf-panel-indhold">
+              <span>Udbetaling over tid</span><span class="panel__pil" aria-hidden="true">▸</span>
+            </button>
+          </h2>
+          <div class="panel__indhold" id="graf-panel-indhold">
+            <p class="sektion__intro">Om måneden efter skat, i dagens kroner. Flyt dine ordninger i tid med skyderne under grafen – vi regner forfra med det samme.</p>
+            <div class="graf-ramme graf-ramme--bred"><canvas id="graf" role="img" aria-label="Søjlediagram over din udbetaling pr. år, fordelt på kilder. Tallene findes også som tabel under diagrammet."></canvas></div>
+            <ul class="forklaring-farver" id="farveforklaring"></ul>
+            <ul class="markeringer" id="graf-markeringer"></ul>
+            <div class="tidslinje" id="tidslinje" role="group" aria-label="Dine ordninger over tid"></div>
+            <details class="tabel-alternativ">
+              <summary>Vis tallene som tabel</summary>
+              <div class="tabel-rul" id="graf-tabel"></div>
+            </details>
+          </div>
+        </section>
       </div>
 
       <section class="sektion" id="sammensaetning" aria-labelledby="sammensaetning-titel">
@@ -203,17 +235,12 @@
       <section class="sektion sektion--tonet" id="forudsaetninger" aria-labelledby="forudsaetninger-titel">
         <div class="ramme">
           <h2 id="forudsaetninger-titel">Prøv andre forudsætninger</h2>
-          <p class="sektion__intro">Se hvor følsomt beløbet er. Vi regner forfra, når du flytter en skyder.</p>
+          <p class="sektion__intro">Se hvor følsomt beløbet er. Hvornår dine ordninger udbetales, flytter du på tidslinjen under grafen.</p>
           <div class="skydergitter">
             <div class="felt"><label for="r-afkast">Afkast pr. år</label>
               <div class="skyder"><input type="range" id="r-afkast" min="0" max="8" step="0.5"><output for="r-afkast" id="r-afkast-v"></output></div></div>
             <div class="felt"><label for="r-inflation">Prisstigning pr. år</label>
               <div class="skyder"><input type="range" id="r-inflation" min="0" max="5" step="0.5"><output for="r-inflation" id="r-inflation-v"></output></div></div>
-            <div class="felt" id="r-start-felt"><label for="r-start">Private pensioner starter som</label>
-              <div class="skyder"><input type="range" id="r-start" min="60" max="80" step="1"><output for="r-start" id="r-start-v"></output></div>
-              <p class="felt__fejl" id="r-start-fejl" role="alert" hidden></p></div>
-            <div class="felt"><label for="r-opsaettelse">Udskyd folkepensionen</label>
-              <div class="skyder"><input type="range" id="r-opsaettelse" min="0" max="10" step="1"><output for="r-opsaettelse" id="r-opsaettelse-v"></output></div></div>
           </div>
           <button type="button" class="knap knap--tekst" id="nulstil">Nulstil til mine svar</button>
         </div>

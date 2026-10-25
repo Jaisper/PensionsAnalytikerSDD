@@ -73,7 +73,9 @@ const tilstand = {
   trin: 1, ordninger: [], naesteId: 1,
   mineSvar: null,      // svarene fra guiden (til "Nulstil")
   aktuelleSvar: null,  // svarene inkl. ændringer fra skyderne
-  sidsteGyldige: null, // seneste svar, der kunne beregnes (skydere vender tilbage hertil ved fejl)
+  sidsteGyldige: null,
+  panel: false,        // guidens formular står i datapanelet på resultatsiden
+  v: null,             // seneste visningsmodel // seneste svar, der kunne beregnes (skydere vender tilbage hertil ved fejl)
   forrigeHovedtal: null, graf: null,
 };
 
@@ -132,7 +134,8 @@ function visFejl(felt, besked) {
     return;
   }
   const trin = maal.closest(".trin");
-  if (trin) visTrin(+trin.dataset.trin, false);
+  if (trin && !tilstand.panel) visTrin(+trin.dataset.trin, false);
+  if (tilstand.panel) aabnPanel("data", true);
   maal.classList.add("felt--fejl");
   const input = $("input, select", maal);
   const id = `${input?.id || "felt"}-fejl`;
@@ -193,7 +196,9 @@ function tegnOrdninger() {
       ordningsFelt(o, "udbetaling_start_alder", o.type === "aldersopsparing" || o.type === "kapitalpension" ? "Udbetales når du er (alder)" : "Udbetalingen starter når du er (alder)",
         null, el("input", { inputmode: "numeric", value: o.udbetaling_start_alder })),
       o.type === "ratepension" ? ordningsFelt(o, "udbetaling_aar", "Udbetales over (antal år)", "Mindst 10 år.", el("input", { inputmode: "numeric", value: o.udbetaling_aar })) : null,
-      ordningsFelt(o, "oprettet", "Hvornår blev ordningen oprettet?", "Bestemmer, hvornår du tidligst må få pengene.", oprettet),
+      o.tidligste_udbetalingsalder
+        ? el("p", { class: "felt__hjaelp", tekst: `Tidligst udbetaling: ${decimal(o.tidligste_udbetalingsalder)} år (oplyst af selskabet).` })
+        : ordningsFelt(o, "oprettet", "Hvornår blev ordningen oprettet?", "Bestemmer, hvornår du tidligst må få pengene.", oprettet),
     ];
     const fjern = el("button", { type: "button", class: "knap knap--tekst", "aria-label": `Fjern ${t.titel.toLowerCase()} ${i + 1}`, tekst: "Fjern" });
     fjern.addEventListener("click", () => { tilstand.ordninger = tilstand.ordninger.filter((x) => x !== o); tegnOrdninger(); $("#ny-type").focus(); });
@@ -227,6 +232,7 @@ function guideSvar() {
       udbetaling_start_alder: beloeb(o.udbetaling_start_alder),
       udbetaling_aar: o.type === "ratepension" ? beloeb(o.udbetaling_aar) : null,
       oprettet: OPRETTET[o.oprettet].dato,
+      tidligste_udbetalingsalder: o.tidligste_udbetalingsalder ?? null,
     })),
     antagelser: {
       afkast_efter_pal: +$("#afkast").value / 100,
@@ -274,6 +280,7 @@ function udfyldFraRapport(d) {
     saldo: o.saldo === null ? "" : kr(o.saldo), aarlig_indbetaling: o.aarlig_indbetaling === null ? "" : kr(o.aarlig_indbetaling),
     udbetaling_start_alder: o.udbetaling_start_alder ?? "", udbetaling_aar: o.udbetaling_aar ?? 10,
     oprettet: o.oprettet, kilde: o.kilde, usikkerheder: o.usikkerheder,
+    tidligste_udbetalingsalder: o.tidligste_udbetalingsalder,
   }));
   tegnOrdninger();
   const n = d.ordninger.length;
@@ -318,17 +325,21 @@ async function beregnFraGuide() {
 }
 
 let ventetimer = null;
-function genberegn() {
+function genberegn(raekkeId = null) {
   clearTimeout(ventetimer);
   ventetimer = setTimeout(async () => {
-    $("#r-start-fejl").hidden = true;
+    $$(".tl-fejl").forEach((p) => p.remove());
     try {
       const { fejl, visning } = await hentBeregning(tilstand.aktuelleSvar);
       if (fejl) {
         tilstand.aktuelleSvar = structuredClone(tilstand.sidsteGyldige);
+        synkroniserFormular();
         tegnSkydere();
-        const p = $("#r-start-fejl");
-        p.textContent = `${fejl.besked}. Vi har sat skyderen tilbage.`; p.hidden = false;
+        tegnTidslinje(tilstand.v);
+        const raekke = raekkeId && $(`.tl-raekke[data-id="${raekkeId}"]`);
+        const besked = `${fejl.besked}. Vi har sat skyderen tilbage.`;
+        if (raekke) raekke.append(el("p", { class: "tl-fejl", role: "alert", tekst: besked }));
+        else $("#hovedtal-aendring").textContent = besked;
         return;
       }
       tilstand.sidsteGyldige = structuredClone(tilstand.aktuelleSvar);
@@ -385,6 +396,7 @@ function tegnGraf(v) {
       tooltip: { callbacks: { title: (t) => `${t[0].label} år`, label: (c) => ` ${c.dataset.label}: ${kr(c.raw)} kr.`,
         footer: (t) => `I alt: ${kr(t.filter((x) => x.dataset.type !== "line").reduce((s, x) => s + x.raw, 0))} kr. om måneden` } },
     },
+    onResize: () => requestAnimationFrame(placerBjaelker),
     scales: {
       x: { stacked: true, grid: { display: false }, title: { display: true, text: "Alder" }, ticks: { maxRotation: 0, autoSkipPadding: 8 } },
       y: { stacked: true, ticks: { callback: (x) => `${kr(x)} kr.` }, grid: { color: css("--graa-200") } },
@@ -467,10 +479,179 @@ function tegnSkydere() {
   const saet = (id, vaerdi, tekst) => { $(`#${id}`).value = vaerdi; $(`#${id}-v`).textContent = tekst; };
   saet("r-afkast", s.antagelser.afkast_efter_pal * 100, procent(s.antagelser.afkast_efter_pal));
   saet("r-inflation", s.antagelser.inflation * 100, procent(s.antagelser.inflation));
-  saet("r-opsaettelse", s.antagelser.folkepension_opsaettelse_aar, s.antagelser.folkepension_opsaettelse_aar ? `${s.antagelser.folkepension_opsaettelse_aar} år` : "Nej");
-  const loebende = s.ordninger.filter((o) => o.type === "ratepension" || o.type === "livsvarig");
-  $("#r-start-felt").hidden = !loebende.length;
-  if (loebende.length) saet("r-start", loebende[0].udbetaling_start_alder, `${loebende[0].udbetaling_start_alder} år`);
+}
+
+/* ── Feature 004: nøgletal, paneler og tidslinje ─────────────────────── */
+const ENGANGSTYPER = new Set(["aldersopsparing", "kapitalpension"]);
+
+function tegnNoegletal(v) {
+  const s = tilstand.aktuelleSvar;
+  const opsparing = s.ordninger.reduce((sum, o) => sum + (o.saldo || 0), 0);
+  const starter = s.ordninger.map((o) => o.udbetaling_start_alder).filter(Boolean);
+  const engangs = v.kort.find((k) => k.noegle === "engangsbeloeb");
+  const ops = s.antagelser.folkepension_opsaettelse_aar;
+  const tal = [
+    ["Folkepension fra", `${v.folkepensionsalder + ops} år`],
+    ["Opsparing i dag", `${kr(opsparing)} kr.`],
+    ["Første private udbetaling", starter.length ? `${Math.min(...starter)} år` : "–"],
+    ["Engangsbeløb i alt", engangs ? `${kr(engangs.engangs.reduce((x, e) => x + e.netto_real, 0))} kr.` : "–"],
+  ];
+  $("#noegletal").replaceChildren(...tal.map(([dt, dd]) => el("div", {}, el("dt", { tekst: dt }), el("dd", { tekst: dd }))));
+}
+
+function aabnPanel(navn, aaben) {
+  const knap = $(`#${navn}-panel-knap`);
+  knap.setAttribute("aria-expanded", String(aaben));
+  $(`#${navn}-panel-indhold`).hidden = !aaben;
+  if (navn === "graf" && aaben) requestAnimationFrame(() => { tilstand.graf?.resize(); placerBjaelker(); });
+}
+
+function flytFormularTilPanel() {
+  if (tilstand.panel) return;
+  const form = $("#guide-form");
+  form.classList.remove("guide__kort");
+  form.classList.add("form--panel");
+  $("#data-panel-form").append(form);
+  $$(".trin", form).forEach((f) => (f.hidden = false));
+  tilstand.panel = true;
+}
+
+function flytFormularTilGuide() {
+  if (!tilstand.panel) return;
+  const form = $("#guide-form");
+  form.classList.add("guide__kort");
+  form.classList.remove("form--panel");
+  $("#guide > .ramme").append(form);
+  tilstand.panel = false;
+}
+
+function synkroniserFormular() {
+  // Tidslinjen ændrer start, periode og opsættelse — formularen viser altid det samme.
+  const s = tilstand.aktuelleSvar;
+  for (const o of tilstand.ordninger) {
+    const a = s.ordninger.find((x) => x.id === o.id);
+    if (a) { o.udbetaling_start_alder = a.udbetaling_start_alder; if (a.udbetaling_aar) o.udbetaling_aar = a.udbetaling_aar; }
+  }
+  $("#opsaettelse").value = s.antagelser.folkepension_opsaettelse_aar;
+  $("#opsaettelse-v").textContent = s.antagelser.folkepension_opsaettelse_aar ? `${s.antagelser.folkepension_opsaettelse_aar} år` : "Nej";
+  $("#afkast").value = s.antagelser.afkast_efter_pal * 100;
+  $("#afkast-v").textContent = procent(s.antagelser.afkast_efter_pal);
+  $("#inflation").value = s.antagelser.inflation * 100;
+  $("#inflation-v").textContent = procent(s.antagelser.inflation);
+  tegnOrdninger();
+}
+
+async function opdaterFraPanel() {
+  ryd();
+  if (!validerTrin(1) || !validerTrin(2)) return;
+  const status = $("#opdater-status");
+  status.textContent = "Regner …";
+  try {
+    const svar = guideSvar();
+    const { fejl, visning } = await hentBeregning(svar);
+    if (fejl) { status.textContent = ""; visFejl(fejl.felt, fejl.besked); return; }
+    tilstand.forrigeHovedtal = +$("#hovedtal").dataset.vaerdi;
+    tilstand.mineSvar = structuredClone(svar);
+    tilstand.aktuelleSvar = structuredClone(svar);
+    tilstand.sidsteGyldige = structuredClone(svar);
+    visResultat(visning, false);
+    status.textContent = "Beregningen er opdateret.";
+  } catch {
+    status.textContent = "Beregningen kunne ikke gennemføres lige nu.";
+  }
+}
+
+function ordningstitel(o) {
+  const g = tilstand.ordninger.find((x) => x.id === o.id);
+  const selskab = g?.kilde ? g.kilde.split(" · ")[0] : null;
+  return selskab ? `${selskab} · ${TYPER[o.type].titel}` : TYPER[o.type].titel;
+}
+
+function tlSkyder(id, label, min, maks, vaerdi, fmt, vedAendring) {
+  const input = el("input", { type: "range", id, min, max: maks, step: 1, value: vaerdi });
+  const output = el("output", { for: id, tekst: fmt(vaerdi) });
+  input.addEventListener("input", () => { output.textContent = fmt(+input.value); vedAendring(+input.value); });
+  return el("div", {}, el("label", { for: id, tekst: label }), el("div", { class: "skyder" }, input, output));
+}
+
+function tegnTidslinje(v) {
+  if (!v) return;
+  const s = tilstand.aktuelleSvar;
+  const g = v.graenser;
+  const aldre = v.graf.aldre;
+  const sidste = aldre.at(-1);
+  const raekker = [];
+  const aar = (n) => `${n} år`;
+
+  s.ordninger.forEach((o) => {
+    const type = TYPER[o.type];
+    const engang = ENGANGSTYPER.has(o.type);
+    const start = o.udbetaling_start_alder;
+    const slut = o.type === "ratepension" ? start + (o.udbetaling_aar || g.ratepension_aar.min) - 1 : engang ? start : sidste;
+    const tidligste = Math.ceil(g.ordninger[o.id]?.tidligste ?? aldre[0]);
+    const periode = o.type === "ratepension" ? `${start}–${slut} år` : engang ? `udbetales som ${start}-årig` : `fra ${start} år, livsvarig`;
+    const titel = ordningstitel(o);
+    const kontroller = [tlSkyder(`tl-${o.id}-start`, `${engang ? "Udbetales" : "Starter"} som`, tidligste, Math.max(tidligste, sidste), start, aar,
+      (n) => { o.udbetaling_start_alder = n; synkroniserFormular(); placerBjaelker(); genberegn(o.id); })];
+    if (o.type === "ratepension") {
+      kontroller.push(tlSkyder(`tl-${o.id}-aar`, "Udbetales over", g.ratepension_aar.min, g.ratepension_aar.maks, o.udbetaling_aar || g.ratepension_aar.min, aar,
+        (n) => { o.udbetaling_aar = n; synkroniserFormular(); placerBjaelker(); genberegn(o.id); }));
+    }
+    raekker.push(el("div", { class: "tl-raekke", "data-id": o.id },
+      el("div", { class: "tl-hoved" }, el("strong", { tekst: titel }), el("span", { tekst: periode })),
+      el("div", { class: "tl-spor", "aria-hidden": "true" },
+        el("div", { class: `tl-bjaelke${engang ? " tl-bjaelke--engang" : ""}`, style: `--farve: var(${type.farve})`, "data-start": start, "data-slut": slut })),
+      el("div", { class: "tl-kontroller", role: "group", "aria-label": titel }, kontroller)));
+  });
+
+  const ops = s.antagelser.folkepension_opsaettelse_aar;
+  raekker.push(el("div", { class: "tl-raekke", "data-id": "folkepension" },
+    el("div", { class: "tl-hoved" }, el("strong", { tekst: "Folkepension" }), el("span", { tekst: `fra ${g.folkepensionsalder + ops} år, livsvarig` })),
+    el("div", { class: "tl-spor", "aria-hidden": "true" },
+      el("div", { class: "tl-bjaelke", style: "--farve: var(--kilde-folkepension)", "data-start": g.folkepensionsalder + ops, "data-slut": sidste })),
+    el("div", { class: "tl-kontroller", role: "group", "aria-label": "Folkepension" },
+      tlSkyder("tl-fp-ops", "Udskyd", 0, g.opsaettelse_maks, ops, (n) => (n ? `${n} år` : "Nej"),
+        (n) => { s.antagelser.folkepension_opsaettelse_aar = n; synkroniserFormular(); genberegn("folkepension"); }))));
+  $("#tidslinje").replaceChildren(...raekker);
+  placerBjaelker();
+}
+
+function placerBjaelker() {
+  // Bjælkerne følger grafens aldersakse: samme første/sidste år og samme pixel pr. år.
+  const v = tilstand.v;
+  if (!v) return;
+  const aldre = v.graf.aldre;
+  const graf = tilstand.graf;
+  const spor = $(".tl-spor");
+  if (!spor) return;
+  const bredde = spor.getBoundingClientRect().width;
+  let x0, prAar;
+  if (graf?.scales?.x && aldre.length > 1) {
+    const ramme = graf.canvas.getBoundingClientRect();
+    const forskydning = ramme.left - spor.getBoundingClientRect().left;
+    prAar = (graf.scales.x.getPixelForValue(aldre.length - 1) - graf.scales.x.getPixelForValue(0)) / (aldre.length - 1);
+    x0 = forskydning + graf.scales.x.getPixelForValue(0) - prAar / 2;
+  } else {
+    prAar = bredde / aldre.length;
+    x0 = 0;
+  }
+  $$(".tl-raekke").forEach((r) => {
+    const b = $(".tl-bjaelke", r);
+    const s = tilstand.aktuelleSvar;
+    const o = s.ordninger.find((x) => x.id === r.dataset.id);
+    let start = +b.dataset.start, slut = +b.dataset.slut;
+    if (o) {  // følg skyderen med det samme, før kernen har regnet
+      start = o.udbetaling_start_alder;
+      slut = o.type === "ratepension" ? start + (o.udbetaling_aar || v.graenser.ratepension_aar.min) - 1
+        : ENGANGSTYPER.has(o.type) ? start : aldre.at(-1);
+    } else if (r.dataset.id === "folkepension") {
+      start = v.graenser.folkepensionsalder + s.antagelser.folkepension_opsaettelse_aar;
+    }
+    const fra = Math.max(start, aldre[0]) - aldre[0];
+    const til = Math.min(slut, aldre.at(-1)) - aldre[0] + 1;
+    b.style.left = `${x0 + fra * prAar}px`;
+    b.style.width = `${Math.max(prAar, (til - fra) * prAar)}px`;
+  });
 }
 
 function visResultat(v, foersteGang = true) {
@@ -495,7 +676,11 @@ function visResultat(v, foersteGang = true) {
   $("#hovedtal-forudsaetninger").hidden = !antal;
   $("#forudsaetninger-titel").textContent = `≈ ${antal === 1 ? "Én forudsætning" : `${antal} forudsætninger`} bag tallet →`;
 
+  tilstand.v = v;
+  flytFormularTilPanel();
+  tegnNoegletal(v);
   tegnGraf(v);
+  tegnTidslinje(v);
   tegnKort(v);
   tegnSaadan(v);
   tegnSkydere();
@@ -525,23 +710,26 @@ function forbind() {
   $("#tilbage").addEventListener("click", () => { ryd(); visTrin(tilstand.trin - 1); });
   $("#ny-beregning").addEventListener("click", () => {
     $("#resultat").hidden = true; $("#guide").hidden = false; $("#menu").hidden = true; $("#ny-beregning").hidden = true;
+    flytFormularTilGuide();
     visTrin(1);
   });
+  for (const navn of ["data", "graf"]) {
+    $(`#${navn}-panel-knap`).addEventListener("click", (e) => aabnPanel(navn, e.currentTarget.getAttribute("aria-expanded") !== "true"));
+  }
+  $("#opdater").addEventListener("click", opdaterFraPanel);
 
   const skyder = (id, opdater, fmt) => $(`#${id}`).addEventListener("input", (e) => {
     $(`#${id}-v`).textContent = fmt(+e.target.value);
     opdater(+e.target.value);
     genberegn();
   });
-  skyder("r-afkast", (v) => (tilstand.aktuelleSvar.antagelser.afkast_efter_pal = v / 100), (v) => `${decimal(v)} %`);
-  skyder("r-inflation", (v) => (tilstand.aktuelleSvar.antagelser.inflation = v / 100), (v) => `${decimal(v)} %`);
-  skyder("r-opsaettelse", (v) => (tilstand.aktuelleSvar.antagelser.folkepension_opsaettelse_aar = v), (v) => (v ? `${v} år` : "Nej"));
-  skyder("r-start", (v) => tilstand.aktuelleSvar.ordninger
-    .filter((o) => o.type === "ratepension" || o.type === "livsvarig")
-    .forEach((o) => (o.udbetaling_start_alder = v)), (v) => `${v} år`);
+  skyder("r-afkast", (v) => { tilstand.aktuelleSvar.antagelser.afkast_efter_pal = v / 100; synkroniserFormular(); }, (v) => `${decimal(v)} %`);
+  skyder("r-inflation", (v) => { tilstand.aktuelleSvar.antagelser.inflation = v / 100; synkroniserFormular(); }, (v) => `${decimal(v)} %`);
   $("#nulstil").addEventListener("click", () => {
     tilstand.aktuelleSvar = structuredClone(tilstand.mineSvar);
+    synkroniserFormular();
     tegnSkydere();
+    tegnTidslinje(tilstand.v);
     genberegn();
   });
 }

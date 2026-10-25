@@ -220,4 +220,45 @@ thead th { background: var(--graa-50); position: sticky; top: 0; }
   * { transition: none !important; }
 }
 
+/* ── Feature 004: nøgletal, paneler og tidslinje ──────────────────────── */
+.hero__noegletal { padding: 48px max(24px, calc((100vw - var(--maks)) / 2 + 24px)) 40px 48px; display: flex; flex-direction: column; justify-content: center; }
+.noegletal { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 8px 0 20px; }
+.noegletal div { background: var(--hvid); border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--skygge); }
+.noegletal dt { color: var(--graa-600); font-size: .9rem; }
+.noegletal dd { margin: 4px 0 0; font-size: 1.5rem; font-weight: 800; color: var(--petrol-900); }
+.paneler { display: grid; gap: 20px; padding-top: 40px; padding-bottom: 8px; }
+.panel { border: 1px solid var(--graa-200); border-radius: var(--radius); background: var(--hvid); box-shadow: var(--skygge); }
+.panel__titel { margin: 0; font-size: 1.3rem; }
+.panel__knap { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 12px; background: none; border: 0;
+  font: inherit; font-weight: 800; color: var(--petrol-900); padding: 18px 24px; cursor: pointer; text-align: left; min-height: 44px; }
+.panel__pil { color: var(--sand-500); transition: transform .15s; }
+.panel__knap[aria-expanded="true"] .panel__pil { transform: rotate(90deg); }
+.panel__indhold { padding: 0 24px 24px; }
+.panel__handling { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-top: 8px; }
+.panel__status { font-weight: 600; color: var(--petrol-700); }
+.form--panel .fremdrift, .form--panel .guide__knapper, .form--panel #upload, .form--panel .trin > legend + .hjaelp { display: none; }
+.form--panel .trin { border-top: 1px solid var(--graa-200); padding-top: 16px; margin-top: 8px; }
+.form--panel .trin h2 { font-size: 1.15rem; }
+.graf-ramme--bred { height: 360px; }
+.tidslinje { display: grid; gap: 4px; margin-top: 18px; }
+.tl-raekke { border-top: 1px solid var(--graa-200); padding: 10px 0 6px; }
+.tl-hoved { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: .95rem; }
+.tl-hoved strong { color: var(--petrol-900); }
+.tl-hoved span { color: var(--graa-600); }
+.tl-spor { position: relative; height: 22px; margin: 6px 0; background: var(--graa-50); border-radius: 4px; }
+.tl-bjaelke { position: absolute; top: 3px; height: 16px; border-radius: 4px; background: var(--farve); opacity: .9; transition: left .15s, width .15s; }
+.tl-bjaelke--engang { border-radius: 50%; width: 16px !important; }
+.tl-kontroller { display: flex; flex-wrap: wrap; gap: 4px 28px; }
+.tl-kontroller .skyder { max-width: 360px; }
+.tl-kontroller label { font-size: .85rem; font-weight: 600; color: var(--graa-600); display: block; }
+.tl-fejl { color: var(--fejl); font-weight: 600; font-size: .9rem; margin: 4px 0 0; }
+@media (max-width: 860px) {
+  .hero__noegletal { padding: 24px 16px; }
+  .noegletal { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+  .noegletal dd { font-size: 1.2rem; }
+  .panel__knap { padding: 14px 16px; }
+  .panel__indhold { padding: 0 16px 16px; }
+  .graf-ramme--bred { height: 280px; }
+}
+
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }

@@ -18,6 +18,7 @@ spec-driven development ([Spec Kit](https://github.com/github/spec-kit)).
 | [001 Beregningskerne og regelregister](specs/001-beregningskerne/) | Implementeret (`src/pensionskerne/`). 424 tests inkl. differentialtest mod legacy. 47/48 satser verificeret mod primærkilder |
 
 | [002 Pensionsoverblik](specs/002-pensionsoverblik/) | Brugerflade: guide → resultat med hovedtal, graf, kort og skydere. axe-core 0 fejl, heuristisk evaluering i [ux-evaluering.md](specs/002-pensionsoverblik/ux-evaluering.md) |
+| [004 Tidslinje og datapanel](specs/004-tidslinje/) | Legacy-mønstret: datapanel ("Dine oplysninger"), graf i fuld bredde og en tidslinje under grafen, hvor hver ordning flyttes i tid med skydere |
 | [003 Indlæsning af PensionsInfo-rapport](specs/003-pdf-import/) | Upload af PDF → guiden udfyldes. Lokal, regelbaseret parser (ingen AI, Princip XI), testet mod en rigtig rapport |
 
 ```bash

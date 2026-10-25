@@ -128,3 +128,31 @@ def byg_visning(res: Fremskrivning) -> dict:
         } for a in res.aar],
         "satser": _satser(res),
     }
+
+
+def graenser(profil, satsaar: int) -> dict:
+    """Grænser til tidslinjens skydere — fra kernens regler og registret (Princip II).
+
+    Tidligste lovlige alder pr. ordning (oplyst af selskabet eller udledt efter loven),
+    ratepensionens periode og maksimal opsættelse af folkepensionen.
+    """
+    from pensionskerne.register.opslag import Regelopslag
+    from pensionskerne.regler.folkepension import folkepensionsalder
+    from pensionskerne.regler.udbetalingsalder import tidligste_udbetalingsalder
+
+    o = Regelopslag(satsaar, satsaar, 0.0)
+    fp_alder = folkepensionsalder(profil.foedselsdato, o)
+    ordninger = {}
+    for ordning in profil.ordninger:
+        if ordning.tidligste_udbetalingsalder is not None:
+            ordninger[ordning.id] = {"tidligste": ordning.tidligste_udbetalingsalder, "oplyst": True}
+        else:
+            alder, _ = tidligste_udbetalingsalder(profil.foedselsdato, ordning.oprettet, fp_alder, o)
+            ordninger[ordning.id] = {"tidligste": alder, "oplyst": False}
+    return {
+        "folkepensionsalder": fp_alder,
+        "ordninger": ordninger,
+        "ratepension_aar": {"min": o.v("ordning.ratepension.min_aar"),
+                            "maks": o.v("ordning.ratepension.maks_aar_efter_udbetalingsalder")},
+        "opsaettelse_maks": o.v("opsat.maks_aar"),
+    }
