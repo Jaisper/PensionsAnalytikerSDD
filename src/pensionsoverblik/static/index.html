@@ -64,9 +64,7 @@
                 <label for="pdf-fil">Vælg rapporten (PDF)</label>
                 <input type="file" id="pdf-fil" accept="application/pdf,.pdf">
               </div>
-              <div class="felt felt--afkrydsning" data-felt="samtykke">
-                <label class="valg"><input type="checkbox" id="pdf-samtykke"> Jeg accepterer, at teksten fra rapporten – uden mit CPR-nummer – sendes til Anthropic (en AI-tjeneste), som aflæser tallene. Rapporten gemmes ikke.</label>
-              </div>
+              <p class="felt__hjaelp">Rapporten læses på vores server og slettes med det samme. Intet sendes til AI-tjenester.</p>
               <button type="button" class="knap knap--sekundaer" id="pdf-knap">Aflæs rapport</button>
               <div id="pdf-status" class="upload__status" role="status" aria-live="polite"></div>
             </section>

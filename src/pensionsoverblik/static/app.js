@@ -246,12 +246,11 @@ async function aflaesPdf() {
   const status = $("#pdf-status");
   const fil = $("#pdf-fil").files[0];
   if (!fil) { visFejl("pdf", "Vælg din rapport først."); return; }
-  if (!$("#pdf-samtykke").checked) { visFejl("samtykke", "Sæt flueben for at give samtykke, før rapporten kan aflæses."); return; }
   const knap = $("#pdf-knap");
   knap.disabled = true;
-  status.textContent = "Aflæser rapporten … Det tager typisk under et minut.";
+  status.textContent = "Aflæser rapporten …";
   try {
-    const svar = await fetch("/api/pdf", { method: "POST", headers: { "Content-Type": "application/pdf", "X-Samtykke": "ja" }, body: fil });
+    const svar = await fetch("/api/pdf", { method: "POST", headers: { "Content-Type": "application/pdf" }, body: fil });
     const data = await svar.json().catch(() => ({}));
     if (!svar.ok) {
       status.textContent = "";

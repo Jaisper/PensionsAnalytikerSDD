@@ -10,7 +10,6 @@ default-groups = ["dev", "app"]
 
 [dependency-groups]
 app = [
-    "anthropic>=0.70",
     "fastapi>=0.115",
     "pdfplumber>=0.11",
     "uvicorn>=0.30",

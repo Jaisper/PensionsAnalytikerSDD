@@ -1,6 +1,7 @@
 <!--
 Sync Impact Report
-Version change: 1.0.0 → 1.1.0 (MINOR: nyt Princip X — Brugeroplevelse)
+Version change: 1.1.0 → 1.2.0 (MINOR: nyt Princip XI — Ingen persondata til AI/LLM, NFR fra produktejer 2026-10-25)
+Tidligere: 1.0.0 → 1.1.0 (MINOR: nyt Princip X — Brugeroplevelse)
 Tidligere: [TEMPLATE] → 1.0.0
 Rationale: Første ratificering for greenfield-genopbygningen. Erstatter legacy-forfatningen
 (legacy/constitution-v1.md), som var udledt bagud fra den eksisterende kode og bundet til
@@ -18,6 +19,7 @@ Principles:
   - VIII. Dansk Brugerflade                                                 [videreført fra v1 VII]
   - IX.  Simpelhed                                                          [omdefineret fra v1 VIII, teknologi fjernet]
   - X.   Brugeroplevelse: Klarhed før Fuldstændighed                        [NY i 1.1.0 — legacy-UX var svær at bruge]
+  - XI.  Ingen Persondata til AI/LLM (NON-NEGOTIABLE)                       [NY i 1.2.0 — NFR; feature 003 ombygget til lokal aflæsning]
 
 Added sections: Kildehierarki · Legacy-løsningens rolle · Udviklingsproces og kvalitetsgates · Governance
 Removed sections: Teknologibegrænsninger (flyttet til de enkelte features' plan.md)
@@ -137,8 +139,8 @@ Pensionsoplysninger er følsomme personoplysninger. Derfor gælder:
 - **Uploadede dokumenter**: De SKAL slettes, så snart de er behandlet.
 - **Opbevaring**: Persondata må ikke gemmes permanent, i cache eller i logs uden et
   dokumenteret formål og en sletteregel.
-- **Eksterne tjenester**: Brugeren SKAL oplyses om, at data sendes til en ekstern tjeneste
-  (fx en AI-udbyder), før det sker.
+- **Eksterne tjenester**: Brugeren SKAL oplyses om, at data sendes til en ekstern tjeneste,
+  før det sker. Til AI/LLM-tjenester må persondata slet ikke sendes (Princip XI).
 - **Diagnostik**: Endpoints, der eksponerer rå data eller tillader at manipulere sessionen,
   må ikke være tilgængelige i en offentlig udrulning.
 - **Hemmeligheder**: De SKAL komme fra miljøet og må aldrig committes.
@@ -197,6 +199,30 @@ Et korrekt tal, som brugeren ikke forstår, giver ikke bedre beslutninger. Princ
 bygger på DodgeUX' fokus på forenklet information, kontekstuel bevidsthed og konsekvent
 farvelogik, samt på Nielsens heuristikker og WCAG.
 
+### XI. Ingen Persondata til AI/LLM (NON-NEGOTIABLE)
+
+Persondata MÅ ALDRIG sendes til en AI- eller LLM-tjeneste, hverken ekstern eller intern.
+Det gælder også med brugerens samtykke og også efter fjernelse eller pseudonymisering af
+enkelte felter. Persondata er alt, der kan henføres til en person, fx:
+- CPR-nummer, navn, adresse, telefon og e-mail
+- aftale- og policenumre
+- en uploadet rapport og dens tekst
+- brugerens egne oplysninger og beregningsresultater for brugeren
+
+Konsekvenser:
+- **Aflæsning af dokumenter** (fx PensionsInfo-rapporter) SKAL ske lokalt og
+  deterministisk.
+- **En AI-funktion** (fx forklaring eller chat) må kun bruge generisk indhold: lovregler,
+  satser fra regelregistret og forklaringer uden brugerdata. Den må ikke bruge brugerens tal
+  eller dokumenter.
+- **Afhængigheder**: Klientbiblioteker til AI/LLM-tjenester må ikke være afhængigheder af
+  kode, der håndterer brugerdata. Det SKAL håndhæves med en automatisk test.
+- **Undtagelser** kræver en ændring af denne forfatning (MAJOR) med en juridisk vurdering.
+
+Rationale: Kravet kommer fra produktejeren (NFR, 2026-10-25). Anonymisering af fritekst kan
+ikke garanteres fuldstændig, fx navne på pårørende. Den eneste måde at overholde kravet uden
+restrisiko er derfor ikke at sende brugerdata til AI.
+
 ## Kildehierarki
 
 Ved verifikation af en registerpost gælder denne rækkefølge, med den mest autoritative
@@ -254,4 +280,4 @@ projektet. Ændringer SKAL dokumenteres med en Sync Impact Report og versioneres
 Alle specifikationer, planer og implementeringer SKAL vurderes mod principperne. Afvigelser
 SKAL begrundes skriftligt i `plan.md`, før arbejdet fortsætter.
 
-**Version**: 1.1.0 | **Ratified**: 2026-10-24 | **Last Amended**: 2026-10-24
+**Version**: 1.2.0 | **Ratified**: 2026-10-24 | **Last Amended**: 2026-10-25

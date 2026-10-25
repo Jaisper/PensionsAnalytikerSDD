@@ -90,9 +90,3 @@ def test_rateperiode_uden_for_lovens_rammer_bliver_10_og_markeres():
 def test_livsvarig_har_ingen_periode():
     assert guide(ordning(kategori="livsvarig"))["ordninger"][0]["udbetaling_aar"] is None
 
-
-def test_skema_og_model_er_enige():
-    from pensionsoverblik.pdfimport.aflaeser import SKEMA
-    assert set(SKEMA["required"]) == set(Aflaesning.model_fields)
-    felter = SKEMA["properties"]["ordninger"]["items"]
-    assert set(felter["required"]) == set(AflaestOrdning.model_fields) == set(felter["properties"])

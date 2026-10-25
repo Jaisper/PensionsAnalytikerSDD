@@ -13,6 +13,8 @@ klient = TestClient(api.app)
 
 
 class FalskAflaeser:
+    """Står i for den kommende lokale parser (Princip XI) i tests."""
+
     def __init__(self, svar=None, fejl=None):
         self.modtaget: list[str] = []
         self.svar = svar or Aflaesning(atp_aarlig=17_000, ordninger=[AflaestOrdning(
@@ -35,11 +37,8 @@ def falsk(monkeypatch):
     return f
 
 
-def post(data: bytes, samtykke=True):
-    headers = {"Content-Type": "application/pdf"}
-    if samtykke:
-        headers["X-Samtykke"] = "ja"
-    return klient.post("/api/pdf", content=data, headers=headers)
+def post(data: bytes):
+    return klient.post("/api/pdf", content=data, headers={"Content-Type": "application/pdf"})
 
 
 def test_status_slaaet_fra_uden_aflaeser(monkeypatch):
@@ -50,12 +49,6 @@ def test_status_slaaet_fra_uden_aflaeser(monkeypatch):
 
 def test_status_aktiv(falsk):
     assert klient.get("/api/pdf/status").json() == {"aktiv": True}
-
-
-def test_kraever_samtykke(falsk):
-    r = post(lav_pdf(RAPPORT), samtykke=False)
-    assert r.status_code == 400 and r.json()["felt"] == "samtykke"
-    assert falsk.modtaget == []
 
 
 def test_ikke_pdf(falsk):
@@ -74,14 +67,14 @@ def test_scannet(falsk):
     assert r.status_code == 422 and r.json()["kode"] == "ingen_tekst"
 
 
-def test_succes_og_ingen_cpr_sendt(falsk):
+def test_succes_og_parseren_faar_cpr_fri_tekst(falsk):
     r = post(lav_pdf(RAPPORT))
     assert r.status_code == 200
     g = r.json()
     assert g["person"]["foedselsdato"] == "1963-05-01"
     assert g["atp_aarlig"] == 17_000
     assert g["ordninger"][0]["udbetaling_aar"] == 10 and g["ordninger"][0]["oprettet"] == "2007_2017"
-    sendt = "".join(falsk.modtaget)
+    sendt = "".join(falsk.modtaget)  # dataminimering: selv den lokale parser ser ikke CPR
     assert "010563" not in sendt and "[CPR fjernet]" in sendt
     assert "Reklame" not in sendt  # kun relevante sider
 
@@ -89,7 +82,7 @@ def test_succes_og_ingen_cpr_sendt(falsk):
 def test_aflaeser_fejl_giver_dansk_besked(monkeypatch):
     monkeypatch.setattr(api, "AFLAESER", FalskAflaeser(fejl=AflaesningFejl("timeout", "Det tog for lang tid.")))
     r = post(lav_pdf(RAPPORT))
-    assert r.status_code == 502 and r.json()["kode"] == "timeout"
+    assert r.status_code == 422 and r.json()["kode"] == "timeout"
     assert "indtaste" in r.json()["besked"]
 
 

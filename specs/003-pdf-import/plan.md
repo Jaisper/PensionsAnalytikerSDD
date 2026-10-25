@@ -2,6 +2,10 @@
 
 **Branch**: `003-pdf-import` | **Date**: 2026-10-24 | **Spec**: [spec.md](spec.md)
 
+> **Revideret 2026-10-25 (Princip XI):** Trin 3 (aflæsning med Claude) er fjernet sammen med
+> `anthropic`-afhængigheden. Aflæsningen skal ske med en lokal parser, som endnu ikke er bygget.
+> Teksten herunder beskriver den oprindelige plan. Den gældende status står i spec.md og tasks.md.
+
 ## Summary
 
 `POST /api/pdf` modtager PDF-bytes direkte som request-body (ingen multipart-afhængighed) og
@@ -35,7 +39,8 @@ headeren `X-Samtykke: ja`. Flowet er:
 | IV | Tests for tekst og CPR, omsætning og API med falsk aflæser skrives før implementeringen | ✅ |
 | V | Kilde og usikkerheder pr. ordning | ✅ |
 | VI | Kernen er uændret | ✅ |
-| VII | CPR fjernes lokalt, samtykke ved handlingen, ingen disk og ingen logs. Test for ingen filer | ✅ |
+| VII | Lokal behandling, ingen disk og ingen logs. Test for ingen filer | ✅ |
+| XI | Intet til AI/LLM. Håndhævet af `tests/kontrakt/test_ingen_ai.py` | ✅ (efter revision) |
 | VIII | Danske fejlbeskeder | ✅ |
 | IX | To afhængigheder (begrundet ovenfor). Ingen multipart-bibliotek | ✅ |
 | X | Upload-kort i guiden med samtykke, fremdrift, fejl med næste skridt og usikkerheder ved felterne | ✅ |

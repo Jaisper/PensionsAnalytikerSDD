@@ -8,13 +8,21 @@
 - [x] T004 [P] Tests `tests/app/test_pdf_api.py`: status, samtykke, ikke-PDF, for stor fil, scannet PDF, succes med falsk aflæser, ingen filer skrevet, ingen CPR i den sendte tekst (US1, US3, SC-002, SC-003)
 - [x] T005 Implementér `pdfimport/tekst.py`
 - [x] T006 Implementér `pdfimport/omsaet.py`
-- [x] T007 Implementér `pdfimport/aflaeser.py` (skema og ClaudeAflaeser)
+- [x] T007 ~~Implementér `pdfimport/aflaeser.py` (skema og ClaudeAflaeser)~~ → **fjernet 2026-10-25 (Princip XI)**. `aflaeser.py` indeholder nu kun kontrakten `Aflaesning`
 - [x] T008 Endpoints `GET /api/pdf/status` og `POST /api/pdf` i `api.py`
 - [x] T009 Frontend: upload-kort med samtykke, fremdrift, fejl, udfyldning og usikkerheder
 - [x] T010 Gennemgang i headless Chrome (desktop og mobil), axe-core
 - [x] T011 Docs: README, CLAUDE.md og domænegrundlag (legacy-afvigelser rettet)
 
-## Status 2026-10-24
+## Revision 2026-10-25 — NFR: ingen persondata til AI/LLM
+
+- [x] R001 Constitution 1.2.0: Princip XI
+- [x] R002 Test `tests/kontrakt/test_ingen_ai.py` (imports, afhængigheder, endpoints). Mutationstestet: en `import openai` og en AI-vært i HTML fanges
+- [x] R003 ClaudeAflaeser, samtykke-header og `anthropic`-afhængighed fjernet. `vaelg_aflaeser()` returnerer `None`
+- [x] R004 Upload-tekst: "Rapporten læses på vores server og slettes med det samme. Intet sendes til AI-tjenester."
+- [ ] R005 Lokal parser mod rigtig(e) rapport(er) — se spec.md "Åben opgave"
+
+## Status 2026-10-24 (før revision)
 
 - Alle opgaver gennemført. 32 nye tests (tekst og CPR, omsætning, API, skema).
 - Browsergennemgang mod testserver med falsk aflæser: samtykke, fremdrift, udfyldning,

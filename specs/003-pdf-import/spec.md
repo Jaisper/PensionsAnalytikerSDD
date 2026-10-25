@@ -4,13 +4,17 @@
 
 **Created**: 2026-10-24
 
-**Status**: Draft
+**Status**: Revideret 2026-10-25 efter NFR "ingen persondata til AI/LLM" (forfatningens Princip XI).
+AI-aflæsningen er fjernet. Infrastrukturen (upload, lokalt tekstudtræk, omsætning, brugerflade) er
+bevaret, men **funktionen er slået fra**, indtil en lokal parser er bygget og testet mod en rigtig
+rapport (se "Åben opgave" nederst).
 
 **Input**: "Indlæs PensionsInfo-PDF, så guiden udfyldes automatisk."
 
 ## Overblik
 
-Borgeren kan uploade sin PDF-rapport fra pensionsinfo.dk. Løsningen aflæser fødselsdato,
+Borgeren kan uploade sin PDF-rapport fra pensionsinfo.dk. Løsningen aflæser **lokalt på
+serveren** fødselsdato,
 ordninger (type, saldo, indbetaling, startalder og periode) og ATP og udfylder guiden fra
 feature 002 med det. Borgeren tjekker og retter tallene, før der regnes. Aflæsningen
 **udfylder kun formularen**. Alle tal i resultatet kommer stadig fra kernen (Princip I).
@@ -24,24 +28,24 @@ Legacy-erfaringer, der skal undgås:
 
 ### User Story 1 - Upload rapporten og få guiden udfyldt (Priority: P1)
 
-Borgeren vælger sin PDF, giver samtykke til, at teksten sendes til en AI-tjeneste, og trykker
-"Aflæs rapport". Guidens felter og ordninger bliver udfyldt.
+Borgeren vælger sin PDF og trykker "Aflæs rapport". Rapporten læses lokalt og slettes med det
+samme. Guidens felter og ordninger bliver udfyldt.
 
 **Independent Test**: Med en aflæsning, der giver kendte ordninger, bliver guidens felter og
 ordningskort udfyldt med de samme værdier.
 
 **Acceptance Scenarios**:
 
-1. **Given** en tekstbaseret rapport og samtykke, **When** den aflæses, **Then** er
+1. **Given** en tekstbaseret rapport, **When** den aflæses, **Then** er
    fødselsdato og ordninger udfyldt, og der står "Aflæst fra rapporten – tjek tallene".
-2. **Given** at samtykke ikke er givet, **When** borgeren trykker "Aflæs", **Then** sendes
-   intet, og der vises en dansk besked ved samtykkefeltet.
+2. **Given** en aflæsning, **When** den foregår, **Then** sendes intet fra rapporten til en
+   AI/LLM-tjeneste (Princip XI).
 3. **Given** en scannet PDF uden tekst, **When** den uploades, **Then** vises en dansk
    besked om at hente rapporten som PDF direkte fra pensionsinfo.dk.
 4. **Given** en fil, der ikke er en PDF, eller som er over 25 MB, **When** den uploades,
    **Then** afvises den med en forståelig besked.
-5. **Given** at AI-tjenesten ikke svarer, inden der er gået 90 sekunder, **When** borgeren
-   venter, **Then** vises en dansk fejlbesked med henvisning til manuel indtastning.
+5. **Given** at parseren ikke kan genkende rapporten, **When** den aflæses, **Then** vises en
+   dansk fejlbesked med henvisning til manuel indtastning.
 
 ### User Story 2 - Usikre værdier er markeret (Priority: P1)
 
@@ -62,29 +66,31 @@ fundet, eller en udledt oprettelsesperiode.
 
 **Acceptance Scenarios**:
 
-1. **Given** en rapport med CPR-nummer, **When** teksten sendes til AI-tjenesten, **Then**
-   er CPR-numre erstattet med "[CPR fjernet]". Fødselsdatoen udledes lokalt.
+1. **Given** en rapport med CPR-nummer, **When** den aflæses, **Then** udledes fødselsdatoen
+   lokalt, og parseren får teksten uden CPR-numre (dataminimering).
 2. **Given** en aflæsning, **When** den er færdig eller fejler, **Then** findes hverken PDF
    eller tekst på serverens disk eller i logs.
-3. **Given** at der ikke er adgang til AI-tjenesten, **When** guiden vises, **Then** vises
+3. **Given** at der ikke er en lokal parser, **When** guiden vises, **Then** vises
    upload-muligheden ikke. Manuel indtastning virker som før.
+4. **Given** kodebasen, **When** testsuiten kører, **Then** fejler den, hvis kode i `src/`
+   importerer en AI/LLM-klient, har en AI-afhængighed eller indeholder et AI-endpoint.
 
 ### Edge Cases
 
 - **Folkepension og forsikringer i rapporten:** Ignoreres. Folkepensionen beregner kernen
   selv.
 - **ATP:** Står som linje → udfylder feltet "ATP pr. år".
-- **AI-tjenesten afviser** at aflæse (refusal): Der vises en dansk fejlbesked.
+- **Ukendt rapportformat**: Der vises en dansk fejlbesked, og brugeren indtaster selv.
 
 ## Requirements *(mandatory)*
 
-- **FR-001**: Tekst udtrækkes lokalt fra PDF'en. Kun teksten (ikke PDF-filen) sendes videre.
-- **FR-002**: CPR-numre MUST fjernes lokalt, før teksten sendes. Fødselsdato MUST udledes
-  lokalt af CPR-nummeret efter 7.-ciffer-reglen for århundrede.
-- **FR-003**: Upload MUST kræve eksplicit samtykke. Samtykketeksten MUST nævne modtageren
-  (Anthropic) og at intet gemmes.
-- **FR-004**: AI-tjenesten MUST returnere data efter et fast skema (structured output). Svar,
-  der ikke passer til skemaet, afvises.
+- **FR-001**: Tekst udtrækkes og aflæses lokalt. Intet fra rapporten forlader serveren (Princip XI).
+- **FR-002**: Fødselsdato MUST udledes lokalt af CPR-nummeret efter 7.-ciffer-reglen for
+  århundrede. CPR-numre fjernes, før parseren får teksten (dataminimering).
+- **FR-003**: Brugeren MUST ved upload få at vide, at rapporten læses på serveren, slettes
+  med det samme, og at intet sendes til AI.
+- **FR-004**: Den lokale parser MUST levere data i den faste struktur `Aflaesning`
+  (pdfimport/aflaeser.py) og være deterministisk.
 - **FR-005**: Omsætningen fra aflæsning til guidedata MUST være deterministisk og testet. Den
   bruger kernens regelregister til folkepensionsalder (udledning af oprettelsesperiode).
 - **FR-006**: Hver aflæst ordning MUST have en kildeangivelse (selskab og aftalenummer) og en
@@ -93,24 +99,34 @@ fundet, eller en udledt oprettelsesperiode.
   timeout.
 - **FR-008**: Ingen persistens. Hverken fil, tekst eller resultat må skrives til disk eller
   logs (Princip VII).
-- **FR-009**: Funktionen MUST kunne slås fra. Uden adgang til AI-tjenesten skjules den.
+- **FR-009**: Funktionen er slået fra, så længe der ikke er en lokal parser. Upload-kortet
+  skjules da.
+- **FR-011**: Ingen kode i `src/` må importere AI/LLM-klienter, have AI-afhængigheder eller
+  indeholde AI-endpoints. Det håndhæves af `tests/kontrakt/test_ingen_ai.py` (Princip XI).
 - **FR-010**: UX følger Princip X:
-  - samtykke ved selve handlingen
+  - privatlivsinformation ved selve handlingen
   - fremdrift under aflæsning
   - klar dansk besked ved fejl med et næste skridt
   - usikkerheder ved de felter, de gælder
 
 ## Success Criteria
 
-- **SC-001**: For en rapport med 3 ordninger er guiden udfyldt på under 60 sekunder.
-- **SC-002**: 0 CPR-numre i den tekst, der sendes (testet med syntetiske rapporter).
+- **SC-001**: For en rapport med 3 ordninger er guiden udfyldt på under 5 sekunder.
+- **SC-002**: 0 AI/LLM-kald og 0 AI-afhængigheder (testet). 0 CPR-numre i parserens input
+  (testet).
 - **SC-003**: 0 filer skrevet under aflæsning (testet).
 - **SC-004**: Omsætningen er dækket af tests for alle ordningskategorier og alle usikkerheder.
 
 ## Assumptions
 
-- Der findes ingen rigtige PensionsInfo-rapporter i repoet. Feltvejledningen til AI-tjenesten
-  bygger på legacy-prompten, som er udviklet mod rigtige rapporter.
-- Model: Claude Opus 5.5 med structured outputs og refusal-fallback.
-- Der laves ingen live-test mod AI-tjenesten i denne feature (ingen nøgle i miljøet). Den
-  verificeres manuelt med en rigtig rapport, før funktionen tages i brug.
+- Der findes ingen rigtige PensionsInfo-rapporter i repoet.
+
+## Åben opgave: lokal parser (forudsætning for at slå funktionen til)
+
+1. Skaf mindst én rigtig PensionsInfo-rapport, gerne flere med forskellige selskaber og
+   produkter. Anonymisér den, før den lægges i `tests/` (navn, CPR, adresse, aftalenumre).
+2. Byg `LokalAflaeser` (regex og layout på pdfplumber-tekst/tabeller) ud fra rapportens
+   sektioner: "Nuværende pensionsopsparinger", "Dine aftaler", "Pension – flere oplysninger"
+   og udbetalingsscenarier ("Hvis du går på pension som X-årig"). Legacy-promptens
+   feltvejledning (`legacy/prompts.py` → `EXTRACTION_PROMPT`) beskriver, hvor felterne står.
+3. Golden tests pr. rapport. Slå funktionen til i `vaelg_aflaeser()`.

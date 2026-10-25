@@ -23,7 +23,7 @@ from .visning import byg_visning
 
 STATIC = Path(__file__).parent / "static"
 MAKS_PDF_BYTES = 25 * 1024 * 1024
-AFLAESER = vaelg_aflaeser()  # None = PDF-indlæsning slået fra (FR-009)
+AFLAESER = vaelg_aflaeser()  # lokal parser; None = PDF-indlæsning slået fra (Princip XI)
 
 app = FastAPI(title="Pensionsoverblik", docs_url=None, redoc_url=None, openapi_url=None)
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
@@ -70,11 +70,9 @@ async def pdf_status() -> dict:
 
 @app.post("/api/pdf")
 async def pdf_import(request: Request):
-    """Aflæser en PensionsInfo-rapport til guidedata. Intet gemmes (FR-008)."""
+    """Aflæser en PensionsInfo-rapport lokalt til guidedata. Intet gemmes, og intet sendes til AI."""
     if AFLAESER is None:
         return _fejl(503, "slaaet_fra", "Automatisk aflæsning er ikke slået til. Indtast dine oplysninger selv.")
-    if request.headers.get("x-samtykke") != "ja":
-        return _fejl(400, "samtykke", "Sæt flueben for at give samtykke, før rapporten kan aflæses.", felt="samtykke")
     if int(request.headers.get("content-length") or 0) > MAKS_PDF_BYTES:
         return _fejl(413, "for_stor", f"Filen er for stor. Den må højst fylde {MAKS_PDF_BYTES // 1024 // 1024} MB.")
     data = await request.body()
@@ -90,5 +88,5 @@ async def pdf_import(request: Request):
     try:
         aflaesning = await AFLAESER.aflaes(tekst)
     except AflaesningFejl as e:
-        return _fejl(502, e.kode, f"{e.besked} Du kan i stedet indtaste dine oplysninger selv.")
+        return _fejl(422, e.kode, f"{e.besked} Du kan i stedet indtaste dine oplysninger selv.")
     return til_guide(aflaesning, foedselsdato, _satsaar())

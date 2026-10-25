@@ -202,8 +202,10 @@ satsår ad gangen pr. beregning, men flere satsår i registret.*
 - **CPR til AI-tjenesten:** Legacy sendte rapportens CPR-nummer til AI-tjenesten. Nu fjernes
   CPR lokalt, og fødselsdatoen udledes lokalt.
 - **Århundrede i CPR:** Legacy antog 1900-tallet. Nu bruges 7.-ciffer-reglen.
-- **Samtykke:** Oplysningen om AI-tjenesten stod kun i sidefoden. Nu kræves samtykke ved selve
-  upload-handlingen.
+- **Persondata til AI (A13):** Legacy sendte rapportteksten (navn, CPR, aftaler, saldi) og
+  brugerens profil og beregning til Claude, både ved PDF-udtræk og i chatten. Det strider mod
+  NFR'en "ingen persondata til AI/LLM" (Princip XI). Den nye løsning sender intet til AI.
+  PDF-aflæsningen skal ske lokalt, og en kommende forklaringsfunktion må kun bruge generisk indhold.
 
 ## 8. Uden for denne feature (kommer i senere features)
 
