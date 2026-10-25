@@ -18,7 +18,7 @@ def kald(op, *args):
     elif op == "pdf":
         svar = app.pdf(args[0].to_bytes())
     elif op == "optimer":
-        svar = app.optimer(args[0], args[1], args[2])
+        svar = app.optimer(args[0], args[1], args[-1], *args[2:-1])  # fremdrift sidst; evt. hvem
     else:
         raise ValueError(op)
     return json.dumps(svar, allow_nan=False)

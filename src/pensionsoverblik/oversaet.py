@@ -4,6 +4,7 @@ Ingen regler her: kun typeomsætning. Kernen validerer indholdet (FR-003).
 """
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import date
 from typing import Any
 
@@ -51,14 +52,60 @@ def til_kerne(data: dict) -> tuple[Pensionsprofil, Antagelser]:
     partner = None
     if person.get("partner"):
         p = person["partner"]
-        indkomst = PartnerIndkomst(oevrig_indkomst=_tal(p.get("oevrig_indkomst_aar"), "person.partner.oevrig_indkomst_aar"))
-        partner = Partner(
-            foedselsdato=_dato(_kraev(p, "foedselsdato", "person.partner.foedselsdato"), "person.partner.foedselsdato"),
-            indkomst_pr_aar={aar: indkomst for aar in PARTNER_AAR},
-        )
+        foedt = _dato(_kraev(p, "foedselsdato", "person.partner.foedselsdato"), "person.partner.foedselsdato")
+        if p.get("profil"):
+            partner = Partner(foedselsdato=foedt)  # fuld profil: husstanden udfylder resten (012)
+        else:
+            indkomst = PartnerIndkomst(oevrig_indkomst=_tal(p.get("oevrig_indkomst_aar"), "person.partner.oevrig_indkomst_aar"))
+            partner = Partner(foedselsdato=foedt, indkomst_pr_aar={aar: indkomst for aar in PARTNER_AAR})
 
+    profil = Pensionsprofil(
+        foedselsdato=_dato(_kraev(person, "foedselsdato", "person.foedselsdato"), "person.foedselsdato"),
+        civilstand=_kraev(person, "civilstand", "person.civilstand"),
+        kommune=_kraev(person, "kommune", "person.kommune"),
+        folkekirkemedlem=bool(person.get("folkekirkemedlem", False)),
+        likvid_formue=_tal(person.get("likvid_formue"), "person.likvid_formue"),
+        atp_aarlig=_tal(person.get("atp_aarlig"), "person.atp_aarlig", None),
+        ordninger=_ordninger(data.get("ordninger") or []),
+        partner=partner,
+    )
+
+    a = data.get("antagelser") or {}
+    standard = Antagelser()
+    antagelser = Antagelser(
+        afkast_efter_pal=_tal(a.get("afkast_efter_pal"), "antagelser.afkast_efter_pal", standard.afkast_efter_pal),
+        inflation=_tal(a.get("inflation"), "antagelser.inflation", standard.inflation),
+        folkepension_opsaettelse_aar=_heltal(a.get("folkepension_opsaettelse_aar"),
+                                             "antagelser.folkepension_opsaettelse_aar", 0),
+    )
+    return profil, antagelser
+
+
+def til_husstand(data: dict) -> tuple[Pensionsprofil, Antagelser, Pensionsprofil, Antagelser] | None:
+    """Er partneren angivet som fuld profil (feature 012): begge personers profil og antagelser.
+    Kommune, husstandens likvide formue og afkast/inflation er fælles; resten er partnerens eget."""
+    p = (data.get("person") or {}).get("partner") or {}
+    if not p.get("profil"):
+        return None
+    profil_a, antagelser_a = til_kerne(data)
+    pp = p["profil"]
+    profil_b = replace(
+        profil_a,
+        foedselsdato=profil_a.partner.foedselsdato,
+        folkekirkemedlem=bool(pp.get("folkekirkemedlem", False)),
+        atp_aarlig=_tal(pp.get("atp_aarlig"), "person.partner.profil.atp_aarlig", None),
+        anden_kapitalindkomst=0.0,
+        ordninger=_ordninger(pp.get("ordninger") or []),
+        partner=Partner(foedselsdato=profil_a.foedselsdato),
+    )
+    antagelser_b = replace(antagelser_a, folkepension_opsaettelse_aar=_heltal(
+        pp.get("folkepension_opsaettelse_aar"), "person.partner.profil.folkepension_opsaettelse_aar", 0))
+    return profil_a, antagelser_a, profil_b, antagelser_b
+
+
+def _ordninger(liste: list) -> tuple[Ordning, ...]:
     ordninger = []
-    for i, o in enumerate(data.get("ordninger") or []):
+    for i, o in enumerate(liste):
         id = str(o.get("id") or f"ordning{i + 1}")
         felt = f"ordninger[{id}]"
         ordninger.append(Ordning(
@@ -75,24 +122,4 @@ def til_kerne(data: dict) -> tuple[Pensionsprofil, Antagelser]:
             udbetalingsform=str(o.get("udbetalingsform") or "engangs"),
             tidligste_udbetalingsalder=_tal(o.get("tidligste_udbetalingsalder"), f"{felt}.tidligste_udbetalingsalder", None),
         ))
-
-    profil = Pensionsprofil(
-        foedselsdato=_dato(_kraev(person, "foedselsdato", "person.foedselsdato"), "person.foedselsdato"),
-        civilstand=_kraev(person, "civilstand", "person.civilstand"),
-        kommune=_kraev(person, "kommune", "person.kommune"),
-        folkekirkemedlem=bool(person.get("folkekirkemedlem", False)),
-        likvid_formue=_tal(person.get("likvid_formue"), "person.likvid_formue"),
-        atp_aarlig=_tal(person.get("atp_aarlig"), "person.atp_aarlig", None),
-        ordninger=tuple(ordninger),
-        partner=partner,
-    )
-
-    a = data.get("antagelser") or {}
-    standard = Antagelser()
-    antagelser = Antagelser(
-        afkast_efter_pal=_tal(a.get("afkast_efter_pal"), "antagelser.afkast_efter_pal", standard.afkast_efter_pal),
-        inflation=_tal(a.get("inflation"), "antagelser.inflation", standard.inflation),
-        folkepension_opsaettelse_aar=_heltal(a.get("folkepension_opsaettelse_aar"),
-                                             "antagelser.folkepension_opsaettelse_aar", 0),
-    )
-    return profil, antagelser
+    return tuple(ordninger)

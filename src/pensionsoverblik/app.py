@@ -8,11 +8,12 @@ eller logges, og intet forlader browseren (Princip VII og XI).
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from datetime import date
 
 from pensionskerne import UgyldigtInput, beregn as kerne_beregn, register
 
-from .oversaet import til_kerne
+from .oversaet import til_husstand, til_kerne
 from .pdfimport.aflaeser import AflaesningFejl, vaelg_aflaeser
 from .pdfimport.omsaet import til_guide
 from .visning import byg_visning, graenser
@@ -40,7 +41,7 @@ def kommuner() -> list[dict]:
     return sorted(({"noegle": k, "navn": v} for k, v in navne.items()), key=lambda k: k["navn"].casefold())
 
 
-def _input(guide_json: str, idag: str):
+def _data(guide_json: str, idag: str) -> tuple[dict, date]:
     try:
         data = json.loads(guide_json)
     except ValueError:
@@ -49,28 +50,104 @@ def _input(guide_json: str, idag: str):
         dato = date.fromisoformat(idag)
     except ValueError:
         raise UgyldigtInput("idag", "Ugyldig dato fra browseren") from None
+    return data, dato
+
+
+def _input(guide_json: str, idag: str):
+    data, dato = _data(guide_json, idag)
     profil, antagelser = til_kerne(data)
     return profil, antagelser, dato
 
 
+# Kernens feltnavne for partnerens profil → guidens felter (ordninger har unikke id'er i forvejen).
+PARTNER_FELTER = {
+    "foedselsdato": "person.partner.foedselsdato",
+    "atp_aarlig": "person.partner.profil.atp_aarlig",
+    "antagelser.folkepension_opsaettelse_aar": "person.partner.profil.folkepension_opsaettelse_aar",
+}
+
+
+def _husstand(data: dict, dato: date):
+    """(profil_a, antagelser_a, profil_b, antagelser_b, husstand) for en fuld partner, ellers None."""
+    from pensionskerne.husstand import beregn_husstand
+    from pensionskerne.validering import valider
+
+    hus = til_husstand(data)
+    if hus is None:
+        return None
+    profil_a, antagelser_a, profil_b, antagelser_b = hus
+    try:
+        valider(profil_b, antagelser_b, _satsaar(), dato)
+    except UgyldigtInput as e:
+        raise UgyldigtInput(PARTNER_FELTER.get(e.felt, e.felt), e.besked) from None
+    return profil_a, antagelser_a, profil_b, antagelser_b, beregn_husstand(
+        profil_a, antagelser_a, profil_b, antagelser_b, _satsaar(), dato)
+
+
+def _samlet(h, profil_a, profil_b, v_a: dict, v_b: dict) -> dict:
+    """Parrets samlede oversigt pr. kalenderår (feature 012): hvert faste beløb og summen,
+    netto pr. person og den samlede jævne udbetaling (kr./md., dagens kroner)."""
+    def pr_aar(res):
+        aar = {a.kalenderaar: a.netto_real / 12 for a in res.aar}
+        jaevn = {a.kalenderaar: j.jaevn * a.realfaktor / 12 for j, a in zip(res.jaevn.aar, res.aar)} if res.jaevn else {}
+        return aar, jaevn
+
+    netto_a, jaevn_a = pr_aar(h.a)
+    netto_b, jaevn_b = pr_aar(h.b)
+    alle = netto_a.keys() | netto_b.keys()
+    kalenderaar = list(range(min(alle), max(alle) + 1))
+    return {
+        "maaned": v_a["hovedtal"]["maaned"] + v_b["hovedtal"]["maaned"],
+        "dig": {"maaned": v_a["hovedtal"]["maaned"]},
+        "partner": {"maaned": v_b["hovedtal"]["maaned"]},
+        "kalenderaar": kalenderaar,
+        "netto_dig": [netto_a.get(k, 0.0) for k in kalenderaar],
+        "netto_partner": [netto_b.get(k, 0.0) for k in kalenderaar],
+        "jaevn": [jaevn_a.get(k, 0.0) + jaevn_b.get(k, 0.0) for k in kalenderaar],
+        "alder_dig": [k - profil_a.foedselsdato.year for k in kalenderaar],
+        "alder_partner": [k - profil_b.foedselsdato.year for k in kalenderaar],
+    }
+
+
 def beregn(guide_json: str, idag: str) -> dict:
     try:
-        profil, antagelser, dato = _input(guide_json, idag)
-        visning = byg_visning(kerne_beregn(profil, antagelser, _satsaar(), dato))
+        data, dato = _data(guide_json, idag)
+        hus = _husstand(data, dato)
+        if hus is None:
+            profil, antagelser = til_kerne(data)
+            visning = byg_visning(kerne_beregn(profil, antagelser, _satsaar(), dato))
+        else:
+            profil, _, profil_b, _, h = hus
+            visning = byg_visning(h.a)
     except UgyldigtInput as e:
         return _fejl("ugyldigt_input", e.besked, e.felt)
     visning["graenser"] = graenser(profil, _satsaar())
+    if hus is not None:
+        partner = byg_visning(h.b)
+        partner["graenser"] = graenser(profil_b, _satsaar())
+        visning["husstand"] = {"partner": partner, "samlet": _samlet(h, profil, profil_b, visning, partner)}
     return _ok(visning)
 
 
-def optimer(guide_json: str, idag: str, fremdrift=None) -> dict:
+def optimer(guide_json: str, idag: str, fremdrift=None, hvem: str = "dig") -> dict:
     """Find bedste plan (feature 007). Beløb er det faste beløb hele perioden (kr./md., dagens
     kroner), afrundet som hovedtallet. `plan` er forslaget — eller den nuværende plan, hvis
-    intet er bedre."""
+    intet er bedre. For et par optimeres én person ad gangen (`hvem`), mens den andens plan
+    holdes fast og indgår som partner (feature 012)."""
+    from pensionskerne.husstand import partner_fra
     from pensionskerne.optimering import optimer as kerne_optimer
 
     try:
-        profil, antagelser, dato = _input(guide_json, idag)
+        data, dato = _data(guide_json, idag)
+        hus = _husstand(data, dato)
+        if hus is None:
+            profil, antagelser = til_kerne(data)
+        else:
+            profil_a, antagelser_a, profil_b, antagelser_b, h = hus
+            if hvem == "partner":
+                profil, antagelser = replace(profil_b, partner=partner_fra(h.a, profil_a, antagelser_a)), antagelser_b
+            else:
+                profil, antagelser = replace(profil_a, partner=partner_fra(h.b, profil_b, antagelser_b)), antagelser_a
         r = kerne_optimer(profil, antagelser, _satsaar(), dato, fremdrift=fremdrift)
     except UgyldigtInput as e:
         return _fejl("ugyldigt_input", e.besked, e.felt)
