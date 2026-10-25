@@ -265,6 +265,31 @@ satsår ad gangen pr. beregning, men flere satsår i registret.*
 Hovedtallet er det første (laveste) niveau. Teksten nævner, hvornår og til hvad det stiger. Alle
 beløb vises i dagens kroner (inflationskorrigeret med antagelsens inflation, som i legacy).
 
+## 7f. Partner og husstand (feature 012)
+
+**Koblinger efter loven:**
+- Pensionstillæg og tillægsprocent beregnes af parrets samlede indtægtsgrundlag (§ 29).
+- Ældrechecken ser på husstandens samlede likvide formue, inklusive begges buffer (§ 72 d,
+  stk. 2).
+- For ægtefæller nedsætter uudnyttet personfradrag den andens skat (PSL § 10, stk. 3), og et
+  uudnyttet bundfradrag for kapitalindkomst lægges til den andens (§ 7, stk. 5).
+- Gifte og samlevende behandles ens af ydelserne. Kun gifte får skatteoverførslerne.
+  "gift_samlevende" (før 012) læses som samlevende.
+
+**Afvigelser og forenklinger** i forhold til legacy (`husstand.py`):
+
+| # | Legacy | Nu | Hvorfor |
+|---|---|---|---|
+| H1 | To solo-kørsler og én koblet kørsel | Fastpunkt mellem begge personer, højst 6 runder, advarsel `HUSSTAND_IKKE_KONVERGERET` | Bufferens kapitalindkomst kobler også (009) |
+| H2 | Ingen skatteoverførsler | Personfradrag og bundfradrag for kapitalindkomst for gifte | PSL § 10, stk. 3, og § 7, stk. 5 |
+| H3 | Partner i separat vindue | Fanerne Dig/Partner/Samlet | Princip X |
+
+**Forenklinger, der står tilbage:**
+- Partnerens indkomst før vedkommendes første udbetaling (fx løn) kendes ikke. Den regnes som 0,
+  og personfradrag overføres kun fra år, hvor partneren har en række.
+- Udjævning og buffer er hver for sig (valgt). Den fælles tidslinje er kun til visning.
+- Optimeringen tager én person ad gangen (valgt), mens den anden er fast.
+
 ## 8. Uden for denne feature (kommer i senere features)
 
 PDF-import fra PensionsInfo · AI-forklaring/chat · Optimering af udbetalingsrækkefølge

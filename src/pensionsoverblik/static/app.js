@@ -70,6 +70,9 @@ const ANTAGELSE_NAVNE = {
 
 const tilstand = {
   trin: 1, ordninger: [], naesteId: 1,
+  partnerOrdninger: [], naestePid: 1,  // partnerens ordninger (012); id'er "p1", "p2", … er unikke på tværs
+  hvem: "dig",         // resultatsidens fane: "dig" | "partner" | "samlet" (012)
+  vDig: null, husstand: null, samletGraf: null,
   mineSvar: null,      // svarene fra guiden (til "Nulstil")
   aktuelleSvar: null,  // svarene inkl. ændringer fra skyderne
   sidsteGyldige: null,
@@ -191,7 +194,7 @@ function visTrin(n, fokus = true) {
     li.classList.toggle("faerdig", t < n);
   });
   $("#tilbage").hidden = n === 1;
-  $("#naeste").textContent = n === 3 ? "Se min pension" : "Næste →";
+  $("#naeste").textContent = n === 4 ? "Se min pension" : "Næste →";
   if (fokus) $(`.trin[data-trin="${n}"] h2`).focus();
 }
 
@@ -230,12 +233,12 @@ function validerTrin(n) {
   if (n === 1) {
     if (!$("#foedselsdato").value) { visFejl("foedselsdato", "Skriv din fødselsdato."); return false; }
     if (!$("#kommune").value.trim()) { visFejl("kommune", "Vælg din kommune."); return false; }
-    if ($("input[name=civilstand]:checked").value === "gift_samlevende" && !$("#partner-foedselsdato").value) {
+    if (erPar() && !$("#partner-foedselsdato").value) {
       visFejl("partner.foedselsdato", "Skriv din partners fødselsdato."); return false;
     }
   }
-  if (n === 2) {
-    for (const o of tilstand.ordninger) {
+  if (n === 2 || (n === 3 && fuldPartner())) {
+    for (const o of n === 2 ? tilstand.ordninger : tilstand.partnerOrdninger) {
       if (beloeb(o.saldo) === null) { visFejl(`ordninger[${o.id}].saldo`, "Skriv opsparingen (0, hvis den er tom)."); return false; }
       if (!o.udbetaling_start_alder) { visFejl(`ordninger[${o.id}].udbetaling_start_alder`, "Skriv hvornår udbetalingen starter."); return false; }
     }
@@ -243,10 +246,27 @@ function validerTrin(n) {
   return true;
 }
 
-function tilfoejOrdning(type) {
-  const id = `o${tilstand.naesteId++}`;
-  tilstand.ordninger.push({ id, type, saldo: "", aarlig_indbetaling: "", udbetaling_start_alder: type === "livsvarig" ? 67 : 65,
-    udbetaling_aar: 10, oprettet: "ved_ikke" });
+/* ── Partner (feature 012) ─────────────────────────────────────────────── */
+const erPar = () => $("input[name=civilstand]:checked").value !== "enlig";
+const fuldPartner = () => erPar() && $("input[name=partnerdata]:checked")?.value === "fuld";
+const naesteTrin = (n) => (n === 2 && !fuldPartner() ? 4 : n + 1);
+const forrigeTrin = (n) => (n === 4 && !fuldPartner() ? 2 : n - 1);
+
+function opdaterPartnerFelter() {
+  const fuld = fuldPartner();
+  $("#partner-felter").hidden = !erPar();
+  $("#partner-overslag").hidden = fuld;
+  $('.fremdrift li[data-trin="3"]').hidden = !fuld;
+  $('.fremdrift li[data-trin="4"] span').textContent = fuld ? "4" : "3";
+  $("#p-opsaettelse-felt").hidden = !fuld;
+  if (tilstand.panel) $('.trin[data-trin="3"]').hidden = !fuld;
+}
+
+function tilfoejOrdning(type, hvem = "dig") {
+  const partner = hvem === "partner";
+  const id = partner ? `p${tilstand.naestePid++}` : `o${tilstand.naesteId++}`;
+  (partner ? tilstand.partnerOrdninger : tilstand.ordninger).push({ id, type, saldo: "", aarlig_indbetaling: "",
+    udbetaling_start_alder: type === "livsvarig" ? 67 : 65, udbetaling_aar: 10, oprettet: "ved_ikke" });
   tegnOrdninger();
   $(`#${id}-saldo`).focus();
 }
@@ -263,8 +283,12 @@ function ordningsFelt(o, navn, label, hjaelp, input) {
 }
 
 function tegnOrdninger() {
-  const rod = $("#ordninger");
-  rod.replaceChildren(...tilstand.ordninger.map((o, i) => {
+  tegnOrdningsliste($("#ordninger"), tilstand.ordninger, (ny) => { tilstand.ordninger = ny; }, "#ny-type");
+  tegnOrdningsliste($("#p-ordninger"), tilstand.partnerOrdninger, (ny) => { tilstand.partnerOrdninger = ny; }, "#p-ny-type");
+}
+
+function tegnOrdningsliste(rod, liste, saetListe, nyType) {
+  rod.replaceChildren(...liste.map((o, i) => {
     const t = TYPER[o.type];
     const tal = (navn, ph = "0") => el("input", { inputmode: "numeric", class: "beloeb", value: o[navn] ?? "", placeholder: ph });
     const oprettet = el("select", {}, ...Object.entries(OPRETTET).map(([k, v]) => el("option", { value: k, selected: o.oprettet === k, tekst: v.tekst })));
@@ -280,7 +304,7 @@ function tegnOrdninger() {
         : ordningsFelt(o, "oprettet", "Hvornår blev ordningen oprettet?", "Bestemmer, hvornår du tidligst må få pengene.", oprettet),
     ];
     const fjern = el("button", { type: "button", class: "knap knap--tekst", "aria-label": `Fjern ${t.titel.toLowerCase()} ${i + 1}`, tekst: "Fjern" });
-    fjern.addEventListener("click", () => { tilstand.ordninger = tilstand.ordninger.filter((x) => x !== o); tegnOrdninger(); $("#ny-type").focus(); });
+    fjern.addEventListener("click", () => { saetListe(liste.filter((x) => x !== o)); tegnOrdninger(); $(nyType).focus(); });
     const infoId = `${o.id}-info`;
     const info = el("button", { type: "button", class: "info-knap", "aria-expanded": "false", "aria-controls": infoId, "aria-label": `Hvad er ${t.titel.toLowerCase()}?`, tekst: "i" });
     const infoTekst = el("p", { id: infoId, class: "felt__hjaelp", hidden: true, tekst: t.forklaring });
@@ -368,29 +392,44 @@ function bufferFelt(o) {
     el("p", { class: "felt__hjaelp", id: `${id}-hjaelp`, tekst: "Beløbet fordeles over årene i dit faste månedsbeløb. Slår du det fra, får du hele beløbet udbetalt det år." }));
 }
 
+function ordningSvar(o) {
+  return {
+    id: o.id, type: o.type, saldo: beloeb(o.saldo), aarlig_indbetaling: beloeb(o.aarlig_indbetaling) ?? 0,
+    udbetaling_start_alder: beloeb(o.udbetaling_start_alder),
+    udbetaling_aar: o.type === "ratepension" || (o.type === "kapitalpension" && ["portioner", "ratepension"].includes(o.udbetalingsform))
+      ? beloeb(o.udbetaling_aar) : null,
+    udbetalingsform: o.type === "kapitalpension" ? (o.udbetalingsform || "engangs") : "engangs",
+    afgift_betalt: o.type === "kapitalpension" && !!o.afgift_betalt,
+    oprettet: OPRETTET[o.oprettet].dato,
+    tidligste_udbetalingsalder: o.tidligste_udbetalingsalder ?? null,
+    i_buffer: o.i_buffer !== false,
+  };
+}
+
+function partnerSvar() {
+  if (!erPar()) return null;
+  const foedselsdato = $("#partner-foedselsdato").value;
+  if (!fuldPartner()) return { foedselsdato, oevrig_indkomst_aar: beloeb($("#partner-indkomst").value) ?? 0 };
+  return { foedselsdato, profil: {
+    ordninger: tilstand.partnerOrdninger.map(ordningSvar),
+    atp_aarlig: beloeb($("#p-atp").value) || null,
+    folkekirkemedlem: $("#p-folkekirke").checked,
+    folkepension_opsaettelse_aar: +$("#p-opsaettelse").value,
+  } };
+}
+
 function guideSvar() {
-  const gift = $("input[name=civilstand]:checked").value === "gift_samlevende";
   return {
     person: {
       foedselsdato: $("#foedselsdato").value,
-      civilstand: gift ? "gift_samlevende" : "enlig",
+      civilstand: $("input[name=civilstand]:checked").value,
       kommune: $("#kommune").value.trim(),
       folkekirkemedlem: $("#folkekirke").checked,
       likvid_formue: beloeb($("#formue").value) ?? 0,
       atp_aarlig: beloeb($("#atp").value) || null,  // tomt eller 0: ATP's gennemsnit (kernens fallback)
-      partner: gift ? { foedselsdato: $("#partner-foedselsdato").value, oevrig_indkomst_aar: beloeb($("#partner-indkomst").value) ?? 0 } : null,
+      partner: partnerSvar(),
     },
-    ordninger: tilstand.ordninger.map((o) => ({
-      id: o.id, type: o.type, saldo: beloeb(o.saldo), aarlig_indbetaling: beloeb(o.aarlig_indbetaling) ?? 0,
-      udbetaling_start_alder: beloeb(o.udbetaling_start_alder),
-      udbetaling_aar: o.type === "ratepension" || (o.type === "kapitalpension" && ["portioner", "ratepension"].includes(o.udbetalingsform))
-        ? beloeb(o.udbetaling_aar) : null,
-      udbetalingsform: o.type === "kapitalpension" ? (o.udbetalingsform || "engangs") : "engangs",
-      afgift_betalt: o.type === "kapitalpension" && !!o.afgift_betalt,
-      oprettet: OPRETTET[o.oprettet].dato,
-      tidligste_udbetalingsalder: o.tidligste_udbetalingsalder ?? null,
-      i_buffer: o.i_buffer !== false,
-    })),
+    ordninger: tilstand.ordninger.map(ordningSvar),
     antagelser: {
       afkast_efter_pal: +$("#afkast").value / 100,
       inflation: +$("#inflation").value / 100,
@@ -400,48 +439,53 @@ function guideSvar() {
 }
 
 /* ── Indlæsning af PensionsInfo-rapport (feature 003) ──────────────────── */
-async function aflaesPdf() {
+async function aflaesPdf(hvem = "dig") {
   ryd();
-  const status = $("#pdf-status");
-  const fil = $("#pdf-fil").files[0];
-  if (!fil) { visFejl("pdf", "Vælg din rapport først."); return; }
-  if (fil.size > MAKS_PDF_BYTES) { visFejl("pdf", `Filen er for stor. Den må højst fylde ${MAKS_PDF_BYTES / 1024 / 1024} MB.`); return; }
-  const knap = $("#pdf-knap");
+  const pre = hvem === "partner" ? "p-" : "";
+  const felt = `${pre}pdf`;
+  const status = $(`#${pre}pdf-status`);
+  const fil = $(`#${pre}pdf-fil`).files[0];
+  if (!fil) { visFejl(felt, "Vælg rapporten først."); return; }
+  if (fil.size > MAKS_PDF_BYTES) { visFejl(felt, `Filen er for stor. Den må højst fylde ${MAKS_PDF_BYTES / 1024 / 1024} MB.`); return; }
+  const knap = $(`#${pre}pdf-knap`);
   knap.disabled = true;
   status.textContent = "Aflæser rapporten …";
   try {
     const svar = await kald("pdf", await fil.arrayBuffer());
     if (!svar.ok) {
       status.textContent = "";
-      visFejl(svar.fejl.felt || "pdf", svar.fejl.besked);
+      visFejl(svar.fejl.felt && svar.fejl.felt !== "pdf" ? svar.fejl.felt : felt, svar.fejl.besked);
       return;
     }
-    udfyldFraRapport(svar.data);
+    udfyldFraRapport(svar.data, hvem);
   } catch {
     status.textContent = "";
-    visFejl("pdf", "Rapporten kunne ikke aflæses. Prøv igen, eller indtast dine oplysninger selv.");
+    visFejl(felt, "Rapporten kunne ikke aflæses. Prøv igen, eller indtast oplysningerne selv.");
   } finally {
     knap.disabled = false;
   }
 }
 
-function udfyldFraRapport(d) {
-  if (d.person.foedselsdato) $("#foedselsdato").value = d.person.foedselsdato;
-  if (d.atp_aarlig) $("#atp").value = kr(d.atp_aarlig);
-  tilstand.ordninger = d.ordninger.map((o) => ({
-    id: `o${tilstand.naesteId++}`, type: o.type,
+function udfyldFraRapport(d, hvem = "dig") {
+  const partner = hvem === "partner";
+  if (d.person.foedselsdato) $(partner ? "#partner-foedselsdato" : "#foedselsdato").value = d.person.foedselsdato;
+  if (d.atp_aarlig) $(partner ? "#p-atp" : "#atp").value = kr(d.atp_aarlig);
+  const liste = d.ordninger.map((o) => ({
+    id: partner ? `p${tilstand.naestePid++}` : `o${tilstand.naesteId++}`, type: o.type,
     saldo: o.saldo === null ? "" : kr(o.saldo), aarlig_indbetaling: o.aarlig_indbetaling === null ? "" : kr(o.aarlig_indbetaling),
     udbetaling_start_alder: o.udbetaling_start_alder ?? "", udbetaling_aar: o.udbetaling_aar ?? 10,
     oprettet: o.oprettet, kilde: o.kilde, usikkerheder: o.usikkerheder,
     tidligste_udbetalingsalder: o.tidligste_udbetalingsalder,
     afgift_betalt: !!o.afgift_betalt,
   }));
+  if (partner) tilstand.partnerOrdninger = liste; else tilstand.ordninger = liste;
   tegnOrdninger();
   const n = d.ordninger.length;
   const usikre = d.ordninger.filter((o) => o.usikkerheder.length).length;
-  $("#pdf-status").replaceChildren(...[
-    el("p", { tekst: `Vi har aflæst ${n === 1 ? "én ordning" : `${n} ordninger`}${d.atp_aarlig ? " og din ATP" : ""}. `
-      + (usikre ? `Tjek tallene – især ved ≈ i trin 2.` : "Tjek tallene i trin 2.") }),
+  const hvor = partner ? "nedenfor" : "i trin 2";
+  $(partner ? "#p-pdf-status" : "#pdf-status").replaceChildren(...[
+    el("p", { tekst: `Vi har aflæst ${n === 1 ? "én ordning" : `${n} ordninger`}${d.atp_aarlig ? (partner ? " og din partners ATP" : " og din ATP") : ""}. `
+      + (usikre ? `Tjek tallene ${hvor} – især ved ≈.` : `Tjek tallene ${hvor}.`) }),
     d.bemaerkninger.length ? el("ul", {}, d.bemaerkninger.map((b) => el("li", { tekst: b }))) : null,
   ].filter(Boolean));
 }
@@ -469,7 +513,7 @@ async function beregnFraGuide() {
     boks.textContent = "Beregningen kunne ikke gennemføres lige nu. Prøv igen om lidt.";
     boks.hidden = false;
   } finally {
-    knap.disabled = false; knap.textContent = tilstand.trin === 3 ? "Se min pension" : "Næste →";
+    knap.disabled = false; knap.textContent = tilstand.trin === 4 ? "Se min pension" : "Næste →";
   }
 }
 
@@ -588,7 +632,7 @@ function engangsMarkoerer(v) {
   const ca = (x) => kr(Math.round(x / 1000) * 1000);
   return [...pr.values()].map((liste) => {
     const e = liste[0];
-    const o = tilstand.aktuelleSvar?.ordninger.find((x) => x.id === e.ordning_id);
+    const o = aktivSvar()?.ordninger.find((x) => x.id === e.ordning_id);
     const navn = TYPER[e.type]?.titel ?? "Engangsbeløb";
     const titel = o ? ordningstitel(o) : navn;
     const hvor = e.i_buffer ? "→ buffer" : "→ udbetales";
@@ -712,7 +756,7 @@ function tegnKort(v) {
         el("div", { class: "kort__ikon", "aria-hidden": "true" }),
         el("h3", { class: "kort__titel" }, k.titel, info), infoTekst,
         el("ul", { class: "engangsliste" }, k.engangs.map((e) => {
-          const o = tilstand.aktuelleSvar?.ordninger.find((x) => x.id === e.ordning_id);
+          const o = aktivSvar()?.ordninger.find((x) => x.id === e.ordning_id);
           return el("li", {}, `${o ? ordningstitel(o) : TYPER[e.type]?.titel}: ${kr(e.netto)} kr. `,
             el("small", { tekst: `som ${e.alder}-årig – ${kr(e.netto_real)} kr. i dagens kroner – ${e.i_buffer ? "til buffer" : "udbetales direkte"}` }));
         })),
@@ -770,7 +814,7 @@ function tegnSkydere() {
 const ENGANGSTYPER = new Set(["aldersopsparing", "kapitalpension"]);
 
 function tegnNoegletal(v) {
-  const s = tilstand.aktuelleSvar;
+  const s = aktivSvar();
   const opsparing = s.ordninger.reduce((sum, o) => sum + (o.saldo || 0), 0);
   const starter = s.ordninger.map((o) => o.udbetaling_start_alder).filter(Boolean);
   const engangs = v.kort.find((k) => k.noegle === "engangsbeloeb");
@@ -799,6 +843,7 @@ function flytFormularTilPanel() {
   $("#data-panel-form").append(form);
   $$(".trin", form).forEach((f) => (f.hidden = false));
   tilstand.panel = true;
+  opdaterPartnerFelter();
 }
 
 function flytFormularTilGuide() {
@@ -813,13 +858,18 @@ function flytFormularTilGuide() {
 function synkroniserFormular() {
   // Tidslinjen ændrer start, periode og opsættelse — formularen viser altid det samme.
   const s = tilstand.aktuelleSvar;
-  for (const o of tilstand.ordninger) {
-    const a = s.ordninger.find((x) => x.id === o.id);
+  const pp = s.person?.partner?.profil;
+  for (const o of [...tilstand.ordninger, ...tilstand.partnerOrdninger]) {
+    const a = [...s.ordninger, ...(pp?.ordninger || [])].find((x) => x.id === o.id);
     if (a) {
       o.udbetaling_start_alder = a.udbetaling_start_alder;
       if (a.udbetaling_aar) o.udbetaling_aar = a.udbetaling_aar;
       if (a.udbetalingsform) o.udbetalingsform = a.udbetalingsform;
     }
+  }
+  if (pp) {
+    $("#p-opsaettelse").value = pp.folkepension_opsaettelse_aar || 0;
+    $("#p-opsaettelse-v").textContent = pp.folkepension_opsaettelse_aar ? `${pp.folkepension_opsaettelse_aar} år` : "Nej";
   }
   $("#opsaettelse").value = s.antagelser.folkepension_opsaettelse_aar;
   $("#opsaettelse-v").textContent = s.antagelser.folkepension_opsaettelse_aar ? `${s.antagelser.folkepension_opsaettelse_aar} år` : "Nej";
@@ -832,7 +882,7 @@ function synkroniserFormular() {
 
 async function opdaterFraPanel() {
   ryd();
-  if (!validerTrin(1) || !validerTrin(2)) return;
+  if (!validerTrin(1) || !validerTrin(2) || !validerTrin(3)) return;
   const status = $("#opdater-status");
   status.textContent = "Regner …";
   try {
@@ -850,8 +900,22 @@ async function opdaterFraPanel() {
   }
 }
 
+function aktivSvar() {
+  // Svarene for den person, resultatsiden viser: dine eller — under fanen "Partner" — partnerens
+  // ordninger og opsættelse (afkast og inflation er fælles). Ændringer skrives ind i husstandens svar.
+  const s = tilstand.aktuelleSvar;
+  const pp = s?.person?.partner?.profil;
+  if (tilstand.hvem !== "partner" || !pp) return s;
+  return { ordninger: pp.ordninger, antagelser: {
+    get afkast_efter_pal() { return s.antagelser.afkast_efter_pal; },
+    get inflation() { return s.antagelser.inflation; },
+    get folkepension_opsaettelse_aar() { return pp.folkepension_opsaettelse_aar || 0; },
+    set folkepension_opsaettelse_aar(n) { pp.folkepension_opsaettelse_aar = n; },
+  } };
+}
+
 function ordningstitel(o) {
-  const g = tilstand.ordninger.find((x) => x.id === o.id);
+  const g = [...tilstand.ordninger, ...tilstand.partnerOrdninger].find((x) => x.id === o.id);
   const selskab = g?.kilde ? g.kilde.split(" · ")[0] : null;
   return selskab ? `${selskab} · ${TYPER[o.type].titel}` : TYPER[o.type].titel;
 }
@@ -862,7 +926,7 @@ function ordningstitel(o) {
 
 function tidslinjeRaekker(v) {
   // Én beskrivelse pr. række og kontrol: hvad den ændrer, grænser (fra kernen og registret) og tekst.
-  const s = tilstand.aktuelleSvar;
+  const s = aktivSvar();
   const g = v.graenser;
   const aldre = v.graf.aldre;
   const raekker = s.ordninger.map((o) => {
@@ -1070,7 +1134,8 @@ async function findBedstePlan() {
   boks.hidden = false;
   knap.disabled = true;
   try {
-    const r = await kaldMedFremdrift("optimer", [noegle, idag()], (andel) => { fremdrift.value = andel; });
+    const hvem = tilstand.hvem === "partner" ? "partner" : "dig";
+    const r = await kaldMedFremdrift("optimer", [noegle, idag(), hvem], (andel) => { fremdrift.value = andel; });
     if (afbrudt || svarNoegle() !== noegle) return;  // afbrudt, eller planen er ændret, mens vi søgte
     if (!r.ok) { boks.replaceChildren(el("p", { class: "forslag__resultat", tekst: r.fejl.besked })); return; }
     visForslag(r.data, noegle);
@@ -1110,7 +1175,7 @@ function visForslag(d, noegle) {
   const pr = new Map();
   for (const a of d.aendringer) pr.set(a.id, [...(pr.get(a.id) || []), a]);
   const linjer = [...pr].map(([id, aendringer]) => {
-    const o = tilstand.aktuelleSvar.ordninger.find((x) => x.id === id);
+    const o = aktivSvar().ordninger.find((x) => x.id === id);
     const titel = o ? ordningstitel(o) : "Folkepension";
     return el("li", {}, el("strong", { tekst: `${titel}: ` }), aendringer.map((a) => aendringTekst(a, o && ENGANGSTYPER.has(o.type))).join(", "));
   });
@@ -1130,7 +1195,7 @@ function visForslag(d, noegle) {
 
 function anvendForslag() {
   const { d } = tilstand.forslag;
-  const s = tilstand.aktuelleSvar;
+  const s = aktivSvar();
   for (const [id, felter] of Object.entries(d.plan.ordninger)) Object.assign(s.ordninger.find((o) => o.id === id), felter);
   s.antagelser.folkepension_opsaettelse_aar = d.plan.folkepension_opsaettelse_aar;
   fjernForslag();
@@ -1219,14 +1284,44 @@ function visResultat(v, foersteGang = true) {
   $("#resultat").hidden = false;
   $("#menu").hidden = false;
   $("#ny-beregning").hidden = false;
+  tilstand.vDig = v;
+  tilstand.husstand = v.husstand ?? null;
+  if (!tilstand.husstand) tilstand.hvem = "dig";
+  $("#person-faner").hidden = !tilstand.husstand;
+  visHvem(foersteGang);
+}
 
+function visHvem(foersteGang = false) {
+  for (const f of $$('#person-faner [role="tab"]')) {
+    const valgt = f.dataset.hvem === tilstand.hvem;
+    f.setAttribute("aria-selected", String(valgt));
+    f.tabIndex = valgt ? 0 : -1;
+  }
+  const samlet = tilstand.hvem === "samlet";
+  $("#samlet-panel").hidden = !samlet;
+  $("#graf-panel").hidden = samlet;
+  $("#sammensaetning").hidden = samlet;
+  $("#link-sammensaetning").hidden = samlet;
+  $("#link-graf").setAttribute("href", samlet ? "#samlet-panel" : "#graf-panel");
+  $("#overblik-titel").textContent = { dig: "Dit overblik", partner: "Din partners overblik", samlet: "Jeres overblik" }[tilstand.hvem];
+  if (samlet) { tegnSamlet(); return; }
+  tegnPerson(tilstand.hvem === "partner" ? tilstand.husstand.partner : tilstand.vDig, foersteGang);
+}
+
+function tegnPerson(v, foersteGang) {
+  const partner = tilstand.hvem === "partner";
+  $("#resultat-titel").textContent = partner ? "Din partner kan forvente ca." : "Du kan forvente ca.";
   const h = v.hovedtal;
   $("#hovedtal").textContent = `${kr(h.maaned)} kr.`;
   $("#hovedtal").dataset.vaerdi = h.maaned;
   $("#hovedtal-forklaring").textContent = h.type === "jaevn"
-    ? `Det faste beløb, du kan bruge hver måned fra du er ${h.fra_alder} år, hvis du selv udjævner (den stiplede linje i grafen). I dagens kroner, så beløbet er lige meget værd hele livet.`
-      + (h.senere ? ` Fra du er ${h.senere.fra_alder}, stiger det til ca. ${kr(h.senere.maaned)} kr., når flere af dine udbetalinger er begyndt.` : "")
-      + ` Din folkepensionsalder er ${v.folkepensionsalder} år.`
+    ? (partner
+      ? `Det faste beløb, din partner kan bruge hver måned fra ${h.fra_alder} år ved selv at udjævne (den stiplede linje i grafen). I dagens kroner.`
+        + (h.senere ? ` Fra ${h.senere.fra_alder} år stiger det til ca. ${kr(h.senere.maaned)} kr.` : "")
+        + ` Din partners folkepensionsalder er ${v.folkepensionsalder} år.`
+      : `Det faste beløb, du kan bruge hver måned fra du er ${h.fra_alder} år, hvis du selv udjævner (den stiplede linje i grafen). I dagens kroner, så beløbet er lige meget værd hele livet.`
+        + (h.senere ? ` Fra du er ${h.senere.fra_alder}, stiger det til ca. ${kr(h.senere.maaned)} kr., når flere af dine udbetalinger er begyndt.` : "")
+        + ` Din folkepensionsalder er ${v.folkepensionsalder} år.`)
     : `Efter skat og i dagens kroner, i dit første hele år med folkepension (${h.fra_alder} år).`;
   const foer = tilstand.forrigeHovedtal;
   $("#hovedtal-aendring").textContent = foer !== null && foer !== h.maaned
@@ -1248,6 +1343,115 @@ function visResultat(v, foersteGang = true) {
   if (foersteGang) { window.scrollTo({ top: 0 }); $("#resultat-titel").setAttribute("tabindex", "-1"); $("#resultat-titel").focus(); }
 }
 
+
+/* ── Samlet oversigt for et par (feature 012) ─────────────────────────── */
+const PERSONFARVER = { dig: "--petrol-700", partner: "--sand-500" };
+
+function tegnSamlet() {
+  const s = tilstand.husstand.samlet;
+  const vDig = tilstand.vDig;
+  const vP = tilstand.husstand.partner;
+  $("#resultat-titel").textContent = "I kan forvente ca.";
+  $("#hovedtal").textContent = `${kr(s.maaned)} kr.`;
+  $("#hovedtal").dataset.vaerdi = s.maaned;
+  $("#hovedtal-forklaring").textContent = `Dig ${kr(s.dig.maaned)} kr. og din partner ${kr(s.partner.maaned)} kr. om måneden – `
+    + "jeres faste beløb, hvis I hver især udjævner. I dagens kroner. Jeres pensionstillæg og ældrecheck er regnet sammen, som loven siger.";
+  $("#hovedtal-aendring").textContent = "";
+  const advarsler = [...vDig.hovedtal_advarsler, ...vP.hovedtal_advarsler].filter((a, i, l) => l.findIndex((b) => b.kode === a.kode) === i);
+  $("#hovedtal-advarsler").replaceChildren(...advarsler.map((a) => advarselEl(a, "chip")));
+  $("#hovedtal-forudsaetninger").hidden = !advarsler.length;
+  $("#forudsaetninger-titel").textContent = `≈ ${advarsler.length === 1 ? "Én forudsætning" : `${advarsler.length} forudsætninger`} bag tallet →`;
+  const svar = tilstand.aktuelleSvar;
+  const pp = svar.person.partner.profil;
+  const opsparing = (liste) => liste.reduce((sum, o) => sum + (o.saldo || 0), 0);
+  $("#noegletal").replaceChildren(...[
+    ["Din folkepension fra", `${vDig.folkepensionsalder + svar.antagelser.folkepension_opsaettelse_aar} år`],
+    ["Din partners folkepension fra", `${vP.folkepensionsalder + (pp.folkepension_opsaettelse_aar || 0)} år`],
+    ["Jeres opsparing i dag", `${kr(opsparing(svar.ordninger) + opsparing(pp.ordninger))} kr.`],
+    ["Fast beløb: dig / partner", `${kr(s.dig.maaned)} / ${kr(s.partner.maaned)} kr.`],
+  ].map(([dt, dd]) => el("div", {}, el("dt", { tekst: dt }), el("dd", { tekst: dd }))));
+  tegnSamletGraf(s);
+  tegnSamletTidslinje(s);
+}
+
+function tegnSamletGraf(s) {
+  $("#samlet-forklaring").replaceChildren(
+    el("li", {}, el("i", { style: `background: var(${PERSONFARVER.dig})`, "aria-hidden": "true" }), "Dig"),
+    el("li", {}, el("i", { style: `background: var(${PERSONFARVER.partner})`, "aria-hidden": "true" }), "Din partner"),
+    el("li", {}, el("i", { class: "linje", "aria-hidden": "true" }), "Jeres faste beløb tilsammen"));
+  const aldre = (i) => `du ${s.alder_dig[i]}, din partner ${s.alder_partner[i]} år`;
+  $("#samlet-tabel").replaceChildren(el("table", {},
+    el("caption", { class: "sr-only", tekst: "Jeres udbetaling pr. måned efter skat i dagens kroner, pr. kalenderår" }),
+    el("thead", {}, el("tr", {}, ...["År", "Din alder", "Din partners alder", "Dig", "Din partner", "I alt", "Faste beløb tilsammen"]
+      .map((x) => el("th", { scope: "col", tekst: x })))),
+    el("tbody", {}, s.kalenderaar.map((k, i) => el("tr", {}, el("th", { scope: "row", tekst: `${k}` }),
+      el("td", { tekst: `${s.alder_dig[i]} år` }), el("td", { tekst: `${s.alder_partner[i]} år` }),
+      ...[s.netto_dig[i], s.netto_partner[i], s.netto_dig[i] + s.netto_partner[i], s.jaevn[i]].map((x) => el("td", { tekst: `${kr(x)} kr.` })))))));
+  if (typeof Chart === "undefined") return;
+  const data = {
+    labels: s.kalenderaar.map((k) => `${k}`),
+    datasets: [
+      { type: "line", label: "Jeres faste beløb tilsammen", data: s.jaevn.map((x) => Math.round(x)), borderColor: css("--jaevn-linje"),
+        borderDash: [6, 4], borderWidth: 3, pointRadius: 0, tension: 0, order: 0 },
+      { label: "Dig", data: s.netto_dig.map((x) => Math.round(x)), backgroundColor: css(PERSONFARVER.dig), stack: "netto", order: 1, borderRadius: 2 },
+      { label: "Din partner", data: s.netto_partner.map((x) => Math.round(x)), backgroundColor: css(PERSONFARVER.partner), stack: "netto", order: 1, borderRadius: 2 },
+    ],
+  };
+  const valg = {
+    responsive: true, maintainAspectRatio: false, animation: { duration: 250 },
+    plugins: { legend: { display: false },
+      tooltip: { callbacks: { title: (t) => `${t[0].label} (${aldre(t[0].dataIndex)})`, label: (c) => ` ${c.dataset.label}: ${kr(c.raw)} kr.` } } },
+    scales: {
+      x: { stacked: true, grid: { display: false }, title: { display: true, text: "Kalenderår" }, ticks: { maxRotation: 0, autoSkipPadding: 8 } },
+      y: { stacked: true, ticks: { callback: (x) => `${kr(x)} kr.` }, grid: { color: css("--graa-200") } },
+    },
+  };
+  if (tilstand.samletGraf) { tilstand.samletGraf.data = data; tilstand.samletGraf.update(); }
+  else tilstand.samletGraf = new Chart($("#samlet-graf"), { type: "bar", data, options: valg });
+}
+
+function tegnSamletTidslinje(s) {
+  // Kun til visning: begges ordninger og folkepension på en fælles kalenderakse. Der rettes under hver person.
+  const svar = tilstand.aktuelleSvar;
+  const foersteAar = s.kalenderaar[0];
+  const sidsteAar = s.kalenderaar.at(-1);
+  const pct = (aar) => (100 * (Math.min(Math.max(aar, foersteAar), sidsteAar + 1) - foersteAar)) / (sidsteAar + 1 - foersteAar);
+  const personer = [
+    { hvem: "dig", navn: "Dig", foedt: +svar.person.foedselsdato.slice(0, 4), ordninger: svar.ordninger,
+      fp: tilstand.vDig.folkepensionsalder + svar.antagelser.folkepension_opsaettelse_aar },
+    { hvem: "partner", navn: "Din partner", foedt: +svar.person.partner.foedselsdato.slice(0, 4), ordninger: svar.person.partner.profil.ordninger,
+      fp: tilstand.husstand.partner.folkepensionsalder + (svar.person.partner.profil.folkepension_opsaettelse_aar || 0) },
+  ];
+  const raekker = [];
+  for (const p of personer) {
+    const linjer = p.ordninger.map((o) => {
+      const engang = ENGANGSTYPER.has(o.type) && (o.type !== "kapitalpension" || (o.udbetalingsform || "engangs") === "engangs");
+      const varighed = o.type === "ratepension" || ["portioner", "ratepension"].includes(o.udbetalingsform) ? (o.udbetaling_aar || 10) : null;
+      const fra = p.foedt + o.udbetaling_start_alder;
+      const til = engang ? fra : varighed ? fra + varighed - 1 : sidsteAar;
+      return { titel: `${p.navn} · ${ordningstitel(o)}`, fra, til, engang };
+    });
+    linjer.push({ titel: `${p.navn} · Folkepension`, fra: p.foedt + p.fp, til: sidsteAar, engang: false });
+    for (const l of linjer) {
+      const tekst = l.engang ? `${l.fra}` : l.til >= sidsteAar ? `fra ${l.fra}` : `${l.fra}–${l.til}`;
+      const stil = l.engang ? `left: calc(${pct(l.fra)}% + 2px); width: 24px` : `left: ${pct(l.fra)}%; width: ${Math.max(1, pct(l.til + 1) - pct(l.fra))}%`;
+      raekker.push(el("div", { class: "tl-raekke tl-raekke--visning", role: "listitem" },
+        el("div", { class: "tl-hoved" }, el("strong", { tekst: l.titel }), el("span", { tekst: tekst })),
+        el("div", { class: "tl-spor", "aria-hidden": "true" },
+          el("div", { class: `tl-bjaelke${l.engang ? " tl-bjaelke--engang" : ""}`, style: `--farve: var(${PERSONFARVER[p.hvem]}); ${stil}` }))));
+    }
+  }
+  $("#samlet-tidslinje").replaceChildren(...raekker);
+}
+
+function vaelgFane(hvem, fokus = false) {
+  if (tilstand.hvem === hvem) return;
+  tilstand.hvem = hvem;
+  fjernForslag();
+  visHvem();
+  if (fokus) $(`#person-faner [data-hvem="${hvem}"]`).focus();
+}
+
 /* ── Opsætning ─────────────────────────────────────────────────────────── */
 function forbind() {
   startMotor();
@@ -1255,12 +1459,23 @@ function forbind() {
   $("#motor-igen").addEventListener("click", () => { startMotor(); hentKommuner(); });
   hentKommuner();
   visTrin(1, false);
-  $("#pdf-knap").addEventListener("click", aflaesPdf);
-
-  $$("input[name=civilstand]").forEach((r) => r.addEventListener("change", () => {
-    $("#partner-felter").hidden = $("input[name=civilstand]:checked").value !== "gift_samlevende";
-  }));
-  for (const [id, fmt] of [["afkast", (v) => `${decimal(v)} %`], ["inflation", (v) => `${decimal(v)} %`], ["opsaettelse", (v) => (+v ? `${v} år` : "Nej")]]) {
+  $("#pdf-knap").addEventListener("click", () => aflaesPdf("dig"));
+  $("#p-pdf-knap").addEventListener("click", () => aflaesPdf("partner"));
+  $$("input[name=civilstand], input[name=partnerdata]").forEach((r) => r.addEventListener("change", opdaterPartnerFelter));
+  opdaterPartnerFelter();
+  $("#p-tilfoej-ordning").addEventListener("click", () => tilfoejOrdning($("#p-ny-type").value, "partner"));
+  const faner = $$('#person-faner [role="tab"]');
+  faner.forEach((f, i) => {
+    f.addEventListener("click", () => vaelgFane(f.dataset.hvem));
+    f.addEventListener("keydown", (e) => {
+      const ny = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: faner.length - 1 }[e.key];
+      if (ny === undefined) return;
+      e.preventDefault();
+      vaelgFane(faner[(ny + faner.length) % faner.length].dataset.hvem, true);
+    });
+  });
+  for (const [id, fmt] of [["afkast", (v) => `${decimal(v)} %`], ["inflation", (v) => `${decimal(v)} %`], ["opsaettelse", (v) => (+v ? `${v} år` : "Nej")],
+    ["p-opsaettelse", (v) => (+v ? `${v} år` : "Nej")]]) {
     $(`#${id}`).addEventListener("input", (e) => { $(`#${id}-v`).textContent = fmt(e.target.value); });
   }
   $("#tilfoej-ordning").addEventListener("click", () => tilfoejOrdning($("#ny-type").value));
@@ -1268,12 +1483,13 @@ function forbind() {
   $("#guide-form").addEventListener("submit", (e) => {
     e.preventDefault();
     if (!validerTrin(tilstand.trin)) return;
-    if (tilstand.trin < 3) visTrin(tilstand.trin + 1); else beregnFraGuide();
+    if (tilstand.trin < 4) visTrin(naesteTrin(tilstand.trin)); else beregnFraGuide();
   });
-  $("#tilbage").addEventListener("click", () => { ryd(); visTrin(tilstand.trin - 1); });
+  $("#tilbage").addEventListener("click", () => { ryd(); visTrin(forrigeTrin(tilstand.trin)); });
   $("#ny-beregning").addEventListener("click", () => {
     $("#resultat").hidden = true; $("#guide").hidden = false; $("#menu").hidden = true; $("#ny-beregning").hidden = true;
     flytFormularTilGuide();
+    tilstand.hvem = "dig";
     visTrin(1);
   });
   for (const navn of ["data", "graf"]) {
