@@ -8,7 +8,9 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Literal, Mapping
 
-Civilstand = Literal["enlig", "gift_samlevende"]
+# Feature 012: gift og samlevende behandles ens af ydelserne; kun ægtefæller har skatteoverførsler.
+# "gift_samlevende" (før 012) læses som samlevende.
+Civilstand = Literal["enlig", "gift", "samlevende", "gift_samlevende"]
 Ordningstype = Literal["ratepension", "livsvarig", "aldersopsparing", "kapitalpension"]
 Kildetype = Literal[
     "ratepension", "livsvarig", "grundbeloeb", "pensionstillaeg", "atp", "aeldrecheck", "mediecheck"
@@ -63,6 +65,11 @@ class PartnerIndkomst:
 class Partner:
     foedselsdato: date
     indkomst_pr_aar: Mapping[int, PartnerIndkomst] = field(default_factory=dict)
+    # Feature 012 — kendes partneren som fuld profil (husstanden), pr. kalenderår:
+    formue_pr_aar: Mapping[int, float] = field(default_factory=dict)          # partnerens buffer pr. 1. januar
+    kapitalindkomst_pr_aar: Mapping[int, float] = field(default_factory=dict) # partnerens positive KI
+    uudnyttet_personfradrag_pr_aar: Mapping[int, float] = field(default_factory=dict)  # skatteværdi
+    pensionist_fra_aar: int | None = None  # partnerens faktiske folkepensionsstart (None = ud fra alderen)
 
 
 @dataclass(frozen=True)
@@ -121,6 +128,7 @@ class Aarsresultat:
     flag: tuple[str, ...]
     kapitalindkomst: float = 0.0        # bufferens afkast (nominelt), positiv nettokapitalindkomst (009)
     skat_kapitalindkomst: float = 0.0   # merskatten af kapitalindkomsten; betales af bufferen (009)
+    uudnyttet_personfradrag: float = 0.0  # skatteværdi, en ægtefælle kan bruge (PSL § 10, stk. 3) (012)
 
 
 @dataclass(frozen=True)

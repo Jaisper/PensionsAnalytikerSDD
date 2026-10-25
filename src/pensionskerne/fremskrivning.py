@@ -198,12 +198,19 @@ def beregn(
     )
 
     # ── 3. År for år ─────────────────────────────────────────────────────────
-    gift = profil.civilstand == "gift_samlevende"
+    gift = profil.civilstand != "enlig"         # par: ydelserne behandler gifte og samlevende ens
+    aegtefaelle = profil.civilstand == "gift"    # kun ægtefæller: skatteoverførsler (PSL § 10, stk. 3; § 7, stk. 5)
     partner_fp_alder = folkepensionsalder(profil.partner.foedselsdato, samlet) if profil.partner else None
     vente = ventefaktor(fp_alder, opsaettelse, samlet)
     foerste_andel = foerste_aar_andel(profil.foedselsdato)
 
     aarets_opslag: dict[int, Regelopslag] = {}  # genbruges på tværs af bufferens iterationer
+
+    def husstandens_formue(alder: int, kalenderaar: int, egen_buffer: dict[int, float]) -> float:
+        """Likvid formue pr. 1. januar (§ 72 d, stk. 2): husstandens oplyste formue, egen buffer og
+        — kendes partneren som fuld profil — partnerens buffer."""
+        partner = profil.partner.formue_pr_aar.get(kalenderaar, 0.0) if profil.partner else 0.0
+        return profil.likvid_formue + egen_buffer.get(alder, 0.0) + partner
 
     def _samme_buffer(ki, nye_ki, formue, nye_formue) -> bool:
         """Kapitalindkomsten, årene blev regnet med, er inden for 12 × tolerancen pr. år af den,
@@ -217,7 +224,8 @@ def beregn(
             if o is None:
                 continue
             graense = o.v("yd.aeldrecheck.formuegraense")
-            if (profil.likvid_formue + formue.get(alder, 0.0) > graense) != (profil.likvid_formue + nye_formue.get(alder, 0.0) > graense):
+            kalenderaar = foedselsaar + alder
+            if (husstandens_formue(alder, kalenderaar, formue) > graense) != (husstandens_formue(alder, kalenderaar, nye_formue) > graense):
                 return False
         return True
 
@@ -264,10 +272,13 @@ def beregn(
                     brutto["atp"] = ("atp", atp_aar * andel)
 
             # 2.–4. folkepension og tillægsstyrede ydelser
-            partner_er_pensionist = (
-                partner_fp_alder is not None
-                and kalenderaar - profil.partner.foedselsdato.year >= partner_fp_alder
-            )
+            if profil.partner is not None and profil.partner.pensionist_fra_aar is not None:
+                partner_er_pensionist = kalenderaar >= profil.partner.pensionist_fra_aar
+            else:
+                partner_er_pensionist = (
+                    partner_fp_alder is not None
+                    and kalenderaar - profil.partner.foedselsdato.year >= partner_fp_alder
+                )
             buffer_ki = kapitalindkomst.get(alder, 0.0)
             grundlag = indtaegtsgrundlag(
                 privat_s, atp_aar, profil.anden_kapitalindkomst + buffer_ki,
@@ -282,7 +293,7 @@ def beregn(
                     brutto["pensionstillaeg"] = ("pensionstillaeg", tillaeg)
                 tp = tillaegsprocent(grundlag, gift, o)
                 if alder > fp_start:
-                    for navn, beloeb in (("aeldrecheck", aeldrecheck(tp, profil.likvid_formue + formue.get(alder, 0.0), o)),
+                    for navn, beloeb in (("aeldrecheck", aeldrecheck(tp, husstandens_formue(alder, kalenderaar, formue), o)),
                                          ("mediecheck", mediecheck(tp, o))):
                         if beloeb > 0:
                             brutto[navn] = (navn, beloeb)
@@ -292,7 +303,14 @@ def beregn(
             # 5.–6. personlig indkomst og skat
             pi_pr_kilde = {k: b for k, (_, b) in brutto.items()}
             pi = sum(pi_pr_kilde.values())
-            skat = beregn_skat(pi, kommuneskat, kirkeskat, o, kapitalindkomst=buffer_ki)
+            overfoert = ekstra_bundfradrag = 0.0
+            if aegtefaelle and profil.partner is not None:
+                overfoert = profil.partner.uudnyttet_personfradrag_pr_aar.get(kalenderaar, 0.0)
+                if kalenderaar in profil.partner.kapitalindkomst_pr_aar:
+                    ekstra_bundfradrag = max(0.0, o.v("skat.kapitalindkomst.bundfradrag")
+                                             - profil.partner.kapitalindkomst_pr_aar[kalenderaar])
+            skat = beregn_skat(pi, kommuneskat, kirkeskat, o, kapitalindkomst=buffer_ki,
+                               overfoert_personfradrag=overfoert, ekstra_ki_bundfradrag=ekstra_bundfradrag)
             skat_pi = skat.total - skat.skat_kapitalindkomst
             andele = fordel(skat_pi, pi_pr_kilde)
             kilder = tuple(
@@ -312,6 +330,7 @@ def beregn(
                 netto_i_alt=netto, netto_real=netto_real, realfaktor=realfaktor, engangsbeloeb_netto=engangs,
                 sporing=tuple(o.brugt), flag=tuple(o.flag),
                 kapitalindkomst=buffer_ki, skat_kapitalindkomst=skat.skat_kapitalindkomst,
+                uudnyttet_personfradrag=skat.uudnyttet_personfradrag,
             ))
             samlet.overtag(o)
         return aar, mellemskat_aldre, atp_skoennet
@@ -413,6 +432,12 @@ def beregn(
         buffer_iterationer=iteration,
     )
 
+
+
+def bufferens_ki_og_formue(res: Fremskrivning) -> tuple[dict[int, float], dict[int, float]]:
+    """Kapitalindkomst og formue pr. 1. januar pr. alder fra en færdig beregnings buffer (012)."""
+    rente = res.antagelser.afkast_efter_pal / (1 - Regelopslag(res.satsaar, res.satsaar, 0.0).v("pal.sats"))
+    return _buffer_ki_og_formue(res.jaevn, rente)
 
 
 def _buffer_ki_og_formue(jaevn: JaevnUdbetaling | None, rente: float) -> tuple[dict[int, float], dict[int, float]]:
