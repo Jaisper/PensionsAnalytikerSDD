@@ -99,10 +99,6 @@
             </div>
 
             <div class="partner" id="partner-felter" hidden>
-              <div class="felt" data-felt="partner.foedselsdato person.partner.foedselsdato">
-                <label for="partner-foedselsdato">Din partners fødselsdato</label>
-                <input type="date" id="partner-foedselsdato" min="1955-07-01">
-              </div>
               <div class="felt felt--valg" data-felt="partnerdata">
                 <fieldset>
                   <legend>Hvor meget vil du fortælle om din partners pension?</legend>
@@ -111,10 +107,16 @@
                 </fieldset>
                 <p class="felt__hjaelp">Med hele din partners pension får I hver jeres beregning og en samlet oversigt. Du kan indlæse din partners egen PensionsInfo-rapport i næste trin.</p>
               </div>
-              <div class="felt" data-felt="person.partner.oevrig_indkomst_aar" id="partner-overslag">
-                <label for="partner-indkomst">Din partners pension og kapitalindkomst pr. år</label>
-                <input id="partner-indkomst" inputmode="numeric" class="beloeb" aria-describedby="partner-indkomst-hjaelp" placeholder="0">
-                <p class="felt__hjaelp" id="partner-indkomst-hjaelp">Løn tæller ikke med. Bruges til at beregne dit pensionstillæg.</p>
+              <div id="partner-overslag">
+                <div class="felt" data-felt="partner.foedselsdato">
+                  <label for="partner-foedselsdato">Din partners fødselsdato</label>
+                  <input type="date" id="partner-foedselsdato" min="1955-07-01">
+                </div>
+                <div class="felt" data-felt="person.partner.oevrig_indkomst_aar">
+                  <label for="partner-indkomst">Din partners pension og kapitalindkomst pr. år</label>
+                  <input id="partner-indkomst" inputmode="numeric" class="beloeb" aria-describedby="partner-indkomst-hjaelp" placeholder="0">
+                  <p class="felt__hjaelp" id="partner-indkomst-hjaelp">Løn tæller ikke med. Bruges til at beregne dit pensionstillæg.</p>
+                </div>
               </div>
             </div>
 
@@ -168,6 +170,11 @@
               <button type="button" class="knap knap--sekundaer" id="p-pdf-knap">Aflæs rapport</button>
               <div id="p-pdf-status" class="upload__status" role="status" aria-live="polite"></div>
             </section>
+            <div class="felt" data-felt="p.foedselsdato">
+              <label for="p-foedselsdato">Din partners fødselsdato</label>
+              <input type="date" id="p-foedselsdato" min="1955-07-01" aria-describedby="p-foedselsdato-hjaelp">
+              <p class="felt__hjaelp" id="p-foedselsdato-hjaelp">Udfyldes, når du indlæser din partners rapport.</p>
+            </div>
             <div id="p-ordninger" class="ordninger"></div>
             <div class="tilfoej">
               <label for="p-ny-type">Tilføj ordning til din partner</label>

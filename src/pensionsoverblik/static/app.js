@@ -206,6 +206,7 @@ function ryd(rod = document) {
 }
 
 function visFejl(felt, besked) {
+  if (felt === "person.partner.foedselsdato") felt = fuldPartner() ? "p.foedselsdato" : "partner.foedselsdato";
   const maal = $$("[data-felt]").find((f) => f.dataset.felt.split(" ").includes(felt));
   if (!maal) {
     const boks = $("#fejlboks");
@@ -233,9 +234,12 @@ function validerTrin(n) {
   if (n === 1) {
     if (!$("#foedselsdato").value) { visFejl("foedselsdato", "Skriv din fødselsdato."); return false; }
     if (!$("#kommune").value.trim()) { visFejl("kommune", "Vælg din kommune."); return false; }
-    if (erPar() && !$("#partner-foedselsdato").value) {
+    if (erPar() && !fuldPartner() && !$("#partner-foedselsdato").value) {
       visFejl("partner.foedselsdato", "Skriv din partners fødselsdato."); return false;
     }
+  }
+  if (n === 3 && fuldPartner() && !$("#p-foedselsdato").value) {
+    visFejl("p.foedselsdato", "Skriv din partners fødselsdato – eller indlæs rapporten ovenfor."); return false;
   }
   if (n === 2 || (n === 3 && fuldPartner())) {
     for (const o of n === 2 ? tilstand.ordninger : tilstand.partnerOrdninger) {
@@ -408,7 +412,7 @@ function ordningSvar(o) {
 
 function partnerSvar() {
   if (!erPar()) return null;
-  const foedselsdato = $("#partner-foedselsdato").value;
+  const foedselsdato = $(fuldPartner() ? "#p-foedselsdato" : "#partner-foedselsdato").value;
   if (!fuldPartner()) return { foedselsdato, oevrig_indkomst_aar: beloeb($("#partner-indkomst").value) ?? 0 };
   return { foedselsdato, profil: {
     ordninger: tilstand.partnerOrdninger.map(ordningSvar),
@@ -468,7 +472,7 @@ async function aflaesPdf(hvem = "dig") {
 
 function udfyldFraRapport(d, hvem = "dig") {
   const partner = hvem === "partner";
-  if (d.person.foedselsdato) $(partner ? "#partner-foedselsdato" : "#foedselsdato").value = d.person.foedselsdato;
+  if (d.person.foedselsdato) $(partner ? "#p-foedselsdato" : "#foedselsdato").value = d.person.foedselsdato;
   if (d.atp_aarlig) $(partner ? "#p-atp" : "#atp").value = kr(d.atp_aarlig);
   const liste = d.ordninger.map((o) => ({
     id: partner ? `p${tilstand.naestePid++}` : `o${tilstand.naesteId++}`, type: o.type,
