@@ -26,8 +26,9 @@
 
 - [x] T011 `.github/workflows/pages.yml` (D7)
 - [x] T012 `scripts/scan_historik.py` (D8). Kør på hele historikken og rapportér fund til brugeren
-- [ ] T013 **Kræver brugerens bekræftelse:** ryd eventuelle fund, gør repoet offentligt, slå Pages til og verificér den udgivne side
+- [x] T013 **Kræver brugerens bekræftelse:** ryd eventuelle fund, gør repoet offentligt, slå Pages til og verificér den udgivne side
 
 ## Fase 6: Afslutning
 
 - [x] T014 README, CLAUDE.md (kommandoer uden uvicorn), research R002 og UX-evaluering
+- [x] T015 Kortere opstart: PDF-læseren hentes efter opstart (research R005)

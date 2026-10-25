@@ -75,3 +75,26 @@ filversioner.
 
 Konklusion: historikken kan gøres offentlig uden oprydning. Commit-forfatter (navn og e-mail)
 bliver synlig, som det altid er tilfældet på GitHub.
+
+## R005 Hurtigere opstart: PDF-læseren hentes bagefter
+
+**Måling på den udgivne side** (2026-10-25): andet besøg var klar på 3,1 s, mens SC-002 kræver
+under 3 s. Tiden gik til at starte Pyodide og indlæse cryptography (med openssl), pdfminer og
+pdfplumber. Den del bruges kun, når en rapport indlæses.
+
+**Ændring:**
+- `app.py` importerer først PDF-modulerne og opretter først parseren ved første `pdf()`.
+- `manifest.json` er delt i `kerne` og `pdf`.
+- Workeren melder klar efter kernen og henter PDF-delen i baggrunden bagefter. En PDF, der
+  kommer for tidligt, venter på den.
+- Pyodides `loadPackage` melder ikke fejl, når en fil ikke kan hentes. Derfor tjekker workeren
+  med `import pdfplumber`. Fejler det, prøver næste PDF igen.
+
+**Tests:**
+- `tests/kontrakt/test_browserpakker.py::test_beregning_kraever_ikke_pdflaeseren`
+- `tests/browser/test_indlaesning.py::test_motoren_er_klar_uden_pdflaeseren`
+- Netværkstesten tjekker nu kravet direkte: kun GET af egne filer, ingen data i nogen request og
+  ingen requests, efter rapporten er læst.
+
+**Resultat lokalt:** første besøg 2,8 → 2,2 s og andet besøg 2,4 → 2,1 s. Resten er Pyodides
+egen opstart.

@@ -52,6 +52,19 @@ def test_fejl_ved_indlaesning_giver_besked_og_proev_igen(ny_side):
     assert ny_side.evaluate("kald('kommuner').then((k) => k.length)") == 98
 
 
+def test_motoren_er_klar_uden_pdflaeseren(ny_side):
+    """Opstarten venter ikke på PDF-læseren (R005). Fejler den, virker beregningen stadig."""
+    ny_side.route("**/cryptography-*.whl", lambda r: r.abort())
+    ny_side.goto(ny_side.base_url)
+    ny_side.wait_for_selector("#motor", state="hidden")
+    assert ny_side.evaluate("kald('kommuner').then((k) => k.length)") == 98
+    fejl = ny_side.evaluate("kald('pdf', new Uint8Array([37, 80, 68, 70]).buffer).then(() => null, (e) => String(e))")
+    assert fejl
+    ny_side.unroute("**/cryptography-*.whl")
+    svar = ny_side.evaluate("kald('pdf', new Uint8Array([1, 2, 3]).buffer)")  # prøver igen ved næste PDF
+    assert svar["fejl"]["kode"] == "ikke_pdf"
+
+
 def test_uden_webassembly_besked_om_nyere_browser(ny_side):
     ny_side.add_init_script("delete globalThis.WebAssembly")
     ny_side.goto(ny_side.base_url)
