@@ -256,6 +256,15 @@ satsår ad gangen pr. beregning, men flere satsår i registret.*
   (markeret `kapitalindkomst_ikke_beskattet`, som før).
 - Kapitalpension oprettet før 1980 (lavere afgift, PBL §§ 26 A og 27) er ikke modelleret.
 
+## 7e. Udjævning uden lån (feature 010)
+
+| # | Før (001 US7) | Nu | Hvorfor |
+|---|---|---|---|
+| J1 | Grundniveauet blev finansieret af nutidsværdien af *alle* løbende udbetalinger, så de første år kunne låne af senere udbetalinger (negativ buffer, advarsel `JAEVN_FORUDSAETTER_SENERE_UDBETALINGER`) | Det højeste forløb, der er konstant i dagens kroner og kun stiger, når flere penge kommer. Bufferen er aldrig negativ. Det beregnes som forbrugsudjævning med likviditetsbegrænsning, segment for segment | Produktejeren: "Bufferen går i minus over lange stræk." Et beløb, der kun kan nås ved at låne, er ikke et beløb, man kan leve af. For engangsbeløb gjaldt det allerede |
+
+Hovedtallet er det første (laveste) niveau. Teksten nævner, hvornår og til hvad det stiger. Alle
+beløb vises i dagens kroner (inflationskorrigeret med antagelsens inflation, som i legacy).
+
 ## 8. Uden for denne feature (kommer i senere features)
 
 PDF-import fra PensionsInfo · AI-forklaring/chat · Optimering af udbetalingsrækkefølge

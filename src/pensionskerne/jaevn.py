@@ -1,19 +1,27 @@
 """Jævn udbetaling (US7) — en præsentationsmodel, ikke lovgivning.
 
-Engangsbeløb (der ikke er fravalgt) lægges i en buffer — opsparing uden for pension, der
-forrentes med afkastet før skat (feature 009). Skatten af afkastet (kapitalindkomst) regnes i
-kernens år-for-år-beregning og betales af bufferen: den trækkes fra årets almindelige
-nettoudbetaling her. Ud fra bufferen og nettoudbetalingerne beregnes ét niveau, der stiger med
-inflationen (konstant i dagens købekraft):
+Det faste beløb er det højeste forløb, der er konstant i dagens købekraft og kun stiger, når der
+kommer flere penge — uden nogensinde at låne (feature 010). Bufferen er opsparing uden for
+pension (engangsbeløb og det, der spares op i år med høje udbetalinger). Den forrentes med
+afkastet før skat; skatten af afkastet (kapitalindkomst, feature 009) regnes i år-for-år-
+beregningen og trækkes fra årets nettoudbetaling her.
 
-- Grundniveauet finansieres af nutidsværdien af alle almindelige nettoudbetalinger plus
-  engangsbeløb, der er modtaget i det første år.
-- Hvert senere engangsbeløb giver et selvstændigt tillæg fra det år, det modtages. Niveauet
-  kan derfor kun stige, og der regnes ikke med et engangsbeløb, før det er modtaget.
+Algoritmen er forbrugsudjævning med likviditetsbegrænsning, segment for segment: fra år i med
+buffer B er niveauet
+
+    c = min over k ≥ i af (B + Σ_{t=i..k} I_t / (1+r)^(t−i)) / Σ_{t=i..k} g^(t−i) / (1+r)^(t−i)
+
+hvor I_t er årets indbetaling til bufferen og g = 1 + inflation. Segmentet varer til og med det
+sidste k, der giver minimum; her er bufferen netop opbrugt, og næste segment begynder. Bufferen
+er derfor aldrig negativ, niveauet er ikke-faldende i dagens kroner, og bufferen ender i 0.
+(Før 010 blev grundniveauet finansieret af nutidsværdien af alle senere udbetalinger, så de
+første år kunne låne af fremtiden.)
 
 Betalinger sker primo året. Beløb er kr. pr. år (månedligt = / 12 i præsentationen).
 """
 from __future__ import annotations
+
+import math
 
 from .model import Aarsresultat, JaevnAar, JaevnUdbetaling
 
@@ -21,10 +29,6 @@ from .model import Aarsresultat, JaevnAar, JaevnUdbetaling
 # udbetaling ændrer sig mindre end 1 kr. om måneden, og giv op (med advarsel) efter 8 iterationer.
 BUFFER_TOLERANCE_KR = 1.0  # pr. måned
 BUFFER_MAKS_ITERATIONER = 8
-
-
-def _faktor(aar: int, vaekst: float, rente: float) -> float:
-    return sum((vaekst / (1 + rente)) ** i for i in range(aar))
 
 
 def beregn_jaevn(
@@ -37,29 +41,38 @@ def beregn_jaevn(
     if not raekker:
         return None
     vaekst = 1 + inflation
+    diskont = 1 / (1 + rente)
     n = len(raekker)
-    foerste_alder = raekker[0].alder
     normal = [r.netto_i_alt - r.skat_kapitalindkomst for r in raekker]
+    indbetaling = [normal[t] + engangs_i_buffer.get(r.alder, 0.0) for t, r in enumerate(raekker)]
 
-    nv_normal = sum(x / (1 + rente) ** i for i, x in enumerate(normal))
-    grund = (engangs_i_buffer.get(foerste_alder, 0.0) + nv_normal) / _faktor(n, vaekst, rente)
-    tillaeg = {
-        alder - foerste_alder: beloeb / _faktor(n - (alder - foerste_alder), vaekst, rente)
-        for alder, beloeb in engangs_i_buffer.items()
-        if foerste_alder < alder < foerste_alder + n
-    }
+    niveau = [0.0] * n
+    buffer = 0.0
+    i = 0
+    while i < n:
+        bedste_c, bedste_k = math.inf, i
+        nv_ind, nv_vaekst = buffer, 0.0
+        for k in range(i, n):
+            faktor = diskont ** (k - i)
+            nv_ind += indbetaling[k] * faktor
+            nv_vaekst += vaekst ** (k - i) * faktor
+            c = nv_ind / nv_vaekst
+            if c <= bedste_c + 1e-12 * max(1.0, abs(c)):  # sidste minimum: så lange segmenter som muligt
+                bedste_c, bedste_k = min(c, bedste_c), k
+        for t in range(i, bedste_k + 1):
+            niveau[t] = bedste_c * vaekst ** (t - i)
+            buffer = (buffer + indbetaling[t] - niveau[t]) * (1 + rente)
+        i = bedste_k + 1
 
     buffer = 0.0
     aar: list[JaevnAar] = []
-    for i, r in enumerate(raekker):
-        buffer += engangs_i_buffer.get(r.alder, 0.0)
-        jaevn = grund * vaekst ** i + sum(t * vaekst ** (i - j) for j, t in tillaeg.items() if j <= i)
-        forskel = jaevn - normal[i]
-        buffer = (buffer - forskel) * (1 + rente)
+    for t, r in enumerate(raekker):
+        forskel = niveau[t] - normal[t]
+        buffer = (buffer + engangs_i_buffer.get(r.alder, 0.0) - forskel) * (1 + rente)
         aar.append(JaevnAar(
-            alder=r.alder, jaevn=jaevn, normal=normal[i],
+            alder=r.alder, jaevn=niveau[t], normal=normal[t],
             fra_buffer=max(0.0, forskel), til_buffer=max(0.0, -forskel), buffer_rest=buffer,
         ))
 
-    niveau_real = grund / vaekst ** (raekker[0].kalenderaar - beregningsaar)
-    return JaevnUdbetaling(niveau_foerste_aar=grund, niveau_real=niveau_real, aar=tuple(aar))
+    niveau_real = niveau[0] / vaekst ** (raekker[0].kalenderaar - beregningsaar)
+    return JaevnUdbetaling(niveau_foerste_aar=niveau[0], niveau_real=niveau_real, aar=tuple(aar))

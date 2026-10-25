@@ -19,6 +19,7 @@ spec-driven development ([Spec Kit](https://github.com/github/spec-kit)).
 
 | [002 Pensionsoverblik](specs/002-pensionsoverblik/) | Brugerflade: guide → resultat med hovedtal, graf, kort og skydere. axe-core 0 fejl, heuristisk evaluering i [ux-evaluering.md](specs/002-pensionsoverblik/ux-evaluering.md) |
 | [004 Tidslinje og datapanel](specs/004-tidslinje/) | Legacy-mønstret: datapanel ("Dine oplysninger"), graf i fuld bredde og en tidslinje under grafen, hvor hver ordning flyttes i tid med skydere |
+| [010 Udjævning uden lån](specs/010-ingen-laan/) | Det faste beløb låner aldrig af senere udbetalinger. Det stiger i trin, når pengene kommer, og bufferen går aldrig i minus. Grafen og hovedtallet forklarer det |
 | [009 Kapitalpension](specs/009-kapitalpension/) | Kapitalpension som ét beløb, i portioner (PBL § 26) eller omlagt til rate eller livrente (§ 41). Afgift allerede betalt. Bufferen beskattes som kapitalindkomst og tæller i pensionstillæg og ældrecheck. Optimeringen vælger udbetalingsform |
 | [008 Buffer i grafen](specs/008-buffer-i-grafen/) | Engangsbeløb vises i grafen (buffer eller udbetales), bufferen år for år under grafen, linjen hedder "Fast beløb, hvis du udjævner", og hovedtallet er det faste beløb hele perioden |
 | [007 Find bedste plan](specs/007-optimering/) | Optimering som i legacy: højeste faste beløb efter skat hele perioden uden nye indkomsthuller. Forslag med "Anvend" og stiplede bjælker. Engangsbeløb kan bruges som buffer eller udbetales direkte |

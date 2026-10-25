@@ -20,11 +20,16 @@ def test_buffer_gaar_op_i_nul_til_sidst():
     assert j.aar[-1].buffer_rest == pytest.approx(0, abs=1)
 
 
-def test_konstant_i_dagens_koebekraft():
+def test_konstant_i_dagens_koebekraft_mellem_springene():
+    """Feature 010: niveauet er konstant i dagens kroner inden for hvert segment og stiger kun, når
+    flere penge kommer (her folkepensionen fra 68), uden lån. Før 010 var det ét niveau i hele
+    perioden, finansieret af senere udbetalinger (negativ buffer)."""
     ald = Ordning("ald", "aldersopsparing", 200_000, 65, oprettet=date(2010, 1, 1))
     j = _res(ald).jaevn
     real = [a.jaevn / 1.02 ** i for i, a in enumerate(j.aar)]
-    assert max(real) == pytest.approx(min(real))
+    assert all(real[i + 1] >= real[i] - 1e-6 for i in range(len(real) - 1))
+    assert real[0] == pytest.approx(real[1]) == pytest.approx(real[2])
+    assert all(a.buffer_rest >= -1 for a in j.aar)
     assert j.niveau_real == pytest.approx(j.niveau_foerste_aar / 1.02 ** (2028 - 2026))
 
 

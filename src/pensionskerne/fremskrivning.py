@@ -400,12 +400,6 @@ def beregn(
             "Bufferens kapitalindkomst og formue kunne ikke regnes helt præcist (fx fordi formuen ligger "
             "tæt på ældrechecks formuegrænse). Tallene kan afvige lidt.",
         ))
-    if jaevn and min(a.buffer_rest for a in jaevn.aar) < -1.0:  # < 1 kr. er regnestøj (bufferen ender i nul)
-        advarsler.append(Advarsel(
-            "JAEVN_FORUDSAETTER_SENERE_UDBETALINGER",
-            "Den jævne udbetaling er et gennemsnit. I nogle år forudsætter den penge fra udbetalinger, "
-            "du først får senere.",
-        ))
 
     aldre_i_tabel = {a.alder for a in aar}
     engangsbeloeb = tuple(

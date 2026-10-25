@@ -11,7 +11,7 @@ def test_linjen_hedder_fast_beloeb_og_forklares(resultat):
     forklaring = resultat.inner_text("#farveforklaring")
     assert "Fast beløb, hvis du udjævner" in forklaring and "Jævnt fordelt" not in forklaring
     tekst = resultat.inner_text("#jaevn-forklaring")
-    assert "bruger du af din buffer" in tekst and "sparer du op" in tekst
+    assert "bruger du af opsparingen" in tekst and "sparer du op" in tekst  # ordlyd fra 010
 
 
 def test_engangsbeloeb_vises_med_buffer_eller_udbetales(resultat):
@@ -61,3 +61,10 @@ def test_axe_og_360(resultat):
     resultat.set_viewport_size({"width": 360, "height": 800})
     resultat.wait_for_function("() => document.documentElement.scrollWidth <= 360", timeout=5000)
     assert resultat.fejl == []
+
+
+def test_bufferen_gaar_aldrig_i_minus_og_forklares(resultat):
+    """Feature 010: udjævningen låner aldrig."""
+    assert min(resultat.evaluate("tilstand.v.graf.buffer")) >= 0
+    assert "aldrig i minus" in resultat.inner_text("#jaevn-forklaring")
+    assert "opsparing uden for pension" in resultat.evaluate("tilstand.buffergraf.options.plugins.title.text")
