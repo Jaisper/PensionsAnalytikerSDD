@@ -121,3 +121,23 @@ def test_axe_og_360_med_forslag(resultat):
     resultat.set_viewport_size({"width": 360, "height": 800})
     resultat.wait_for_function("() => document.documentElement.scrollWidth <= 360", timeout=5000)
     assert resultat.fejl == []
+
+
+def test_afbryd_soegningen_beholder_planen(resultat):
+    """Over 10 sekunder kræver en vej ud (brugerkontrol): "Afbryd" stopper søgningen, og planen og
+    tallene er uændrede. Bagefter kan der regnes igen."""
+    daarlig_plan(resultat)
+    foer = svar_json(resultat)
+    hovedtal = resultat.inner_text("#hovedtal")
+    resultat.click("#optimer-knap")
+    resultat.click("#optimer-afbryd")
+    assert resultat.locator("#forslag").is_hidden()
+    assert svar_json(resultat) == foer and resultat.inner_text("#hovedtal") == hovedtal
+    resultat.evaluate("motorKlar")
+    resultat.wait_for_function("() => motorKlar && document.querySelector('#motor').hidden")
+    b = resultat.locator('.tl-raekke[data-id="o3"] .tl-bjaelke')
+    resultat.evaluate("window.__f = tilstand.v")
+    b.focus()
+    b.press("ArrowRight")
+    resultat.wait_for_function("() => tilstand.v !== window.__f")
+    assert resultat.fejl == []

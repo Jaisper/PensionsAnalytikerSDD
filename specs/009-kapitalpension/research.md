@@ -27,3 +27,39 @@ og hver påstand er efterprøvet.
 - **Kapitalindkomst som marginal skat**: skat(PI + KI) − skat(PI). Hele merskatten tilskrives
   bufferen. Det svarer til, at kapitalindkomsten "ligger øverst", hvilket er praksis ved
   skatteloftet for kapitalindkomst.
+
+## R002 Fastpunktet: iterationer og hastighed
+
+Bufferens kapitalindkomst og formue afhænger af den jævne udbetaling og omvendt.
+
+**Første iteration** (KI = 0) overvurderer bufferen. Derefter konvergerer det monotont. Stop, når:
+- den jævne udbetaling ændrer sig mindre end 1 kr./md. i hvert år, eller
+- kapitalindkomsten ændrer sig mindre end 12 kr./år, og intet år skifter side af ældrechecks
+  formuegrænse.
+
+**Kold start** tager 3–6 iterationer (SC-002 er justeret fra 3 til 6). I optimeringen bruges den
+forrige kandidat som startgæt: 1 iteration for cirka 1/3 af kandidaterne.
+
+| | CPython | Browser |
+|---|---|---|
+| Én beregning, 4 ordninger, kold | 7 ms (før 009: 2 ms) | |
+| Find bedste plan, syntetisk (4 ordninger) | 2,3 s | 7,6 s (SC-003 < 10 s) |
+| Find bedste plan, rigtig rapport (5 ordninger) | | 13,1 s |
+
+**Tiltag:**
+- Registret husker værdier pr. år.
+- Optimeringen bruger et startgæt for bufferen.
+- Udbetalingsformen afprøves på et groft gitter af år (2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 25, 30),
+  og borgeren finjusterer på tidslinjen.
+
+**Afvist:**
+- Et lavere budget, fordi kandidaterne ud over 1.000 er billige.
+- En tidsgrænse, fordi den giver forskellige svar på hurtige og langsomme maskiner (Princip I).
+
+Over 10 s har brugeren i stedet "Afbryd".
+
+## R003 Konsekvens for optimeringen
+
+Med en realistisk buffer koster opsparing skat og pensionstillæg. En sen ratepension er derfor
+ikke længere klart dårlig: én profil gik fra en tydelig forbedring til cirka 70 kr./md. fra det
+bedste. Testen bruger nu en profil, der er tydeligt dårlig ("alt sent", cirka 2.000 kr./md.).

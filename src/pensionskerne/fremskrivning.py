@@ -76,7 +76,12 @@ def beregn(
     satsaar: int,
     beregningsdato: date,
     streng: bool = False,
+    *,
+    buffer_start: Fremskrivning | None = None,
 ) -> Fremskrivning:
+    """Fremskrivningen år for år. `buffer_start` er et gæt på bufferen (en nabos resultat) til
+    fastpunktets første iteration; det ændrer kun, hvor hurtigt fastpunktet findes, ikke hvilket
+    (inden for tolerancen). Optimeringen bruger det til at regne naboplaner hurtigere (009)."""
     valider(profil, antagelser, satsaar, beregningsdato)
 
     ordninger: list[Ordning] = list(profil.ordninger)
@@ -200,6 +205,22 @@ def beregn(
 
     aarets_opslag: dict[int, Regelopslag] = {}  # genbruges på tværs af bufferens iterationer
 
+    def _samme_buffer(ki, nye_ki, formue, nye_formue) -> bool:
+        """Kapitalindkomsten, årene blev regnet med, er inden for 12 × tolerancen pr. år af den,
+        bufferen giver, og intet år skifter side af ældrechecks formuegrænse. Så ændrer en ny
+        iteration ikke den jævne udbetaling mere end tolerancen — også efter blot én iteration
+        med et godt startgæt."""
+        if max((abs(nye_ki.get(k, 0.0) - ki.get(k, 0.0)) for k in nye_ki.keys() | ki.keys()), default=0.0)                 >= BUFFER_TOLERANCE_KR * 12:
+            return False
+        for alder in nye_formue.keys() | formue.keys():
+            o = aarets_opslag.get(alder)
+            if o is None:
+                continue
+            graense = o.v("yd.aeldrecheck.formuegraense")
+            if (profil.likvid_formue + formue.get(alder, 0.0) > graense) != (profil.likvid_formue + nye_formue.get(alder, 0.0) > graense):
+                return False
+        return True
+
     def aar_for_aar(kapitalindkomst: dict[int, float], formue: dict[int, float]):
         """Årene for givne kapitalindkomster og formuer fra bufferen (fastpunktet nedenfor)."""
         atp_skoennet = False
@@ -308,8 +329,7 @@ def beregn(
     samlet.antagelse("buffer_afkast_som_pension", rente_buffer)
     # Stopkriterium: den jævne udbetaling ændrer sig i intet år mere end BUFFER_TOLERANCE_KR om
     # måneden fra én iteration til den næste (hovedtallet vises afrundet til 100 kr.).
-    ki: dict[int, float] = {}
-    formue: dict[int, float] = {}
+    ki, formue = _buffer_ki_og_formue(buffer_start.jaevn, rente_buffer) if buffer_start else ({}, {})
     forrige: list[float] | None = None
     iteration = 0
     konvergeret = False
@@ -319,7 +339,7 @@ def beregn(
         jaevn = beregn_jaevn(tuple(aar), engangs_i_buffer, rente_buffer, antagelser.inflation, beregningsdato.year)
         niveauer = [j.jaevn for j in jaevn.aar] if jaevn else []
         nye_ki, nye_formue = _buffer_ki_og_formue(jaevn, rente_buffer)
-        if (nye_ki == ki and nye_formue == formue) or (
+        if (nye_ki == ki and nye_formue == formue) or _samme_buffer(ki, nye_ki, formue, nye_formue) or (
                 forrige is not None and len(forrige) == len(niveauer)
                 and max((abs(x - y) for x, y in zip(niveauer, forrige)), default=0.0) < BUFFER_TOLERANCE_KR * 12):
             konvergeret = True

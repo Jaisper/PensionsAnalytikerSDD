@@ -296,6 +296,7 @@ function tegnOrdninger() {
   }));
 }
 
+const OMLAEGNING = new Set(["ratepension", "livsvarig"]);  // kapitalpension omlagt: ingen buffer
 const UDBETALINGSFORMER = {
   engangs: "Som ét beløb",
   portioner: "I portioner over flere år",
@@ -330,7 +331,7 @@ function kapitalFelter(o) {
       livsvarig: "Kræver en overførsel, som du aftaler med dit pensionsselskab, før udbetalingen begynder.",
     }[form];
     for (const opt of vaelger.options) opt.disabled = o.afgift_betalt && ["ratepension", "livsvarig"].includes(opt.value);
-    $$(`#${o.id}-i_buffer`).forEach((b) => (b.closest(".felt").hidden = ["ratepension", "livsvarig"].includes(form)));
+    $$(`#${o.id}-i_buffer`).forEach((b) => (b.closest(".felt").hidden = OMLAEGNING.has(form)));
   };
   vaelger.addEventListener("change", () => {
     o.udbetalingsform = vaelger.value;
@@ -345,7 +346,7 @@ function kapitalFelter(o) {
     if (o.afgift_betalt && ["ratepension", "livsvarig"].includes(o.udbetalingsform)) { o.udbetalingsform = "engangs"; vaelger.value = "engangs"; }
     opdaterFelter();
   });
-  queueMicrotask(opdaterFelter);
+  opdaterFelter();  // synkront: kortet vises færdigt, uden at layoutet flytter sig bagefter
   return [
     el("div", { class: "felt", "data-felt": `ordninger[${o.id}].udbetalingsform` },
       el("label", { for: formId, tekst: "Hvordan vil du have den udbetalt?" }), vaelger, formHjaelp),
@@ -362,7 +363,7 @@ function bufferFelt(o) {
   const id = `${o.id}-i_buffer`;
   const boks = el("input", { type: "checkbox", id, checked: o.i_buffer !== false, "aria-describedby": `${id}-hjaelp` });
   boks.addEventListener("change", () => { o.i_buffer = boks.checked; });
-  return el("div", { class: "felt", "data-felt": `ordninger[${o.id}].i_buffer` },
+  return el("div", { class: "felt", "data-felt": `ordninger[${o.id}].i_buffer`, hidden: OMLAEGNING.has(o.udbetalingsform) },
     el("label", { class: "valg", for: id }, boks, " Brug som buffer"),
     el("p", { class: "felt__hjaelp", id: `${id}-hjaelp`, tekst: "Beløbet fordeles over årene i dit faste månedsbeløb. Slår du det fra, får du hele beløbet udbetalt det år." }));
 }
@@ -1037,18 +1038,31 @@ async function findBedstePlan() {
   const noegle = svarNoegle();
   const boks = $("#forslag");
   const fremdrift = el("progress", { max: 1, value: 0, "aria-label": "Afprøver kombinationer" });
-  boks.replaceChildren(el("p", { tekst: "Afprøver kombinationer …" }), fremdrift);
+  // Søgningen kan tage over 10 sekunder med mange ordninger: borgeren skal kunne afbryde den.
+  // Kernen kører i workeren og kan ikke stoppes midtvejs, så workeren genstartes; planen er uændret.
+  const afbryd = el("button", { type: "button", class: "knap knap--tekst", id: "optimer-afbryd", tekst: "Afbryd" });
+  let afbrudt = false;
+  afbryd.addEventListener("click", () => {
+    afbrudt = true;
+    startMotor();
+    hentKommuner();
+    fjernForslag();
+    knap.disabled = false;
+    knap.focus();
+  });
+  boks.replaceChildren(el("p", { tekst: "Afprøver kombinationer …" }), fremdrift, afbryd);
   boks.hidden = false;
   knap.disabled = true;
   try {
     const r = await kaldMedFremdrift("optimer", [noegle, idag()], (andel) => { fremdrift.value = andel; });
-    if (svarNoegle() !== noegle) return;  // planen er ændret, mens vi søgte
+    if (afbrudt || svarNoegle() !== noegle) return;  // afbrudt, eller planen er ændret, mens vi søgte
     if (!r.ok) { boks.replaceChildren(el("p", { class: "forslag__resultat", tekst: r.fejl.besked })); return; }
     visForslag(r.data, noegle);
   } catch {
+    if (afbrudt) return;
     boks.replaceChildren(el("p", { class: "forslag__resultat", tekst: "Vi kunne ikke søge efter en bedre plan lige nu. Prøv igen." }));
   } finally {
-    knap.disabled = false;
+    if (!afbrudt) knap.disabled = false;
   }
 }
 

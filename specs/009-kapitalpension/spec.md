@@ -161,8 +161,8 @@ Omlægning afprøves kun, når afgiften ikke er betalt. Forslaget siger fx "Kapi
 
 - **SC-001**: Golden cases for portioner, betalt afgift, omlægning og buffer med
   kapitalindkomst og formue er regnet i hånden fra loven.
-- **SC-002**: Kernen konvergerer på 3 eller færre iterationer for golden cases og den syntetiske
-  rapport.
+- **SC-002**: Kernen konvergerer på 6 eller færre iterationer for golden cases og den syntetiske
+  rapport. *Justeret fra 3 efter måling (research R002).*
 - **SC-003**: "Find bedste plan" tager under 10 s i browseren for 4 ordninger, heraf 1
   kapitalpension.
 - **SC-004**: Samme forslag i Pyodide og CPython.

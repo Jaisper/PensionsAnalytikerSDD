@@ -19,7 +19,8 @@ uv run pytest -m browser                             # Pyodide mod CPython + net
   - `register/<år>.toml`: ALLE satser med kilde og status. Ingen tal i `regler/` (testes af
     `tests/register/test_ingen_litteraler.py`).
   - `regler/`: ét modul pr. lovområde. Rene funktioner, som læser satser via `Regelopslag`.
-  - `fremskrivning.py`: år-for-år-orkestrering. `jaevn.py`: jævn udbetaling.
+  - `fremskrivning.py`: år-for-år-orkestrering, inkl. bufferens fastpunkt (kapitalindkomst og formue, 009).
+    `jaevn.py`: jævn udbetaling. `optimering.py`: find bedste plan (007).
 - `src/pensionsoverblik/`: brugerflade (feature 002 og 005). Statisk HTML/CSS/JS uden build. Python-koden
   kører i browseren (Pyodide i `static/worker.js`) via indgangspunktet `app.py`. Der er ingen server, og intet
   forlader browseren. Visningslaget må kun omformatere kernens tal. UX følger forfatningens Princip X og

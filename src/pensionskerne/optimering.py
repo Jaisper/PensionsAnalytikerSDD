@@ -56,6 +56,7 @@ MAANEDER = 12
 MAKS_EVALUERINGER = 1500
 KOORDINAT_RUNDER = 3
 STARTKVANTILER = (0.0, 0.25, 0.5, 0.75, 1.0)
+FORM_AAR_GITTER = (2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 25, 30)  # antal år for portioner og omlagt ratepension
 
 GULV_ANDEL = 0.70
 DYBDE_TOLERANCE = 0.97
@@ -185,10 +186,12 @@ def soegerum(profil: Pensionsprofil, antagelser: Antagelser, satsaar: int) -> tu
         if x.type == "ratepension":
             dimensioner.append([("varighed", x.id, n) for n in range(min_aar, maks_aar + 1)])
         if x.type == "kapitalpension":
+            # Et groft gitter af år er nok til at finde den rigtige udbetalingsform; borgeren
+            # finjusterer antallet af år på tidslinjen bagefter.
             seneste = int(o.v("ordning.kapitalpension.seneste_aar_efter_udbetalingsalder"))
-            former = [("engangs", None)] + [("portioner", n) for n in range(2, seneste + 1)]
+            former = [("engangs", None)] + [("portioner", n) for n in FORM_AAR_GITTER if 2 <= n <= seneste]
             if not x.afgift_betalt:
-                former += [("ratepension", n) for n in range(min_aar, maks_aar + 1)] + [("livsvarig", None)]
+                former += [("ratepension", n) for n in FORM_AAR_GITTER if min_aar <= n <= maks_aar] + [("livsvarig", None)]
             dimensioner.append([("form", x.id, f) for f in former])
     dimensioner.append([("opsaet", None, n) for n in range(0, opsat_maks + 1)])
     return udgangspunkt, dimensioner
@@ -277,13 +280,16 @@ def _gennemfoerlig(res: Fremskrivning, ref: _Reference) -> float | None:
 
 
 def _evaluer_plan(plan: Plan, profil: Pensionsprofil, antagelser: Antagelser, satsaar: int,
-                  beregningsdato: date, ref: _Reference) -> tuple[float, float] | None:
-    """(fast beløb, hovedtal, samlet real netto) for en gennemførlig kandidat, ellers None."""
+                  beregningsdato: date, ref: _Reference, varm: dict | None = None) -> tuple[float, float] | None:
+    """(fast beløb, slutniveau, samlet real netto) for en gennemførlig kandidat, ellers None.
+    `varm` holder den forrige kandidats resultat som startgæt for bufferens fastpunkt."""
     p, a = anvend(profil, antagelser, plan)
     try:
-        res = beregn(p, a, satsaar, beregningsdato)
+        res = beregn(p, a, satsaar, beregningsdato, buffer_start=(varm or {}).get("res"))
     except UgyldigtInput:
         return None
+    if varm is not None:
+        varm["res"] = res
     m = _gennemfoerlig(res, ref)
     if m is None:
         return None
@@ -316,10 +322,14 @@ def optimer(
     budget = mulige if udtoemmende else maks_evalueringer
 
     score: dict[tuple, tuple | None] = {}
+    # Naboplaner har næsten samme buffer: den forrige kandidat (i en koordinatsøgning typisk
+    # nabo-værdien i samme dimension) er startgæt for bufferens fastpunkt — samme deterministiske
+    # rækkefølge i CPython og browseren. Det bedste forslag regnes til sidst uden startgæt.
+    varm: dict = {"res": basis}
 
     def evaluer(vektor: tuple) -> tuple | None:
         if vektor not in score:
-            r = _evaluer_plan(_plan(vektor, udgangspunkt), profil, antagelser, satsaar, beregningsdato, ref)
+            r = _evaluer_plan(_plan(vektor, udgangspunkt), profil, antagelser, satsaar, beregningsdato, ref, varm)
             # Rangering: fast beløb hele perioden (= hovedtallet), så det senere niveau, så samlet real netto — i hele
             # kroner. Uafrundede tal ville lade forskelle i sidste decimal mellem CPython og
             # WebAssembly (research R001) afgøre uafgjorte og sende søgningen ad en anden vej.
