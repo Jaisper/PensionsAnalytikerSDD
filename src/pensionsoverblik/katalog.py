@@ -63,7 +63,6 @@ ADVARSLER: dict[str, dict[str, str]] = {
     "MELLEMSKAT_INTERVAL": {"placering": "graf", "ikon": "!", "titel": "Høj skat i nogle år"},
     "BUFFER_SOM_OPSPARING": {"placering": "hovedtal", "ikon": "≈", "titel": "Bufferen er opsparing"},
     "BUFFER_IKKE_KONVERGERET": {"placering": "hovedtal", "ikon": "!", "titel": "Usikkert tal"},
-    "JAEVN_FORUDSAETTER_SENERE_UDBETALINGER": {"placering": "hovedtal", "ikon": "≈", "titel": "Et gennemsnit"},
     "UDBETALING_FOER_LOVLIG_ALDER": {"placering": "generel", "ikon": "!", "titel": "Tjek din startalder"},
     "PORTIONER_KRAEVER_AFTALE": {"placering": "generel", "ikon": "≈", "titel": "Kapitalpension i portioner"},
     "OMLAEGNING_KRAEVER_OVERFOERSEL": {"placering": "generel", "ikon": "≈", "titel": "Omlægning af kapitalpension"},

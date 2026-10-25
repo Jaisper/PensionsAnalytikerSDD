@@ -89,14 +89,11 @@ def test_engangsbeloeb_og_buffer_i_grafen():
     assert {(e["ordning_id"], e["i_buffer"]) for e in kort["engangs"]} == {("ald", True), ("kap", False)}
 
 
-def test_buffer_uden_engangsbeloeb_kan_vaere_negativ():
-    """Uden engangsbeløb udjævnes de løbende udbetalinger alligevel; tidlige år kan "låne" af
-    senere (negativ buffer). Det er netop det, advarslen JAEVN_FORUDSAETTER_... siger."""
-    res = beregn(enlig_profil(ordninger=(), atp_aarlig=15_000), Antagelser(), 2026, BEREGNINGSDATO)
-    v = byg_visning(res)
-    assert v["graf"]["engangs"] == []
-    if min(v["graf"]["buffer"]) < 0:
-        assert "JAEVN_FORUDSAETTER_SENERE_UDBETALINGER" in [a.kode for a in res.advarsler]
+def test_buffer_er_aldrig_negativ(res_og_visning):
+    """Feature 010: udjævningen låner aldrig — bufferen er altid 0 eller mere."""
+    _, v = res_og_visning
+    if v["graf"]["buffer"]:
+        assert min(v["graf"]["buffer"]) >= 0
 
 
 def test_graf_matcher_kernen(res_og_visning):

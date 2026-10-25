@@ -513,9 +513,10 @@ function tegnGraf(v) {
     ...(v.graf.jaevn ? [el("li", {}, el("i", { class: "linje", "aria-hidden": "true" }), JAEVN_NAVN)] : []));
   const forklaring = $("#jaevn-forklaring");
   forklaring.hidden = !v.graf.jaevn;
-  forklaring.textContent = "Den stiplede linje er det faste beløb, du kan bruge hver måned, hvis du selv udjævner: "
-    + "Når søjlen er under linjen, bruger du af din buffer – dine engangsbeløb og det, du har sparet op. "
-    + "Når søjlen er over linjen, sparer du op. Den nederste graf viser, hvor meget der står i bufferen.";
+  forklaring.textContent = "Den stiplede linje er det beløb, du kan bruge hver måned, hvis du selv udjævner – uden "
+    + "nogensinde at låne. Når søjlen er over linjen, sparer du op. Når den er under, bruger du af opsparingen "
+    + "(også dine engangsbeløb). Den nederste graf viser opsparingen. Den går aldrig i minus: Når den er brugt op, "
+    + "kan beløbet først stige, når der kommer flere penge. Derfor kan linjen gå op i trin.";
   const engangs = engangsMarkoerer(v);
   $("#graf-markeringer").replaceChildren(
     ...engangs.map((e) => el("li", {}, el("span", { class: "ikon ikon--engangs", "aria-hidden": "true", tekst: "◆" }), e.lang)),
@@ -660,7 +661,7 @@ function tegnBuffergraf(v) {
     responsive: true, maintainAspectRatio: false, animation: { duration: 250 },
     plugins: {
       legend: { display: false },
-      title: { display: true, text: "Din buffer (opsparing uden for pension), i dagens kroner", align: "start", color: css("--petrol-900") },
+      title: { display: true, text: "Din opsparing uden for pension (bufferen), i dagens kroner", align: "start", color: css("--petrol-900") },
       tooltip: { callbacks: { title: (t) => `${t[0].label} år`, label: (c) => ` I bufferen: ${kr(c.raw)} kr.` } },
     },
     scales: {
@@ -1209,7 +1210,7 @@ function visResultat(v, foersteGang = true) {
   $("#hovedtal").dataset.vaerdi = h.maaned;
   $("#hovedtal-forklaring").textContent = h.type === "jaevn"
     ? `Det faste beløb, du kan bruge hver måned fra du er ${h.fra_alder} år, hvis du selv udjævner (den stiplede linje i grafen). I dagens kroner, så beløbet er lige meget værd hele livet.`
-      + (h.senere ? ` Fra du er ${h.senere.fra_alder}, stiger det til ca. ${kr(h.senere.maaned)} kr., når dit engangsbeløb er udbetalt.` : "")
+      + (h.senere ? ` Fra du er ${h.senere.fra_alder}, stiger det til ca. ${kr(h.senere.maaned)} kr., når flere af dine udbetalinger er begyndt.` : "")
       + ` Din folkepensionsalder er ${v.folkepensionsalder} år.`
     : `Efter skat og i dagens kroner, i dit første hele år med folkepension (${h.fra_alder} år).`;
   const foer = tilstand.forrigeHovedtal;
