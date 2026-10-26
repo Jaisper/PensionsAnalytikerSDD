@@ -290,6 +290,34 @@ beløb vises i dagens kroner (inflationskorrigeret med antagelsens inflation, so
 - Udjævning og buffer er hver for sig (valgt). Den fælles tidslinje er kun til visning.
 - Optimeringen tager én person ad gangen (valgt), mens den anden er fast.
 
+## 7g. Opsparing uden for pension (feature 013)
+
+**Model:** Hver person har en liste af aktiver (`Aktiv`). I 013 er der kun typen `bank`
+(skattekassen kapitalindkomst). Frit depot og aktiesparekonto kommer i 013b.
+
+**Koblinger efter loven:**
+- Afkastet er positiv kapitalindkomst (PSL § 4). Det beskattes sammen med bufferens afkast med
+  bundfradrag og skatteloft (PSL § 7, stk. 1, og § 19, stk. 2).
+- Afkastet indgår i pensionstillæggets indtægtsgrundlag (LSP § 29).
+- Saldoen pr. 1. januar tæller i husstandens likvide formue (LSP § 72 d, stk. 2), også
+  partnerens.
+
+**Modelvalg (antagelser, ikke lov):**
+- Renten er 009-bufferens: pensionens afkast før PAL-skat. Der er ingen særskilt sats pr. aktivtype.
+- Opsparing i planen indsættes i bufferen primo første udbetalingsår og bruges af udjævningen uden
+  lån (010). Den er derfor brugt op ved planens slutning.
+- Urørt opsparing vokser brutto. Skatten af afkastet betales af den løbende udbetaling.
+- Banken står der den 1. januar og tæller i formuen allerede i første udbetalingsår.
+  Engangsbeløb udbetales i løbet af året og tæller først året efter (som i 009).
+- `likvid_formue` beholder sin betydning: en fast formue, der kun tæller i ældrechecken. Gamle
+  input giver samme resultat. Brugerfladen bruger feltet til partnerens opsparing ved et overslag.
+
+**Forenklinger, der står tilbage:**
+- Før første udbetalingsår vokser opsparingen med renten før skat. Skatten betales af lønnen, som
+  kernen ikke kender (advarsel `OPSPARING_FOER_UDBETALING`).
+- Ingen løbende indskud på opsparingen frem til pension.
+- Ingen trækrækkefølge, fordi der kun er én skattekasse. Den kommer i 013b.
+
 ## 8. Uden for denne feature (kommer i senere features)
 
 PDF-import fra PensionsInfo · AI-forklaring/chat · Optimering af udbetalingsrækkefølge

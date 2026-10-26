@@ -92,6 +92,10 @@ def _samlet(h, profil_a, profil_b, v_a: dict, v_b: dict) -> dict:
         jaevn = {a.kalenderaar: j.jaevn * a.realfaktor / 12 for j, a in zip(res.jaevn.aar, res.aar)} if res.jaevn else {}
         return aar, jaevn
 
+    def formue(res, profil):
+        foedt = profil.foedselsdato.year
+        return {foedt + f.alder: (f.i_plan + f.uden_for_plan) * f.realfaktor for f in res.formue}
+
     netto_a, jaevn_a = pr_aar(h.a)
     netto_b, jaevn_b = pr_aar(h.b)
     alle = netto_a.keys() | netto_b.keys()
@@ -106,7 +110,22 @@ def _samlet(h, profil_a, profil_b, v_a: dict, v_b: dict) -> dict:
         "jaevn": [jaevn_a.get(k, 0.0) + jaevn_b.get(k, 0.0) for k in kalenderaar],
         "alder_dig": [k - profil_a.foedselsdato.year for k in kalenderaar],
         "alder_partner": [k - profil_b.foedselsdato.year for k in kalenderaar],
+        "formue": _samlet_formue(formue(h.a, profil_a), formue(h.b, profil_b), v_a["formue"], v_b["formue"]),
     }
+
+
+def _samlet_formue(a: dict[int, float], b: dict[int, float], v_a: dict | None, v_b: dict | None) -> dict | None:
+    """Husstandens opsparing pr. kalenderår (dagens kroner, feature 013). Efter en persons sidste
+    beregningsår tælles vedkommendes restformue med uændret."""
+    if v_a is None and v_b is None:
+        return None
+    kalenderaar = list(range(min(a.keys() | b.keys()), max(a.keys() | b.keys()) + 1))
+
+    def vaerdi(d, k):
+        return d[k] if k in d else (d[max(d)] if d and k > max(d) else 0.0)
+
+    return {"kalenderaar": kalenderaar, "i_alt": [vaerdi(a, k) + vaerdi(b, k) for k in kalenderaar],
+            "rest": (v_a["rest"] if v_a else 0.0) + (v_b["rest"] if v_b else 0.0)}
 
 
 def beregn(guide_json: str, idag: str) -> dict:

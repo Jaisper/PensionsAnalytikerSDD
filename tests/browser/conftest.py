@@ -83,7 +83,8 @@ def koer_guide(page, pdf_sti=None):
     for felt in page.query_selector_all(".ordning input[id$='-udbetaling_start_alder']"):
         if not felt.input_value():
             felt.fill("70")
-    page.click("#naeste")
+    page.click("#naeste")                       # trin 4: opsparing (013)
+    page.click("#naeste")                       # trin 5: forventninger
     page.click("#naeste")
     page.wait_for_selector("#resultat:not([hidden])")
 

@@ -12,6 +12,9 @@ from typing import Literal, Mapping
 # "gift_samlevende" (før 012) læses som samlevende.
 Civilstand = Literal["enlig", "gift", "samlevende", "gift_samlevende"]
 Ordningstype = Literal["ratepension", "livsvarig", "aldersopsparing", "kapitalpension"]
+# Feature 013: opsparing uden for pension. 013 kender kun bank (skattekassen kapitalindkomst);
+# frit depot og aktiesparekonto kommer i 013b.
+Aktivtype = Literal["bank"]
 Kildetype = Literal[
     "ratepension", "livsvarig", "grundbeloeb", "pensionstillaeg", "atp", "aeldrecheck", "mediecheck"
 ]
@@ -56,6 +59,16 @@ class Ordning:
 
 
 @dataclass(frozen=True)
+class Aktiv:
+    """Opsparing uden for pension (feature 013), ejet af den profil, den ligger i. Afkastet er
+    kapitalindkomst, og saldoen er likvid formue (LSP § 72 d, stk. 2)."""
+    id: str
+    saldo: float                        # i dag
+    type: Aktivtype = "bank"
+    i_plan: bool = True                 # True: bruges i den faste udbetaling; False: står urørt og forrentes
+
+
+@dataclass(frozen=True)
 class PartnerIndkomst:
     am_pligtig_arbejdsindkomst: float = 0.0
     oevrig_indkomst: float = 0.0        # private pensioner, kapitalindkomst, offentlige ydelser
@@ -66,7 +79,7 @@ class Partner:
     foedselsdato: date
     indkomst_pr_aar: Mapping[int, PartnerIndkomst] = field(default_factory=dict)
     # Feature 012 — kendes partneren som fuld profil (husstanden), pr. kalenderår:
-    formue_pr_aar: Mapping[int, float] = field(default_factory=dict)          # partnerens buffer pr. 1. januar
+    formue_pr_aar: Mapping[int, float] = field(default_factory=dict)          # partnerens opsparing pr. 1. januar
     kapitalindkomst_pr_aar: Mapping[int, float] = field(default_factory=dict) # partnerens positive KI
     uudnyttet_personfradrag_pr_aar: Mapping[int, float] = field(default_factory=dict)  # skatteværdi
     pensionist_fra_aar: int | None = None  # partnerens faktiske folkepensionsstart (None = ud fra alderen)
@@ -78,8 +91,9 @@ class Pensionsprofil:
     civilstand: Civilstand
     kommune: str
     folkekirkemedlem: bool = False      # kirkeskat efter kommunens sats (registret)
-    likvid_formue: float = 0.0          # husstandens samlede likvide formue pr. 1. januar (§ 72 d, stk. 2)
+    likvid_formue: float = 0.0          # fast likvid formue pr. 1. januar (§ 72 d, stk. 2); kun ældrechecken
     anden_kapitalindkomst: float = 0.0
+    opsparing: tuple[Aktiv, ...] | list[Aktiv] = ()  # feature 013
     ordninger: tuple[Ordning, ...] | list[Ordning] = ()
     atp_aarlig: float | None = None     # None = registrets fallback (markeres)
     partner: Partner | None = None
@@ -167,6 +181,15 @@ class Engangsbeloeb:
 
 
 @dataclass(frozen=True)
+class FormueAar:
+    """Opsparing uden for pension ved årets udgang (feature 013), nominelt."""
+    alder: int
+    i_plan: float               # bruges i den faste udbetaling (bank i planen og bufferen fra engangsbeløb)
+    uden_for_plan: float        # står urørt og forrentes
+    realfaktor: float = 1.0     # som Aarsresultat.realfaktor: gang med den for dagens kroner
+
+
+@dataclass(frozen=True)
 class Fremskrivning:
     satsaar: int
     beregningsdato: date
@@ -178,6 +201,16 @@ class Fremskrivning:
     jaevn: JaevnUdbetaling | None = None
     engangsbeloeb: tuple[Engangsbeloeb, ...] = ()
     buffer_iterationer: int = 1         # fastpunkt-iterationer for bufferens kapitalindkomst og formue (009)
+    formue: tuple[FormueAar, ...] = ()  # fra i dag til sidste år (013)
+    formue_start: float = 0.0           # opsparingen i dag (013)
+
+    def formue_primo(self) -> dict[int, float]:
+        """Opsparingen pr. 1. januar pr. alder: ultimo året før, og i dag startsaldoen (013)."""
+        if not self.formue:
+            return {}
+        primo = {self.formue[0].alder: self.formue_start}
+        primo.update({nu.alder: foer.i_plan + foer.uden_for_plan for foer, nu in zip(self.formue, self.formue[1:])})
+        return primo
 
     def aar_ved(self, alder: int) -> Aarsresultat:
         return next(a for a in self.aar if a.alder == alder)

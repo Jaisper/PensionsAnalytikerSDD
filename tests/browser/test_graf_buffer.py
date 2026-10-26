@@ -67,4 +67,4 @@ def test_bufferen_gaar_aldrig_i_minus_og_forklares(resultat):
     """Feature 010: udjævningen låner aldrig."""
     assert min(b for b in resultat.evaluate("tilstand.v.graf.buffer") if b is not None) >= 0
     assert "aldrig i minus" in resultat.inner_text("#jaevn-forklaring")
-    assert "opsparing uden for pension" in resultat.evaluate("tilstand.buffergraf.options.plugins.title.text")
+    assert "opsparing uden for pension" in resultat.evaluate("tilstand.buffergraf.options.plugins.title.text").lower()

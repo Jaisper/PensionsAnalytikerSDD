@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from datetime import date
 
 from .model import (
-    Engangsbeloeb,
+    Engangsbeloeb, FormueAar,
     Aarsresultat, Advarsel, Antagelser, Fremskrivning, Indkomstkilde, Ordning,
     Partner, PartnerIndkomst, Pensionsprofil,
 )
@@ -206,11 +206,29 @@ def beregn(
 
     aarets_opslag: dict[int, Regelopslag] = {}  # genbruges på tværs af bufferens iterationer
 
+    # ── 3a. Opsparing uden for pension (feature 013) ─────────────────────────
+    # Banken forrentes som bufferen (pensionens afkast før PAL-skat). Før første udbetalingsår vokser
+    # den brutto: skatten af afkastet betales af lønnen, som kernen ikke kender (forenkling). Aktiver
+    # i planen indsættes i bufferen primo første udbetalingsår; urørte aktiver vokser videre, og
+    # deres afkast er kapitalindkomst, hvis skat betales af den løbende udbetaling (som bufferens).
+    rente_buffer = afkast / (1 - samlet.v("pal.sats"))
+    samlet.antagelse("buffer_afkast_som_pension", rente_buffer)
+    i_plan_start = sum(a.saldo for a in profil.opsparing if a.i_plan)
+    uroert_start = sum(a.saldo for a in profil.opsparing if not a.i_plan)
+    i_plan_indskud = i_plan_start * (1 + rente_buffer) ** (tabel_start - alder_nu)
+    uroert_primo = {alder: uroert_start * (1 + rente_buffer) ** (alder - alder_nu)
+                    for alder in range(alder_nu, tabel_slut + 1)} if uroert_start > 0 else {}
+    uroert_ki = {alder: saldo * rente_buffer for alder, saldo in uroert_primo.items() if alder >= tabel_start}
+
     def husstandens_formue(alder: int, kalenderaar: int, egen_buffer: dict[int, float]) -> float:
-        """Likvid formue pr. 1. januar (§ 72 d, stk. 2): husstandens oplyste formue, egen buffer og
-        — kendes partneren som fuld profil — partnerens buffer."""
+        """Likvid formue pr. 1. januar (§ 72 d, stk. 2): den faste formue, egen buffer, egen opsparing
+        og — kendes partneren som fuld profil — partnerens opsparing. Banken står der 1. januar i
+        første udbetalingsår; engangsbeløb udbetales i løbet af året og tæller først året efter."""
         partner = profil.partner.formue_pr_aar.get(kalenderaar, 0.0) if profil.partner else 0.0
-        return profil.likvid_formue + egen_buffer.get(alder, 0.0) + partner
+        egen = egen_buffer.get(alder, 0.0) + uroert_primo.get(alder, 0.0)
+        if alder == tabel_start:
+            egen += i_plan_indskud
+        return profil.likvid_formue + egen + partner
 
     def _samme_buffer(ki, nye_ki, formue, nye_formue) -> bool:
         """Kapitalindkomsten, årene blev regnet med, er inden for 12 × tolerancen pr. år af den,
@@ -279,7 +297,7 @@ def beregn(
                     partner_fp_alder is not None
                     and kalenderaar - profil.partner.foedselsdato.year >= partner_fp_alder
                 )
-            buffer_ki = kapitalindkomst.get(alder, 0.0)
+            buffer_ki = kapitalindkomst.get(alder, 0.0) + uroert_ki.get(alder, 0.0)
             grundlag = indtaegtsgrundlag(
                 privat_s, atp_aar, profil.anden_kapitalindkomst + buffer_ki,
                 _partner_indkomst(profil.partner, kalenderaar, o), partner_er_pensionist, o,
@@ -344,8 +362,8 @@ def beregn(
         if plan.i_buffer:
             for alder, beloeb in plan.engangs.items():
                 engangs_i_buffer[alder] = engangs_i_buffer.get(alder, 0.0) + beloeb
-    rente_buffer = afkast / (1 - samlet.v("pal.sats"))
-    samlet.antagelse("buffer_afkast_som_pension", rente_buffer)
+    if i_plan_indskud:
+        engangs_i_buffer[tabel_start] = engangs_i_buffer.get(tabel_start, 0.0) + i_plan_indskud
     # Stopkriterium: den jævne udbetaling ændrer sig i intet år mere end BUFFER_TOLERANCE_KR om
     # måneden fra én iteration til den næste (hovedtallet vises afrundet til 100 kr.).
     ki, formue = _buffer_ki_og_formue(buffer_start.jaevn, rente_buffer) if buffer_start else ({}, {})
@@ -413,6 +431,14 @@ def beregn(
             "med i ældrechecks formuegrænse.",
             registerposter=("pal.sats", "skat.kapitalindkomst.bundfradrag", "yd.aeldrecheck.formuegraense"),
         ))
+    if tabel_start > alder_nu and i_plan_start + uroert_start > 0:
+        advarsler.append(Advarsel(
+            "OPSPARING_FOER_UDBETALING",
+            f"Din opsparing uden for pension er regnet til at vokse med afkastet frem til første "
+            f"udbetaling som {tabel_start}-årig. Skatten af afkastet i de år betales af din løn og er "
+            "ikke regnet med.",
+            registerposter=("pal.sats",),
+        ))
     if not konvergeret:
         advarsler.append(Advarsel(
             "BUFFER_IKKE_KONVERGERET",
@@ -430,14 +456,27 @@ def beregn(
         aar=tuple(aar), advarsler=tuple(advarsler), antagelser=antagelser,
         sporing_samlet=tuple(samlet.brugt), jaevn=jaevn, engangsbeloeb=engangsbeloeb,
         buffer_iterationer=iteration,
+        formue=_formue(alder_nu, tabel_start, aar, jaevn, rente_buffer, i_plan_start, uroert_primo,
+                       1 + antagelser.inflation),
+        formue_start=i_plan_start + uroert_start,
     )
 
 
+def _formue(alder_nu, tabel_start, aar, jaevn, rente, i_plan_start, uroert_primo, vaekst) -> tuple[FormueAar, ...]:
+    """Opsparingen ved årets udgang fra i dag (013): før første udbetalingsår vokser den med renten;
+    derefter er opsparingen i planen bufferen, og den urørte vokser videre."""
+    buffer = {j.alder: max(0.0, j.buffer_rest) for j in jaevn.aar} if jaevn else {}
+    slut = aar[-1].alder if aar else tabel_start - 1
+    return tuple(
+        FormueAar(
+            alder,
+            i_plan_start * (1 + rente) ** (alder - alder_nu + 1) if alder < tabel_start else buffer.get(alder, 0.0),
+            uroert_primo.get(alder, 0.0) * (1 + rente),
+            1 / vaekst ** (alder - alder_nu),
+        )
+        for alder in range(alder_nu, slut + 1)
+    )
 
-def bufferens_ki_og_formue(res: Fremskrivning) -> tuple[dict[int, float], dict[int, float]]:
-    """Kapitalindkomst og formue pr. 1. januar pr. alder fra en færdig beregnings buffer (012)."""
-    rente = res.antagelser.afkast_efter_pal / (1 - Regelopslag(res.satsaar, res.satsaar, 0.0).v("pal.sats"))
-    return _buffer_ki_og_formue(res.jaevn, rente)
 
 
 def _buffer_ki_og_formue(jaevn: JaevnUdbetaling | None, rente: float) -> tuple[dict[int, float], dict[int, float]]:

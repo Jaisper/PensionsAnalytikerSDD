@@ -7,7 +7,7 @@ Personerne kobles kun dér, hvor loven kobler dem:
   social pension § 29): partnerens private pension, ATP og kapitalindkomst indgår — fuldt, når
   partneren er pensionist, ellers med registrets andel.
 - Ældrechecks formuegrænse gælder husstandens samlede likvide formue (§ 72 d, stk. 2), også
-  begges buffer.
+  begges buffer og opsparing uden for pension (013).
 - Kun ægtefæller: uudnyttet skatteværdi af personfradrag nedsætter den andens skatter (PSL § 10,
   stk. 3), og et uudnyttet bundfradrag for kapitalindkomst forhøjer den andens (PSL § 7, stk. 5).
 
@@ -23,7 +23,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from datetime import date
 
-from .fremskrivning import beregn, bufferens_ki_og_formue
+from .fremskrivning import beregn
 from .jaevn import BUFFER_TOLERANCE_KR
 from .model import Advarsel, Antagelser, Fremskrivning, Partner, PartnerIndkomst, Pensionsprofil
 
@@ -44,7 +44,6 @@ def partner_fra(res: Fremskrivning, profil: Pensionsprofil, antagelser: Antagels
     """Partneroplysningerne, den anden person skal bruge, udledt af denne persons beregning."""
     aar = range(res.beregningsdato.year, res.beregningsdato.year + PARTNER_AAR)
     pr_aar = {a.kalenderaar: a for a in res.aar}
-    _, formue_pr_alder = bufferens_ki_og_formue(res)
     foedselsaar = profil.foedselsdato.year
 
     def privat(a) -> float:
@@ -56,7 +55,7 @@ def partner_fra(res: Fremskrivning, profil: Pensionsprofil, antagelser: Antagels
             k: PartnerIndkomst(oevrig_indkomst=(privat(pr_aar[k]) if k in pr_aar else 0.0) + profil.anden_kapitalindkomst)
             for k in aar
         },
-        formue_pr_aar={foedselsaar + alder: v for alder, v in formue_pr_alder.items()},
+        formue_pr_aar={foedselsaar + alder: v for alder, v in res.formue_primo().items() if v > 0},
         kapitalindkomst_pr_aar={k: pr_aar[k].kapitalindkomst if k in pr_aar else 0.0 for k in aar},
         uudnyttet_personfradrag_pr_aar={k: a.uudnyttet_personfradrag for k, a in pr_aar.items()},
         pensionist_fra_aar=foedselsaar + res.folkepensionsalder + antagelser.folkepension_opsaettelse_aar,
