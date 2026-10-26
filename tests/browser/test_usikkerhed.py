@@ -25,7 +25,9 @@ def test_spaend_og_tabel(resultat):
     resultat.click("#hovedtal-spaend a")
     assert resultat.locator("#usikkerhed").get_attribute("open") is not None
     raekker = resultat.locator("#usikkerhed-tabel tbody tr")
-    assert raekker.count() == 7
+    assert raekker.count() == 9                 # dit valg, seks (018) og to levetider (019)
+    assert "Planen rækker til 95 år" in resultat.inner_text("#usikkerhed-tabel")
+    assert "Lever du længere" in resultat.inner_text("#usikkerhed-efter")
     assert "Dit valg" in raekker.nth(0).inner_text()
     assert resultat.fejl == []
 
@@ -34,7 +36,7 @@ def test_samme_som_cpython(resultat):
     vent_paa_spaend(resultat)
     svar = json.dumps(resultat.evaluate("tilstand.aktuelleSvar"))
     for s in resultat.evaluate("tilstand.usikkerhed"):
-        assert s["beloeb"] == app.scenarie(svar, IDAG, s["afkast"], s["inflation"])["data"]
+        assert s["beloeb"] == app.scenarie(svar, IDAG, s["afkast"], s["inflation"], s["plan_slut_alder"])["data"]
 
 
 def test_ny_beregning_afbryder_de_gamle_scenarier(resultat):
@@ -43,7 +45,7 @@ def test_ny_beregning_afbryder_de_gamle_scenarier(resultat):
     resultat.evaluate("regnUsikkerhed()")
     vent_paa_spaend(resultat)
     assert resultat.evaluate("usikkerhedNr") == nr + 2
-    assert len(resultat.evaluate("tilstand.usikkerhed")) == 6
+    assert len(resultat.evaluate("tilstand.usikkerhed")) == 8  # 018 og levetid (019)
 
 
 def test_spaendet_foelger_fanen(side, tmp_path):
@@ -53,6 +55,7 @@ def test_spaendet_foelger_fanen(side, tmp_path):
     faner(side).nth(2).click()
     samlet = side.inner_text("#hovedtal-spaend")
     assert dig != samlet and "mellem" in samlet
+    assert side.locator("#usikkerhed-efter").is_hidden()   # parret når planens slutning i forskellige år
     rk = side.evaluate("tilstand.usikkerhed")[0]["beloeb"]
     assert rk["samlet"] == rk["dig"] + rk["partner"]
 

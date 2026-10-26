@@ -192,8 +192,12 @@ def beregn(
         ))
 
     tabel_start = max(alder_nu, min([fp_alder] + [p.start for p in planer]))
+    # Planens sidste år (019): levetidsscenarier ændrer det uden at ændre livrentens ydelse.
+    plan_slut = antagelser.plan_slut_alder or antagelser.livsvarig_horisont_alder
+    if antagelser.plan_slut_alder is not None:
+        samlet.antagelse("plan_slut_alder", plan_slut)
     tabel_slut = max(
-        [antagelser.livsvarig_horisont_alder, fp_start]
+        [plan_slut, fp_start]
         + [max(p.rater) for p in planer if p.rater]
     )
 

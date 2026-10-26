@@ -78,6 +78,7 @@ def til_kerne(data: dict) -> tuple[Pensionsprofil, Antagelser]:
         inflation=_tal(a.get("inflation"), "antagelser.inflation", standard.inflation),
         folkepension_opsaettelse_aar=_heltal(a.get("folkepension_opsaettelse_aar"),
                                              "antagelser.folkepension_opsaettelse_aar", 0),
+        plan_slut_alder=_heltal(a.get("plan_slut_alder"), "antagelser.plan_slut_alder"),
     )
     return profil, antagelser
 

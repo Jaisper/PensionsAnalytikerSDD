@@ -124,6 +124,8 @@ def valider(profil: Pensionsprofil, antagelser: Antagelser, satsaar: int, beregn
             raise UgyldigtInput(f"antagelser.{navn}", "Satsen skal være større end -100 %")
     if antagelser.satsregulering is not None and antagelser.satsregulering <= -1:
         raise UgyldigtInput("antagelser.satsregulering", "Satsen skal være større end -100 %")
+    if antagelser.plan_slut_alder is not None and antagelser.plan_slut_alder <= beregningsdato.year - profil.foedselsdato.year:
+        raise UgyldigtInput("antagelser.plan_slut_alder", "Planen skal slutte efter din nuværende alder")
     if antagelser.livsvarig_min_aar < 1:
         raise UgyldigtInput("antagelser.livsvarig_min_aar", "Skal være mindst 1 år")
 
