@@ -10,8 +10,9 @@ Numrene følger, hvornår en spec blev oprettet, ikke rækkefølgen herunder.
 | 013 | Husstandsbalance: opsparing uden for pension (bank) | Færdig, ikke merget | 009, 010, 012 | Fundamentet for frie midler |
 | 018 | Usikkerhed om afkast (±1 procentpoint) og inflation (±0,5 procentpoint), som legacy | Færdig, ikke merget | 007 | Ønsket 2026-10-26 |
 | 019 | Levetid som scenarie (planen til 85 og 95 år) | Færdig, ikke merget | 018 | Billigere end Monte Carlo. Levetiden er ofte den største risiko |
+| 020a¹ | Forenklingsregistret (fra 020) | Næste | – | Lille. Gør forenklingerne synlige og testede |
 | 017 | Arbejdsår og løn før pension | Spec (clarify færdig) | 013 | Uden løn kender kernen ikke skatten i arbejdsårene. Giver "Hvornår kan jeg stoppe?" og arbejde ved siden af pensionen |
-| 020 | Forklaring i tre niveauer (020a–d) | Spec (clarify færdig) | 020a: – | Placering afventer beslutning. Forslag: efter 017. Forenklingsregistret kan komme før |
+| 020 | Forklaring i tre niveauer (resten af 020a, derefter 020b–d) | Spec (besluttet) | 017; 020b kræver skifteren nominel/dagens kroner | Efter 017 (besluttet 2026-10-26) |
 | 013b | Frit depot og aktiesparekonto | Godkendt i 013's opdeling | 013 | Aktieindkomst, ASK og trækrækkefølge |
 | – | "Hvor skal næste krone hen?" | Idé | 017, 013b (014 for afdrag på lån) | Kræver skatten i arbejdsårene (fradragsværdi) og ASK at sammenligne med |
 | – | "Hvad hvis min partner dør?" | Idé | 012 | Efterladtescenarie |
@@ -20,6 +21,8 @@ Numrene følger, hvornår en spec blev oprettet, ikke rækkefølgen herunder.
 | 015 | Arv | Idé (fra 013) | 013 | |
 | – | Afkast pr. år i kernen og "dårlige år først" (stress-forløb) | Idé | 017, 013b | Viser sekvensrisikoen uden statistik. Forudsætning for 016 |
 | 016 | Monte Carlo | Idé (fra 013) | afkast pr. år | Kræver kilde til udsving (Rådet for Afkastforventninger) og en hurtigere beregning: ca. 200 forløb i baggrunden, vifte med 10/50/90 % |
+
+¹ Kun forenklingsregistret laves før 017.
 
 ## Små gevinster, der kan lægges ind imellem
 

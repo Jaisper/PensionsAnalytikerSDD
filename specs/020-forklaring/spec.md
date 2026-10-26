@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-26
 
-**Status**: Draft – clarify gennemført, opdeling foreslået (se sidst)
+**Status**: Draft – clarify gennemført, opdeling besluttet (se sidst)
 
 **Input**: "Det er vigtigt at kunne forklare, hvordan pensionsanalytikeren regner – for newbies,
 almindeligt vidende og eksperter. Alt væsentligt ift. præsentation og beregninger skal
@@ -294,8 +294,9 @@ Nye features (fx 013b og 017) SKAL tilføje deres punkter til inventaret.
 | **020c** | Forklaring af optimeringen (US5) | 020a |
 | **020d** | Metodesiden, eksport og udskrift (US4, US6), slået sammen med "Rapport til rådgiveren" | 020a |
 
-**Placering på roadmappen** (forslag, afventer beslutning): efter 017, fordi "Hvornår kan jeg
-stoppe?" har mere værdi for borgeren. Forenklingsregistret er lille og kan komme før.
+**Besluttet 2026-10-26** (projektejeren): Opdelingen er godkendt. Forenklingsregistret (fra 020a)
+laves først, fordi det er lille og gør de eksisterende forenklinger synlige. Resten af 020 kommer
+efter 017.
 
 ## Uden for scope
 
