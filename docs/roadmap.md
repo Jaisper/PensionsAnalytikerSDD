@@ -8,7 +8,8 @@ Numrene følger, hvornår en spec blev oprettet, ikke rækkefølgen herunder.
 | # | Feature | Status | Forudsætter | Hvorfor her |
 |---|---|---|---|---|
 | 013 | Husstandsbalance: opsparing uden for pension (bank) | Færdig, ikke merget | 009, 010, 012 | Fundamentet for frie midler |
-| 017 | Arbejdsår og løn før pension | Spec (draft) | 013 | Uden løn kender kernen ikke skatten i arbejdsårene. Giver "Hvornår kan jeg stoppe?" og arbejde ved siden af pensionen |
+| 018 | Usikkerhed om afkast (±1 procentpoint) og inflation (±0,5 procentpoint), som legacy | Færdig, ikke merget | 007 | Ønsket 2026-10-26 |
+| 017 | Arbejdsår og løn før pension | Spec (clarify færdig) | 013 | Uden løn kender kernen ikke skatten i arbejdsårene. Giver "Hvornår kan jeg stoppe?" og arbejde ved siden af pensionen |
 | 013b | Frit depot og aktiesparekonto | Godkendt i 013's opdeling | 013 | Aktieindkomst, ASK og trækrækkefølge |
 | – | "Hvor skal næste krone hen?" | Idé | 017, 013b (014 for afdrag på lån) | Kræver skatten i arbejdsårene (fradragsværdi) og ASK at sammenligne med |
 | – | "Hvad hvis min partner dør?" | Idé | 012 | Efterladtescenarie |

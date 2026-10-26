@@ -1318,6 +1318,58 @@ function visResultat(v, foersteGang = true) {
   if (!tilstand.husstand) tilstand.hvem = "dig";
   $("#person-faner").hidden = !tilstand.husstand;
   visHvem(foersteGang);
+  regnUsikkerhed();
+}
+
+/* ── Usikkerhed om afkast og inflation (feature 018) ──────────────────── */
+// Scenarierne regnes i baggrunden, ét ad gangen, efter resultatet. En ny beregning afbryder
+// løkken, så den højst venter på ét scenarie i motorens kø.
+let usikkerhedNr = 0;
+
+async function regnUsikkerhed() {
+  const nr = ++usikkerhedNr;
+  const svar = JSON.stringify(tilstand.aktuelleSvar);
+  tilstand.usikkerhed = null;
+  tegnUsikkerhed();
+  try {
+    const liste = await kald("scenarier", svar);
+    const raekker = [];
+    for (const s of liste) {
+      if (nr !== usikkerhedNr) return;
+      const r = await kald("scenarie", svar, idag(), s.afkast, s.inflation);
+      raekker.push({ ...s, beloeb: r.ok ? r.data : null });
+    }
+    if (nr !== usikkerhedNr) return;
+    tilstand.usikkerhed = raekker;
+    tegnUsikkerhed();
+  } catch { /* spændet er en ekstra oplysning; resultatet står stadig */ }
+}
+
+function tegnUsikkerhed() {
+  const linje = $("#hovedtal-spaend");
+  const u = tilstand.usikkerhed;
+  if (!u) {
+    linje.textContent = "Regner, hvor meget beløbet kan svinge …";
+    $("#usikkerhed").hidden = true;
+    return;
+  }
+  const hvem = tilstand.hvem;
+  const eget = +$("#hovedtal").dataset.vaerdi;
+  const a = tilstand.aktuelleSvar.antagelser;
+  const raekker = [{ titel: "Dit valg", afkast: a.afkast_efter_pal, inflation: a.inflation, vaerdi: eget },
+    ...u.map((r) => ({ ...r, vaerdi: r.beloeb ? r.beloeb[hvem] : null }))];
+  const tal = raekker.map((r) => r.vaerdi).filter((x) => x !== null && x !== undefined);
+  const min = Math.min(...tal);
+  const max = Math.max(...tal);
+  linje.replaceChildren(`Hvis afkast og inflation bliver anderledes: mellem ${kr(min)} og ${kr(max)} kr. `,
+    el("a", { href: "#usikkerhed", tekst: "Se hvordan" }));
+  $("#usikkerhed").hidden = false;
+  $("#usikkerhed-tabel").replaceChildren(el("table", {},
+    el("caption", { class: "sr-only", tekst: "Det faste beløb om måneden efter skat i dagens kroner ved andet afkast og anden inflation" }),
+    el("thead", {}, el("tr", {}, ...["Scenarie", "Afkast", "Inflation", "Fast beløb om måneden"].map((x) => el("th", { scope: "col", tekst: x })))),
+    el("tbody", {}, raekker.map((r) => el("tr", {}, el("th", { scope: "row", tekst: r.titel }),
+      el("td", { tekst: procent(r.afkast) }), el("td", { tekst: procent(r.inflation) }),
+      el("td", { tekst: r.vaerdi === null || r.vaerdi === undefined ? "–" : `${kr(r.vaerdi)} kr.` }))))));
 }
 
 function visHvem(foersteGang = false) {
@@ -1369,6 +1421,7 @@ function tegnPerson(v, foersteGang) {
   tegnKort(v);
   tegnSaadan(v);
   tegnSkydere();
+  tegnUsikkerhed();
   if (foersteGang) { window.scrollTo({ top: 0 }); $("#resultat-titel").setAttribute("tabindex", "-1"); $("#resultat-titel").focus(); }
 }
 
@@ -1401,6 +1454,7 @@ function tegnSamlet() {
   ].map(([dt, dd]) => el("div", {}, el("dt", { tekst: dt }), el("dd", { tekst: dd }))));
   tegnSamletGraf(s);
   tegnSamletTidslinje(s);
+  tegnUsikkerhed();
   $("#samlet-formue").hidden = !s.formue;
   if (s.formue) $("#samlet-formue").textContent = `Jeres opsparing uden for pension: ${kr(s.formue.rest)} kr. tilbage ved udgangen af jeres planer, i dagens kroner.`;
 }
@@ -1535,6 +1589,7 @@ function forbind() {
   });
   skyder("r-afkast", (v) => { tilstand.aktuelleSvar.antagelser.afkast_efter_pal = v / 100; synkroniserFormular(); }, (v) => `${decimal(v)} %`);
   skyder("r-inflation", (v) => { tilstand.aktuelleSvar.antagelser.inflation = v / 100; synkroniserFormular(); }, (v) => `${decimal(v)} %`);
+  $("#hovedtal-spaend").addEventListener("click", (e) => { if (e.target.closest("a")) $("#usikkerhed").open = true; });
   $("#nulstil").addEventListener("click", () => {
     tilstand.aktuelleSvar = structuredClone(tilstand.mineSvar);
     synkroniserFormular();
