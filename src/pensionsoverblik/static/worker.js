@@ -15,6 +15,10 @@ def kald(op, *args):
         svar = app.kommuner()
     elif op == "beregn":
         svar = app.beregn(args[0], args[1])
+    elif op == "scenarier":
+        svar = app.scenarier(args[0])
+    elif op == "scenarie":
+        svar = app.scenarie(args[0], args[1], args[2], args[3])
     elif op == "pdf":
         svar = app.pdf(args[0].to_bytes())
     elif op == "optimer":

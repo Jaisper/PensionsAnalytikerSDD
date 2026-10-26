@@ -148,6 +148,50 @@ def beregn(guide_json: str, idag: str) -> dict:
     return _ok(visning)
 
 
+# Usikkerhed (feature 018): afkast og inflation afprøves hver for sig og sammen omkring borgerens
+# eget valg, som i legacy (`generer_scenarier`). Spændene er antagelser, ikke lov. Ingen sats
+# sættes under 0 (som legacy).
+AFKAST_SPAEND = 0.01
+INFLATION_SPAEND = 0.005
+SCENARIER = (  # nøgle, titel, retning for afkast, retning for inflation
+    ("lavere_afkast", "Lavere afkast", -1, 0),
+    ("hoejere_afkast", "Højere afkast", 1, 0),
+    ("hoejere_inflation", "Højere inflation", 0, 1),
+    ("lavere_inflation", "Lavere inflation", 0, -1),
+    ("ugunstigt", "Lavere afkast og højere inflation", -1, 1),
+    ("gunstigt", "Højere afkast og lavere inflation", 1, -1),
+)
+
+
+def scenarier(guide_json: str) -> list[dict]:
+    """De seks scenarier omkring borgerens antagelser (afkast og inflation som brøker)."""
+    from pensionskerne import Antagelser
+
+    a = json.loads(guide_json).get("antagelser") or {}
+    standard = Antagelser()
+    afkast = float(a.get("afkast_efter_pal", standard.afkast_efter_pal))
+    inflation = float(a.get("inflation", standard.inflation))
+    return [{"noegle": noegle, "titel": titel,
+             "afkast": round(max(0.0, afkast + ra * AFKAST_SPAEND), 6),
+             "inflation": round(max(0.0, inflation + ri * INFLATION_SPAEND), 6)}
+            for noegle, titel, ra, ri in SCENARIER]
+
+
+def scenarie(guide_json: str, idag: str, afkast: float, inflation: float) -> dict:
+    """Hovedtallet med ændret afkast og inflation — præcis som `beregn` (feature 018). For et par
+    også partnerens og jeres samlede."""
+    data = json.loads(guide_json)
+    data["antagelser"] = {**(data.get("antagelser") or {}), "afkast_efter_pal": afkast, "inflation": inflation}
+    r = beregn(json.dumps(data), idag)
+    if not r["ok"]:
+        return r
+    v = r["data"]
+    h = v.get("husstand")
+    return _ok({"dig": v["hovedtal"]["maaned"],
+                "partner": h["partner"]["hovedtal"]["maaned"] if h else None,
+                "samlet": h["samlet"]["maaned"] if h else None})
+
+
 def optimer(guide_json: str, idag: str, fremdrift=None, hvem: str = "dig") -> dict:
     """Find bedste plan (feature 007). Beløb er det faste beløb hele perioden (kr./md., dagens
     kroner), afrundet som hovedtallet. `plan` er forslaget — eller den nuværende plan, hvis
