@@ -830,6 +830,15 @@ function tegnSaadan(v) {
   }));
   $("#antagelser").replaceChildren(...Object.entries(ANTAGELSE_NAVNE).map(([k, [tekst, fmt]]) =>
     el("li", {}, el("span", { class: "status status--ca", tekst: "≈" }), el("span", {}, el("strong", { tekst: `${tekst}: ` }), fmt(v.antagelser[k])))));
+
+  // Forenklingsregistret (feature 020): dem, der påvirker borgerens beregning, står først og siger det i tekst.
+  const anvendte = v.forenklinger.filter((f) => f.anvendt).length;
+  $("#forenklinger-titel").firstChild.textContent = anvendte
+    ? `Se vores forenklinger (${anvendte === 1 ? "én" : anvendte} påvirker din beregning) ` : "Se vores forenklinger ";
+  $("#forenklinger").replaceChildren(...v.forenklinger.map((f) => el("li", {},
+    el("span", { class: `status ${f.anvendt ? "status--ca" : "status--info"}`, "aria-hidden": "true", tekst: f.anvendt ? "!" : "~" }),
+    el("span", {}, el("strong", { tekst: f.anvendt ? `Påvirker din beregning: ${f.titel}. ` : `${f.titel}. ` }), `${f.beskrivelse} ${f.betydning}`),
+    el("small", { tekst: `Hvorfor: ${f.begrundelse}` }))));
 }
 
 function tegnSkydere() {

@@ -10,7 +10,7 @@ Numrene følger, hvornår en spec blev oprettet, ikke rækkefølgen herunder.
 | 013 | Husstandsbalance: opsparing uden for pension (bank) | I luften (2026-10-26) | 009, 010, 012 | Fundamentet for frie midler |
 | 018 | Usikkerhed om afkast (±1 procentpoint) og inflation (±0,5 procentpoint), som legacy | I luften (2026-10-26) | 007 | Ønsket 2026-10-26 |
 | 019 | Levetid som scenarie (planen til 85 og 95 år) | I luften (2026-10-26) | 018 | Billigere end Monte Carlo. Levetiden er ofte den største risiko |
-| 020a¹ | Forenklingsregistret (fra 020) | Næste | – | Lille. Gør forenklingerne synlige og testede |
+| 020a¹ | Forenklingsregistret (fra 020) | Færdig, ikke merget | – | Lille. Gør forenklingerne synlige og testede |
 | 017 | Arbejdsår og løn før pension | Spec (clarify færdig) | 013 | Uden løn kender kernen ikke skatten i arbejdsårene. Giver "Hvornår kan jeg stoppe?" og arbejde ved siden af pensionen |
 | 020 | Forklaring i tre niveauer (resten af 020a, derefter 020b–d) | Spec (besluttet) | 017; 020b kræver skifteren nominel/dagens kroner | Efter 017 (besluttet 2026-10-26) |
 | 013b | Frit depot og aktiesparekonto | Godkendt i 013's opdeling | 013 | Aktieindkomst, ASK og trækrækkefølge |

@@ -111,6 +111,11 @@ nye kerne skal have en test, der fastholder det.
 
 ## 3. Modelleringsantagelser (ikke lovgivning — skal være eksplicitte valg)
 
+> **Forenklingsregistret** (`src/pensionskerne/register/forenklinger.toml`, feature 020) er den
+> gældende liste over forenklinger med begrundelse og betydning. Borgeren ser den under "Sådan har
+> vi regnet". Listerne over forenklinger i dette dokument er historik pr. feature. En test kræver,
+> at hver markering i kernen (`o.marker("forenkling:…")`) står i registret.
+
 Disse er ikke regler, der kan "valideres mod loven". Det er antagelser, som spec'en skal
 nævne og brugeren skal kunne se:
 

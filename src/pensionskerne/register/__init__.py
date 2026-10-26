@@ -1,6 +1,7 @@
 """Regelregister: alle lovbestemte satser som data (Forfatningens Princip II).
 
-Én TOML-fil pr. satsår (`<år>.toml`) plus `kommuner_<år>.toml`. Kun læsning.
+Én TOML-fil pr. satsår (`<år>.toml`) plus `kommuner_<år>.toml`. Forenklingerne ligger i
+`forenklinger.toml` (feature 020). Kun læsning.
 """
 from __future__ import annotations
 
@@ -24,6 +25,18 @@ class Registerpost:
     kilde: str
     status: str
     reguleres: bool
+
+
+@dataclass(frozen=True)
+class Forenkling:
+    """En forenkling i beregningen (feature 020, FR-005)."""
+    id: str
+    omfang: str                 # "markeret" (kun når kernen markerer den) eller "altid"
+    titel: str
+    beskrivelse: str
+    begrundelse: str
+    betydning: str
+    kilde: str
 
 
 @dataclass(frozen=True)
@@ -73,6 +86,11 @@ def _poster(aar: int) -> dict[str, Registerpost]:
             raise ValueError(f"{post.id}: dubleret id")
         poster[post.id] = post
     return poster
+
+
+@lru_cache(maxsize=None)
+def forenklinger() -> tuple[Forenkling, ...]:
+    return tuple(Forenkling(**p) for p in _laes("forenklinger.toml")["forenkling"])
 
 
 def post(aar: int, id: str) -> Registerpost:

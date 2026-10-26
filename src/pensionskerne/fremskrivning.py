@@ -264,6 +264,8 @@ def beregn(
             kirkeskat = o.kirkeskat(profil.kommune) if profil.folkekirkemedlem else 0.0
             if kalenderaar > satsaar:
                 o.antagelse("satsregulering", satsregulering)
+            if alder == tabel_start > alder_nu and i_plan_start + uroert_start > 0:
+                o.marker("forenkling:opsparing_skat_foer_udbetaling")
 
             # 1. private udbetalinger
             brutto: dict[str, tuple[str, float]] = {}

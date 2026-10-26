@@ -50,6 +50,15 @@ def _formue(res: Fremskrivning) -> dict | None:
             "rest": i_plan[-1] + uden[-1], "rest_alder": res.formue[-1].alder}
 
 
+def _forenklinger(res: Fremskrivning) -> list[dict]:
+    """Forenklingerne fra registret (feature 020): de markerede, der er brugt i beregningen, først,
+    derefter dem, der altid gælder."""
+    brugt = {f.removeprefix("forenkling:") for a in res.aar for f in a.flag if f.startswith("forenkling:")}
+    poster = [{**asdict(f), "anvendt": f.id in brugt} for f in register.forenklinger()
+              if f.omfang == "altid" or f.id in brugt]
+    return sorted(poster, key=lambda f: not f["anvendt"])
+
+
 def _satser(res: Fremskrivning) -> list[dict]:
     satser = []
     kommuner = register.kommuneregister(res.satsaar)
@@ -148,6 +157,7 @@ def byg_visning(res: Fremskrivning) -> dict:
             "engangs": engangs,
         },
         "formue": _formue(res),
+        "forenklinger": _forenklinger(res),
         "generelle_advarsler": generelle,
         "antagelser": {**asdict(res.antagelser), "satsregulering": res.antagelser.effektiv_satsregulering},
         "aar": [{
