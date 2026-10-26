@@ -18,7 +18,7 @@ def kald(op, *args):
     elif op == "scenarier":
         svar = app.scenarier(args[0])
     elif op == "scenarie":
-        svar = app.scenarie(args[0], args[1], args[2], args[3])
+        svar = app.scenarie(*args)
     elif op == "pdf":
         svar = app.pdf(args[0].to_bytes())
     elif op == "optimer":

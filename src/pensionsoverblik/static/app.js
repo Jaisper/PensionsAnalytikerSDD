@@ -1336,7 +1336,7 @@ async function regnUsikkerhed() {
     const raekker = [];
     for (const s of liste) {
       if (nr !== usikkerhedNr) return;
-      const r = await kald("scenarie", svar, idag(), s.afkast, s.inflation);
+      const r = await kald("scenarie", svar, idag(), s.afkast, s.inflation, s.plan_slut_alder);
       raekker.push({ ...s, beloeb: r.ok ? r.data : null });
     }
     if (nr !== usikkerhedNr) return;
@@ -1356,9 +1356,11 @@ function tegnUsikkerhed() {
   const hvem = tilstand.hvem;
   const eget = +$("#hovedtal").dataset.vaerdi;
   const a = tilstand.aktuelleSvar.antagelser;
-  const raekker = [{ titel: "Dit valg", afkast: a.afkast_efter_pal, inflation: a.inflation, vaerdi: eget },
+  const normalSlut = tilstand.vDig.antagelser.livsvarig_horisont_alder;
+  const raekker = [{ titel: "Dit valg", afkast: a.afkast_efter_pal, inflation: a.inflation, plan_slut_alder: null, vaerdi: eget },
     ...u.map((r) => ({ ...r, vaerdi: r.beloeb ? r.beloeb[hvem] : null }))];
-  const tal = raekker.map((r) => r.vaerdi).filter((x) => x !== null && x !== undefined);
+  // Spændet gælder afkast og inflation (018). Levetid (019) er et andet spørgsmål og står kun i tabellen.
+  const tal = raekker.filter((r) => r.plan_slut_alder === null).map((r) => r.vaerdi).filter((x) => x !== null && x !== undefined);
   const min = Math.min(...tal);
   const max = Math.max(...tal);
   linje.replaceChildren(`Hvis afkast og inflation bliver anderledes: mellem ${kr(min)} og ${kr(max)} kr. `,
@@ -1366,10 +1368,19 @@ function tegnUsikkerhed() {
   $("#usikkerhed").hidden = false;
   $("#usikkerhed-tabel").replaceChildren(el("table", {},
     el("caption", { class: "sr-only", tekst: "Det faste beløb om måneden efter skat i dagens kroner ved andet afkast og anden inflation" }),
-    el("thead", {}, el("tr", {}, ...["Scenarie", "Afkast", "Inflation", "Fast beløb om måneden"].map((x) => el("th", { scope: "col", tekst: x })))),
+    el("thead", {}, el("tr", {}, ...["Scenarie", "Afkast", "Inflation", "Planen rækker til", "Fast beløb om måneden"].map((x) => el("th", { scope: "col", tekst: x })))),
     el("tbody", {}, raekker.map((r) => el("tr", {}, el("th", { scope: "row", tekst: r.titel }),
       el("td", { tekst: procent(r.afkast) }), el("td", { tekst: procent(r.inflation) }),
+      el("td", { tekst: `${r.plan_slut_alder ?? normalSlut} år` }),
       el("td", { tekst: r.vaerdi === null || r.vaerdi === undefined ? "–" : `${kr(r.vaerdi)} kr.` }))))));
+  // Lever du længere end planen (019): kun for én person, ikke under "Samlet".
+  const efter = u.find((r) => r.beloeb?.efter_plan)?.beloeb.efter_plan[hvem];
+  const linje2 = $("#usikkerhed-efter");
+  linje2.hidden = hvem === "samlet" || efter === null || efter === undefined;
+  if (!linje2.hidden) {
+    linje2.textContent = `Planen bruger ${hvem === "partner" ? "din partners" : "din"} opsparing op til ${normalSlut} år. `
+      + `Lever ${hvem === "partner" ? "din partner" : "du"} længere, er der derefter ca. ${kr(efter)} kr. om måneden fra folkepension, ATP og livrente, i dagens kroner.`;
+  }
 }
 
 function visHvem(foersteGang = false) {

@@ -318,6 +318,18 @@ beløb vises i dagens kroner (inflationskorrigeret med antagelsens inflation, so
 - Ingen løbende indskud på opsparingen frem til pension.
 - Ingen trækrækkefølge, fordi der kun er én skattekasse. Den kommer i 013b.
 
+## 7h. Usikkerhed og levetid (feature 018 og 019)
+
+- **Scenarier (018):** afkast ±1 procentpoint og inflation ±0,5 procentpoint omkring borgerens valg,
+  hver for sig og sammen. Legacy havde afkast ±1 og ±2 og fast inflation. Ingen sats sættes under 0
+  (som legacy). Hvert scenarie er en almindelig beregning i kernen. Spændene er antagelser.
+- **Levetid (019):** `Antagelser.plan_slut_alder` er planens sidste år. Den er adskilt fra
+  `livsvarig_horisont_alder`, som kun beregner livrentens ydelse. Selskabet fastsætter livrenten,
+  og den betales livet ud, så den ændres ikke af et levetidsscenarie. Planen til 95 år viser også
+  indkomsten i året efter den normale plans slutning (folkepension, ATP og livrente).
+- **Ikke modelleret:** afkast, der svinger fra år til år (sekvensrisiko), og sandsynligheder. Se
+  roadmappen.
+
 ## 8. Uden for denne feature (kommer i senere features)
 
 PDF-import fra PensionsInfo · AI-forklaring/chat · Optimering af udbetalingsrækkefølge

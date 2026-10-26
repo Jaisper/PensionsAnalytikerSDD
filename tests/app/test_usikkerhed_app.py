@@ -13,7 +13,8 @@ def med_antagelser(guide, afkast, inflation):
 
 
 def test_seks_scenarier_om_borgerens_valg():
-    s = {x["noegle"]: (x["afkast"], x["inflation"]) for x in app.scenarier(json.dumps(GUIDE))}
+    s = {x["noegle"]: (x["afkast"], x["inflation"]) for x in app.scenarier(json.dumps(GUIDE))
+         if not x["noegle"].startswith("levetid")}
     assert s == {
         "lavere_afkast": (pytest.approx(0.02), 0.02), "hoejere_afkast": (pytest.approx(0.04), 0.02),
         "hoejere_inflation": (0.03, pytest.approx(0.025)), "lavere_inflation": (0.03, pytest.approx(0.015)),
@@ -49,3 +50,22 @@ def test_fejl_giver_fejl():
     slet = {**GUIDE, "person": {**GUIDE["person"], "kommune": "Atlantis"}}
     r = app.scenarie(json.dumps(slet), IDAG, 0.03, 0.02)
     assert not r["ok"] and r["fejl"]["felt"] == "kommune"
+
+
+def test_levetidsscenarier():  # feature 019
+    s = {x["noegle"]: x for x in app.scenarier(json.dumps(GUIDE))}
+    assert s["levetid_85"]["plan_slut_alder"] == 85 and s["levetid_95"]["plan_slut_alder"] == 95
+    assert s["levetid_85"]["afkast"] == 0.03 and s["levetid_85"]["inflation"] == 0.02  # dit valg
+    assert all(x.get("plan_slut_alder") is None for k, x in s.items() if not k.startswith("levetid"))
+
+
+def test_kortere_plan_giver_mere_og_efter_plan_er_livslang_indkomst():
+    kort = app.scenarie(json.dumps(GUIDE), IDAG, 0.03, 0.02, 85)["data"]
+    lang = app.scenarie(json.dumps(GUIDE), IDAG, 0.03, 0.02, 95)["data"]
+    assert kort["dig"] >= lang["dig"]
+    assert lang["efter_plan"]["dig"] > 0 and lang["efter_plan"]["partner"] is None
+    assert "efter_plan" not in kort
+    # Indkomsten efter planen er kernens netto i året efter 90 år, uden ratepension og opsparing.
+    v = app.beregn(json.dumps({**GUIDE, "antagelser": {**GUIDE["antagelser"], "plan_slut_alder": 95}}), IDAG)["data"]
+    raekke = next(a for a in v["aar"] if a["alder"] == 91)
+    assert lang["efter_plan"]["dig"] == round(raekke["netto_real"] / 12, -2)

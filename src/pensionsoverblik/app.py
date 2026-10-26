@@ -161,6 +161,8 @@ SCENARIER = (  # nøgle, titel, retning for afkast, retning for inflation
     ("ugunstigt", "Lavere afkast og højere inflation", -1, 1),
     ("gunstigt", "Højere afkast og lavere inflation", 1, -1),
 )
+# Levetid (feature 019): planen rækker kortere eller længere end livrentens horisont (90 år).
+LEVETIDER = (85, 95)
 
 
 def scenarier(guide_json: str) -> list[dict]:
@@ -173,23 +175,37 @@ def scenarier(guide_json: str) -> list[dict]:
     inflation = float(a.get("inflation", standard.inflation))
     return [{"noegle": noegle, "titel": titel,
              "afkast": round(max(0.0, afkast + ra * AFKAST_SPAEND), 6),
-             "inflation": round(max(0.0, inflation + ri * INFLATION_SPAEND), 6)}
-            for noegle, titel, ra, ri in SCENARIER]
+             "inflation": round(max(0.0, inflation + ri * INFLATION_SPAEND), 6), "plan_slut_alder": None}
+            for noegle, titel, ra, ri in SCENARIER] + [
+        {"noegle": f"levetid_{alder}", "titel": f"Planen rækker til {alder} år", "afkast": afkast,
+         "inflation": inflation, "plan_slut_alder": alder}
+        for alder in LEVETIDER]
 
 
-def scenarie(guide_json: str, idag: str, afkast: float, inflation: float) -> dict:
+def scenarie(guide_json: str, idag: str, afkast: float, inflation: float, plan_slut_alder: int | None = None) -> dict:
     """Hovedtallet med ændret afkast og inflation — præcis som `beregn` (feature 018). For et par
-    også partnerens og jeres samlede."""
+    også partnerens og jeres samlede. Med en planhorisont længere end den normale (019) også
+    indkomsten i året efter den normale plans slutning (`efter_plan`, kr./md., dagens kroner)."""
+    from pensionskerne import Antagelser
+
     data = json.loads(guide_json)
-    data["antagelser"] = {**(data.get("antagelser") or {}), "afkast_efter_pal": afkast, "inflation": inflation}
+    data["antagelser"] = {**(data.get("antagelser") or {}), "afkast_efter_pal": afkast, "inflation": inflation,
+                          "plan_slut_alder": plan_slut_alder}
     r = beregn(json.dumps(data), idag)
     if not r["ok"]:
         return r
     v = r["data"]
     h = v.get("husstand")
-    return _ok({"dig": v["hovedtal"]["maaned"],
-                "partner": h["partner"]["hovedtal"]["maaned"] if h else None,
-                "samlet": h["samlet"]["maaned"] if h else None})
+    svar = {"dig": v["hovedtal"]["maaned"],
+            "partner": h["partner"]["hovedtal"]["maaned"] if h else None,
+            "samlet": h["samlet"]["maaned"] if h else None}
+    normal_slut = Antagelser().livsvarig_horisont_alder
+    if plan_slut_alder is not None and plan_slut_alder > normal_slut:
+        def efter(visning):
+            raekke = next((a for a in visning["aar"] if a["alder"] == normal_slut + 1), None)
+            return round(raekke["netto_real"] / 12, -2) if raekke else None
+        svar["efter_plan"] = {"dig": efter(v), "partner": efter(h["partner"]) if h else None}
+    return _ok(svar)
 
 
 def optimer(guide_json: str, idag: str, fremdrift=None, hvem: str = "dig") -> dict:
