@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-26
 
-**Status**: Draft – afventer clarify
+**Status**: Draft – clarify gennemført 2026-10-26
 
 **Input**: Idéliste punkt 1 ("Hvornår kan jeg stoppe?") og punkt 3 ("Arbejde ved siden af
 pensionen"). Featuren er også en forudsætning for punkt 2 ("Hvor skal næste krone hen?") og for
@@ -28,37 +28,65 @@ første pensionsudbetaling bliver derfor ikke finansieret i beregningen.
 
 ### Session 2026-10-26
 
-- [NEEDS CLARIFICATION: Hvordan angives lønnen: én årsløn i dag, der følger antagelsen om
-  lønvækst, eller et beløb pr. år? Forslag: én årsløn i dag + lønvækst.]
-- [NEEDS CLARIFICATION: Stopper man på én gang, eller skal nedtrapning med i første omgang
-  (fx 60 % løn fra 62 til 65 år)? Forslag: én stopalder i P1, nedtrapning i US4.]
-- [NEEDS CLARIFICATION: Skal "Hvornår kan jeg stoppe?" kun flytte stopalderen med den nuværende
-  udbetalingsplan, eller også flytte pensionernes udbetalingsstart (som 007)? Forslag: først kun
-  stopalderen. Derefter kan man trykke "Find bedste plan" for den fundne alder.]
-- [NEEDS CLARIFICATION: Det nye seniorfradrag fra 2026, de sidste fem år før
-  folkepensionsalderen. Hvilken paragraf, og hvilken sats? Kun BDO er fundet som kilde.]
-- [NEEDS CLARIFICATION: Skal fradraget for pensionsindbetalinger i arbejdsårene med her (korrekt
-  skat i arbejdsårene), eller vente til "Hvor skal næste krone hen?"? Forslag: med her, fordi
-  ellers er skatten i arbejdsårene forkert.]
+Forslagene er godkendt af projektejeren. Spørgsmål 4 er slået op.
+
+- **Løn**: Én årsløn før skat i dag. Den følger antagelsen om lønvækst (`Antagelser.loenvaekst`).
+- **Stop**: Én stopalder i P1. Løn efter stopalderen (deltid) kommer i US4 som én periode med et
+  fast beløb.
+- **"Hvornår kan jeg stoppe?"**: Søgningen flytter kun stopalderen og holder den nuværende
+  udbetalingsplan fast. Bagefter kan "Find bedste plan" (007) køres for den fundne alder.
+- **Seniorfradraget** (ekstra beskæftigelsesfradrag til seniorer):
+  - **Gældende lov**: Ligningsloven § 9 J, stk. 5 og 6, indført med personskattereformen (2023).
+    - Fradraget gives i de to sidste indkomstår før folkepensionsalderen og bortfalder i det år,
+      hvor folkepensionsalderen nås.
+    - 2026–2028 er det 1,4 % af grundlaget for beskæftigelsesfradraget, højst 6.100 kr. (2026).
+    - 2029 er det 3,8 % og fra 2030 3,9 %.
+    - Kilde: Den juridiske vejledning C.A.4.3.7, version 3.16.
+  - **Vedtaget politisk, men ikke i loven endnu**: Finanslovsaftalen for 2026 udvider perioden til
+    fem år og hæver satsen til 8,5 %, højst 37.000 kr. (2026–2029). Fra 2030 bliver det 10 %,
+    højst 43.800 kr. Ændringen skal gælde med tilbagevirkende kraft fra 1. januar 2026.
+    - Kilde: Skatteministeriets faktaark om finansloven for 2026 (24. oktober 2025).
+    - Nyhedskilder siger, at lovforslaget blev fremsat den 7. oktober 2026. Det er ikke vedtaget
+      i dag (26. oktober 2026).
+  - **Beslutning (Princip III, loven er facit)**: Kernen bruger gældende lov (1,4 %, to år). Når
+    lovforslaget er vedtaget, ændres kun registerposterne for seniorfradraget. Brugerfladen viser
+    en note om det fremsatte forslag.
+- **Pensionsindbetalinger i arbejdsårene**: Med i 017. Ellers er skatten i arbejdsårene forkert.
+  Indbetaling til ratepension og livsvarig pension fradrages i den personlige indkomst.
+  Aldersopsparing giver intet fradrag. Hvordan en indbetaling fordeler sig mellem arbejdsgiver
+  og borger, modelleres ikke. Borgeren angiver den samlede årlige indbetaling, som i dag.
+- **Fundet under clarify, egen arbejdsindkomst**:
+  - Lovforslag L 117 (2022-23) blev vedtaget den 1. juni 2023. Det afskaffede modregningen af en
+    folkepensionists egen arbejdsindkomst i grundbeløb og pensionstillæg, med virkning fra 2023
+    (regeringen.dk; borger.dk).
+  - Bundfradraget på 122.004 kr. (2026) gælder nu kun for den personlige tillægsprocent.
+    Arbejdsindkomst over beløbet nedsætter ældrecheck og mediecheck (borger.dk, "Din personlige
+    tillægsprocent").
+  - Teksten til LSP § 29, stk. 1, nr. 7 på danskelove.dk nævner stadig et fradrag på op til
+    122.004 kr. i pensionstillæggets grundlag. Det ser ud til at være den gamle tekst. Den
+    gældende lovbekendtgørelse skal citeres i registret, før der merges.
 
 ## Lovgrundlag (Princip III)
 
 | Kobling | Kilde | Status |
 |---|---|---|
 | Løn er personlig indkomst efter AM-bidrag (8 %) | AMBL; registret `skat.am_bidrag` | verificeret (i registret) |
-| Beskæftigelsesfradrag 12,75 % af lønnen, højst 63.300 kr. (2026) | Ligningsloven § 9 J; tax.dk | uverificeret |
-| Jobfradrag 4,5 % af lønnen over 235.200 kr., højst 3.100 kr. (2026) | Ligningsloven § 9 K; tax.dk | uverificeret |
-| Seniorfradrag de sidste fem år før folkepensionsalderen (fra 2026) | ? (BDO) | uverificeret |
-| Ligningsmæssige fradrag nedsætter grundlaget for kommune- og kirkeskat, ikke bundskat eller topskat | PSL § 6 og § 8; KSL | uverificeret |
+| Beskæftigelsesfradrag 12,75 % af grundlaget for AM-bidrag, højst 63.300 kr. (2026). Ligningsmæssigt fradrag | Ligningsloven § 9 J, stk. 1; Den juridiske vejledning C.A.4.3.7 | verificeret |
+| Jobfradrag 4,5 % af lønnen over 235.200 kr., højst 3.100 kr. (2026). Ligningsmæssigt fradrag | Ligningsloven § 9 K, stk. 1; Den juridiske vejledning C.A.4.3.8 (2026-2) | verificeret |
+| Seniorfradrag: 1,4 % af samme grundlag, højst 6.100 kr. (2026), de to sidste indkomstår før folkepensionsalderen | Ligningsloven § 9 J, stk. 5–6; Den juridiske vejledning C.A.4.3.7 | verificeret (gældende lov). Udvidelsen efter finanslovsaftalen er fremsat, men ikke vedtaget |
+| Ligningsmæssige fradrag nedsætter den skattepligtige indkomst, som er grundlaget for kommune- og kirkeskat. Bund-, mellem- og topskat beregnes af personlig indkomst (og kapitalindkomst) | PSL §§ 6–7; Den juridiske vejledning C.A.4.3 | verificeret (i denne research). Paragrafferne for kommuneskat citeres i registret |
 | Indbetaling til ratepension og livsvarig pension fradrages i den personlige indkomst | PBL §§ 16 og 18 | uverificeret |
-| En folkepensionists egen arbejdsindkomst indgår ikke i pensionstillæggets indtægtsgrundlag. Grundbeløbet påvirkes ikke af indkomst | LSP § 29, stk. 1, nr. 7; borger.dk; Ældre Sagen | uverificeret (borger.dk og Ældre Sagen er enige) |
-| Arbejdsindkomst over 122.004 kr. tæller i den personlige tillægsprocent (ældrecheck, mediecheck) | LSP; Ældre Sagen | uverificeret |
+| En folkepensionists egen arbejdsindkomst indgår ikke i pensionstillæggets indtægtsgrundlag. Grundbeløbet påvirkes ikke af indkomst | L 117 (2022-23), vedtaget 1. juni 2023; regeringen.dk; borger.dk | verificeret. Den gældende ordlyd af § 29 citeres i registret |
+| Egen arbejdsindkomst over 122.004 kr. (2026) tæller i den personlige tillægsprocent (ældrecheck, mediecheck). Partnerens arbejdsindkomst tæller ikke | LSP (tillægsprocent); borger.dk, "Din personlige tillægsprocent" | verificeret (borger.dk). Paragraffen citeres i registret |
 | Partnerens arbejdsindkomst indgår ikke i pensionstillæggets indtægtsgrundlag | LSP § 29, stk. 1, nr. 10 | verificeret (i kernen) |
 | Opsat folkepension kræver mindst 750 timers arbejde om året | LSP § 15 a | verificeret (advarsel i kernen) |
 | Seniorpension, efterløn og tidlig pension modregner arbejdsindkomst | – | uden for scope |
 
 Nye satser SKAL ind i regelregistret med kilde og status, før der merges (Princip II):
-beskæftigelsesfradrag, jobfradrag, seniorfradrag og tillægsprocentens grænse for arbejdsindkomst.
+- beskæftigelsesfradrag (12,75 %, 63.300 kr.)
+- jobfradrag (4,5 %, 235.200 kr., 3.100 kr.)
+- seniorfradrag (1,4 %, 6.100 kr., to år)
+- tillægsprocentens bundfradrag for arbejdsindkomst (122.004 kr.)
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -133,7 +161,7 @@ tillader (personfradrag, PSL § 10, stk. 3).
 
 - **Stopalder efter folkepensionsalderen**: Tilladt (arbejde ved siden af folkepensionen).
 - **Stopalder i dag eller tidligere**: Ingen løn regnes.
-- **Løn, men ingen stopalder**: Lønnen stopper ved folkepensionsalderen (forslag, afklares).
+- **Løn, men ingen stopalder**: Lønnen stopper ved folkepensionsalderen.
 - **Høj løn**: Mellemskat og topskat i arbejdsårene. Skatteloftet gælder som i dag.
 
 ## Requirements *(mandatory)*
@@ -142,8 +170,9 @@ tillader (personfradrag, PSL § 10, stk. 3).
   beregningen uændret.
 - **FR-002**: Tabellen MUST begynde i dag, når der er løn. Arbejdsårene har deres egne rækker med
   løn, skat og nettoindkomst.
-- **FR-003**: Skatten af lønnen MUST regnes med AM-bidrag, beskæftigelsesfradrag, jobfradrag (og
-  evt. seniorfradrag). Ligningsmæssige fradrag nedsætter kun grundlaget for kommune- og kirkeskat.
+- **FR-003**: Skatten af lønnen MUST regnes med AM-bidrag, beskæftigelsesfradrag, jobfradrag og
+  seniorfradrag (gældende lov). Ligningsmæssige fradrag nedsætter kun grundlaget for kommune- og
+  kirkeskat. Indbetaling til ratepension og livsvarig pension fradrages i den personlige indkomst.
 - **FR-004**: Den faste udbetaling MUST udjævnes fra stopalderen. Arbejdsårene indgår ikke i
   udjævningen.
 - **FR-005**: Opsparing i planen (013) MUST kunne bruges fra stopalderen.
@@ -179,6 +208,14 @@ tillader (personfradrag, PSL § 10, stk. 3).
 - Løn pr. år og karriereforløb ud over én løn og én deltidsperiode.
 
 ## Kilder (2026-10-26)
+
+- Den juridiske vejledning C.A.4.3.7 (beskæftigelsesfradrag og seniorfradrag, version 3.16) og
+  C.A.4.3.8 (jobfradrag), info.skat.dk og tax.dk
+- Skatteministeriet, faktaark "Forhøjelse af det ekstra beskæftigelsesfradrag til seniorer og
+  udvidelse af periode til fem år" (finansloven for 2026)
+- regeringen.dk, "Folkepensionister vil ikke længere blive modregnet på grund af arbejdsindtægt"
+  (2023); Landbrugsinfo om L 117
+- borger.dk, "Din personlige tillægsprocent"
 
 - borger.dk, "Grundbeløb og pensionstillæg" og "Når du får folkepension"
 - Ældre Sagen, "Arbejd og få samtidig fuld folkepension" og "Folkepension 2026"
