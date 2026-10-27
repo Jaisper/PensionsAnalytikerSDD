@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-27
 
-**Status**: Draft – modnes
+**Status**: Draft – besluttet 2026-10-27 (som foreslået); clarify med primærkilder før plan
 
 **Input**: Idéliste punkt 10: "En krypteret fil i stedet for en server, så brugeren kan genbruge sin
 profil uden at uploade PDF'en igen næste år. Det passer med Princip VII."
@@ -29,16 +29,16 @@ at fortsætte, men filen indeholder persondata (fødselsdato, saldi, løn) og sk
   gamle filer.
 - Ingen ny afhængighed: Web Crypto findes i alle moderne browsere.
 
-## Clarifications (forslag i kursiv)
+## Clarifications
 
-- [NEEDS CLARIFICATION: Skal adgangskoden være påkrævet? *Forslag: ja. Uden kryptering kan man
-  bruge den eksisterende JSON-eksport, og det står tydeligt.*]
-- [NEEDS CLARIFICATION: Hvad gemmes? *Forslag: kun svarene og valgene (niveau, kroner), ikke
-  PDF'en og ikke resultatet. Resultatet regnes igen med årets satser.*]
-- [NEEDS CLARIFICATION: Nyt satsår ved indlæsning? *Forslag: regn med det nyeste satsår og vis, at
-  tallene kan have ændret sig siden sidst.*]
-- [NEEDS CLARIFICATION: Glemt adgangskode? *Forslag: kan ikke genskabes, og det står ved
-  gemningen.*]
+- **Besluttet 2026-10-27 (som foreslået):** Skal adgangskoden være påkrævet? → ja. Uden kryptering kan man
+  bruge den eksisterende JSON-eksport, og det står tydeligt.
+- **Besluttet 2026-10-27 (som foreslået):** Hvad gemmes? → kun svarene og valgene (niveau, kroner), ikke
+  PDF'en og ikke resultatet. Resultatet regnes igen med årets satser.
+- **Besluttet 2026-10-27 (som foreslået):** Nyt satsår ved indlæsning? → regn med det nyeste satsår og vis, at
+  tallene kan have ændret sig siden sidst.
+- **Besluttet 2026-10-27 (som foreslået):** Glemt adgangskode? → kan ikke genskabes, og det står ved
+  gemningen.
 
 ## Requirements (udvalg)
 

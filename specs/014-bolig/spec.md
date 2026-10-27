@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-27
 
-**Status**: Draft – modnes
+**Status**: Draft – besluttet 2026-10-27 (som foreslået); clarify med primærkilder før plan
 
 **Input**: 013's afgrænsning: "014 Bolig og friværdi: bliv boende, nedskalering i et valgt år,
 seniorlån/belåning (negativ kapitalindkomst), ejendomsværdiskat og grundskyld. Friværdi tæller ikke
@@ -44,16 +44,16 @@ eventuelt salg påvirker både det faste beløb, pensionstillægget og ældreche
 | Friværdi er ikke likvid formue | LSP § 72 d, stk. 2 | verificeret |
 | Indefrysning af ejendomsskatter for pensionister | Ejendomsskatteloven | uverificeret |
 
-## Clarifications (forslag i kursiv)
+## Clarifications
 
-- [NEEDS CLARIFICATION: Grundskyldspromiller for alle kommuner. *Forslag: et kommuneregister som for
-  kommuneskat (`kommuner_<år>.toml`), med kilde.*]
-- [NEEDS CLARIFICATION: Indefrysning (obligatorisk eller frivillig for pensionister) og
-  overgangsregler. *Forslag: slå op før plan; måske først i 014d.*]
-- [NEEDS CLARIFICATION: Boligens værdi frem i tiden. *Forslag: følger inflationen (antagelse).
-  Vurderingen kan angives.*]
-- [NEEDS CLARIFICATION: Afdrag på lån? *Forslag: med i 014b som fast ydelse; det bruges også af 021
-  ("afdrag på lån").*]
+- **Besluttet 2026-10-27 (som foreslået):** Grundskyldspromiller for alle kommuner. → et kommuneregister som for
+  kommuneskat (`kommuner_<år>.toml`), med kilde.
+- **Besluttet 2026-10-27 (som foreslået):** Indefrysning (obligatorisk eller frivillig for pensionister) og
+  overgangsregler. → slå op før plan; måske først i 014d.
+- **Besluttet 2026-10-27 (som foreslået):** Boligens værdi frem i tiden. → følger inflationen (antagelse).
+  Vurderingen kan angives.
+- **Besluttet 2026-10-27 (som foreslået):** Afdrag på lån? → med i 014b som fast ydelse; det bruges også af 021
+  ("afdrag på lån").
 
 ## Afhængigheder og størrelse
 

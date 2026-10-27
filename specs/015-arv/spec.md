@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-27
 
-**Status**: Draft – modnes
+**Status**: Draft – besluttet 2026-10-27 (som foreslået); clarify med primærkilder før plan
 
 **Input**: 013's afgrænsning: "015 Arv: forventet arv modtaget (tidspunkt og interval, vist med og
 uden), boafgift og tillægsboafgift, pensioner til begunstigede og 'bevar X til arvinger' som
@@ -30,16 +30,16 @@ bruge, men en forventet arv er usikker og må ikke få hovedtallet til at se for
 | Søskende uden tillægsboafgift fra 2027; søskendebørn (forslag, ikke vedtaget) | Ændringslov 2024; finanslovsforslag 2026 | uverificeret |
 | Rater til andre end ægtefælle, eller engangsbeløb, beskattes med 40 % afgift | Den juridiske vejledning C.A.10.2.2.4.3 | sekundær |
 
-## Clarifications (forslag i kursiv)
+## Clarifications
 
-- [NEEDS CLARIFICATION: Vises arv modtaget i hovedtallet? *Forslag: nej. Hovedtallet er uden arv.
-  "Med forventet arv" vises som et scenarie i "Hvad hvis …" (som 018).*]
-- [NEEDS CLARIFICATION: Usikkerhed om tidspunktet. *Forslag: et interval (tidligst–senest), og
-  scenariet bruger det seneste år (forsigtigt).*]
-- [NEEDS CLARIFICATION: Er arven modtaget netto eller brutto? *Forslag: borgeren angiver det
-  forventede beløb efter boafgift. Boafgiften regnes kun for arv givet.*]
-- [NEEDS CLARIFICATION: "Bevar X til arvinger". *Forslag: udjævningen ender med X i dagens kroner i
-  stedet for 0 (en ny randbetingelse i 010-algoritmen). Det faste beløb falder tilsvarende.*]
+- **Besluttet 2026-10-27 (som foreslået):** Vises arv modtaget i hovedtallet? → nej. Hovedtallet er uden arv.
+  "Med forventet arv" vises som et scenarie i "Hvad hvis …" (som 018).
+- **Besluttet 2026-10-27 (som foreslået):** Usikkerhed om tidspunktet. → et interval (tidligst–senest), og
+  scenariet bruger det seneste år (forsigtigt).
+- **Besluttet 2026-10-27 (som foreslået):** Er arven modtaget netto eller brutto? → borgeren angiver det
+  forventede beløb efter boafgift. Boafgiften regnes kun for arv givet.
+- **Besluttet 2026-10-27 (som foreslået):** "Bevar X til arvinger". → udjævningen ender med X i dagens kroner i
+  stedet for 0 (en ny randbetingelse i 010-algoritmen). Det faste beløb falder tilsvarende.
 
 ## User Scenarios (kort)
 

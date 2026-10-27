@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-27
 
-**Status**: Draft – modnes
+**Status**: Draft – besluttet 2026-10-27 (som foreslået); clarify med primærkilder før plan
 
 **Input**: Idéliste punkt 2: "Sammenlign ratepension, aldersopsparing, aktiesparekonto og afdrag på
 lån for én ekstra indbetaling. Vis fradrag nu mod skat og modregning senere. Afslør
@@ -36,16 +36,16 @@ lav pension kan fradraget for ratepension nu blive spist af modregning i pension
 Målet er det faste beløb (kr./md., dagens kroner). Forskellen fra i dag vises pr. alternativ med
 "fradrag nu" og "skat og modregning senere" side om side (Princip V).
 
-## Clarifications (forslag i kursiv)
+## Clarifications
 
-- [NEEDS CLARIFICATION: Én gang eller årligt? *Forslag: et årligt beløb fra i dag til stopalderen
-  (017). En engangsindbetaling kommer som variant.*]
-- [NEEDS CLARIFICATION: Arbejdsgiverordning eller privat indbetaling? *Forslag: privat, så
+- **Besluttet 2026-10-27 (som foreslået):** Én gang eller årligt? → et årligt beløb fra i dag til stopalderen
+  (017). En engangsindbetaling kommer som variant.
+- **Besluttet 2026-10-27 (som foreslået):** Arbejdsgiverordning eller privat indbetaling? → privat, så
   sammenligningen er fair (samme løn før skat). Topskattegrundlaget lægges til for privat
-  ratepension (PSL § 7, stk. 1).*]
-- [NEEDS CLARIFICATION: Hvordan måles gevinsten for et par? *Forslag: husstandens samlede faste
-  beløb (012).*]
-- [NEEDS CLARIFICATION: Afdrag på lån før 014? *Forslag: udelad, og vis en tekst om, at det kommer.*]
+  ratepension (PSL § 7, stk. 1).
+- **Besluttet 2026-10-27 (som foreslået):** Hvordan måles gevinsten for et par? → husstandens samlede faste
+  beløb (012).
+- **Besluttet 2026-10-27 (som foreslået):** Afdrag på lån før 014? → udelad, og vis en tekst om, at det kommer.
 
 ## Lovgrundlag
 

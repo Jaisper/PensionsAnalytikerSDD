@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-27
 
-**Status**: Draft – modnes
+**Status**: Draft – besluttet 2026-10-27 (som foreslået); clarify med primærkilder før plan
 
 **Input**: Roadmappen: "Kræver kilde til udsving (Rådet for Afkastforventninger) og en hurtigere
 beregning: ca. 200 forløb i baggrunden, vifte med 10/50/90 %."
@@ -31,16 +31,16 @@ antagelser, som skal være tydelige.
 - Visningen er en vifte for det faste beløb pr. år og en sætning: "I 9 af 10 forløb er det faste
   beløb mindst X kr."
 
-## Clarifications (forslag i kursiv)
+## Clarifications
 
-- [NEEDS CLARIFICATION: Porteføljen. Rådet giver tal pr. aktivklasse, ikke for en pension.
-  *Forslag: en antaget fordeling efter alder (fx mere obligationer tæt på pension), vist som
-  antagelse. Alternativt én standardafvigelse, som borgeren kan ændre.*]
-- [NEEDS CLARIFICATION: Ydelse. 200 beregninger à 50–150 ms er 10–30 s i browseren. *Forslag: en
+- **Besluttet 2026-10-27 (som foreslået):** Porteføljen. Rådet giver tal pr. aktivklasse, ikke for en pension.
+  → en antaget fordeling efter alder (fx mere obligationer tæt på pension), vist som
+  antagelse. Alternativt én standardafvigelse, som borgeren kan ændre.
+- **Besluttet 2026-10-27 (som foreslået):** Ydelse. 200 beregninger à 50–150 ms er 10–30 s i browseren. → en
   forenklet hurtig vej i kernen for forløbene (fx uden fastpunktets ekstra runder, varm start fra
-  hovedberegningen) med en målt tolerance mod den fulde beregning.*]
-- [NEEDS CLARIFICATION: Levetid som tilfældig? *Forslag: nej i første omgang. Levetid forbliver et
-  scenarie (019).*]
+  hovedberegningen) med en målt tolerance mod den fulde beregning.
+- **Besluttet 2026-10-27 (som foreslået):** Levetid som tilfældig? → nej i første omgang. Levetid forbliver et
+  scenarie (019).
 
 ## Requirements (udvalg)
 

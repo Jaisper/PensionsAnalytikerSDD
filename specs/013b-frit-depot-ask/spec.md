@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-27
 
-**Status**: Draft – modnes (lovgrundlaget er afklaret i 013's clarify)
+**Status**: Draft – besluttet 2026-10-27 (som foreslået); clarify med primærkilder før plan
 
 **Input**: 013's godkendte opdeling: "013b: frit depot (aktieindkomst, realisation) og ASK, med
 registersatser".
@@ -30,19 +30,19 @@ aktiesparekonto tæller slet ikke i pensionstillægget.
 - Hvert aktiv har én ejer.
 - Grænsen på 5.000 kr. aktieudbytte i § 29 gælder pr. person (status `sekundaer`).
 
-### Åbne spørgsmål (forslag i kursiv)
+### Besluttet 2026-10-27
 
-- [NEEDS CLARIFICATION: Standardrækkefølgen for træk. *Forslag: bank → frit depot (lagerbeskattede
+- **Besluttet 2026-10-27 (som foreslået):** Standardrækkefølgen for træk. → bank → frit depot (lagerbeskattede
   fonde først, derefter aktier med mindst gevinst) → aktiesparekonto sidst, fordi den har lavest
-  skat og ikke tæller i pensionstillægget.*]
-- [NEEDS CLARIFICATION: Skal udbytte og kursgevinst have hver sin afkastantagelse? *Forslag: én
+  skat og ikke tæller i pensionstillægget.
+- **Besluttet 2026-10-27 (som foreslået):** Skal udbytte og kursgevinst have hver sin afkastantagelse? → én
   samlet antagelse pr. aktivtype fra Rådet for Afkastforventninger, opdelt med en fast
-  udbytteandel som antagelse.*]
-- [NEEDS CLARIFICATION: Løbende indskud på aktiesparekontoen frem til stopalderen (017)?
-  *Forslag: ja, et årligt beløb op til loftet. Overskydende indskud går til frit depot med
-  advarsel.*]
-- [NEEDS CLARIFICATION: Tab ved salg (negativ aktieindkomst)? *Forslag: uden for scope. Det
-  registreres som forenkling.*]
+  udbytteandel som antagelse.
+- **Besluttet 2026-10-27 (som foreslået):** Løbende indskud på aktiesparekontoen frem til stopalderen (017)?
+  → ja, et årligt beløb op til loftet. Overskydende indskud går til frit depot med
+  advarsel.
+- **Besluttet 2026-10-27 (som foreslået):** Tab ved salg (negativ aktieindkomst)? → uden for scope. Det
+  registreres som forenkling.
 
 ## Lovgrundlag (Princip III)
 

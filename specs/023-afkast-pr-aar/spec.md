@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-27
 
-**Status**: Draft – modnes
+**Status**: Draft – besluttet 2026-10-27 (som foreslået); clarify med primærkilder før plan
 
 **Input**: Besluttet 2026-10-26 som trin før Monte Carlo (016): "Et fast stress-forløb, fx −15 % de
 første to år efter pensionsstart og derefter normalt afkast. Viser sekvensrisikoen uden statistik.
@@ -27,22 +27,22 @@ bliver lavere, end gennemsnittet lover (sekvensrisiko). Det kan værktøjet ikke
   kalenderår. Mangler et år, bruges `afkast_efter_pal`. Uden forløb er alt som før (SC-001).
 - **Ratepension**: raten genberegnes hvert år som restværdi / resterende år (PBL § 11 A), så et
   dårligt år giver lavere rater bagefter. Med fast afkast er det den samme formel som i dag.
-- **Livsvarig pension**: selskaberne udjævner normalt. *Forslag: ydelsen ændres ikke af forløbet
-  (forenkling).*
+- **Livsvarig pension**: selskaberne udjævner normalt. Besluttet: ydelsen ændres ikke af forløbet
+  (forenkling).
 - **Bufferen og opsparingen** forrentes med årets afkast.
 - **Stress-scenariet** "Dårlige år først" lægges i tabellen "Hvad hvis …" (018) som et scenarie.
 
-## Clarifications (forslag i kursiv)
+## Clarifications
 
-- [NEEDS CLARIFICATION: Hvor dårlige er "dårlige år"? Et tal kræver en kilde. *Forslag: to år med
+- **Besluttet 2026-10-27 (som foreslået):** Hvor dårlige er "dårlige år"? Et tal kræver en kilde. → to år med
   afkast på forventet afkast minus to standardafvigelser for en blandet pensionsportefølje, ud fra
   Rådet for Afkastforventninger. Med 50 % aktier og 50 % obligationer er standardafvigelsen ca.
   8–9 % (skal regnes og citeres). Alternativt det faktiske 2008-forløb for en typisk
-  markedsrentepension (historisk eksempel, ikke prognose).*]
-- [NEEDS CLARIFICATION: Hvornår rammer de? *Forslag: de to første år fra første udbetaling (eller
-  stopalderen med løn, 017).*]
-- [NEEDS CLARIFICATION: Kommer "gode år først" også? *Forslag: ja, symmetrisk, så spændet ikke ser
-  ensidigt ud.*]
+  markedsrentepension (historisk eksempel, ikke prognose).
+- **Besluttet 2026-10-27 (som foreslået):** Hvornår rammer de? → de to første år fra første udbetaling (eller
+  stopalderen med løn, 017).
+- **Besluttet 2026-10-27 (som foreslået):** Kommer "gode år først" også? → ja, symmetrisk, så spændet ikke ser
+  ensidigt ud.
 
 ## Lovgrundlag
 

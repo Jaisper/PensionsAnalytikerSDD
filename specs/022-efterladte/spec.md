@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-27
 
-**Status**: Draft – modnes
+**Status**: Draft – besluttet 2026-10-27 (som foreslået); clarify med primærkilder før plan
 
 **Input**: Idéliste punkt 5: "Et efterladtescenarie bygget på 012: enlig-satser for
 pensionstillæg, ophør af livrente uden ægtefælledækning og pensioner til begunstigede."
@@ -32,20 +32,20 @@ skifter til enlig-satser, livrenten kan ophøre, og skattefordelene mellem ægte
 | Formuegrænsen og pensionstillægget bliver enlig-satser | LSP § 29, § 72 d | verificeret (kernen) |
 | Overførsel af personfradrag mellem ægtefæller bortfalder efter dødsåret | PSL § 10, stk. 3 | uverificeret (dødsåret) |
 
-## Clarifications (forslag i kursiv)
+## Clarifications
 
-- [NEEDS CLARIFICATION: Hvem dør, og hvornår? *Forslag: borgeren vælger "din partner" eller "dig"
-  og en alder. Standard er partnerens forventede levealder (019).*]
-- [NEEDS CLARIFICATION: Ægtefælledækning på livrenten. PensionsInfo-rapporten kan indeholde den.
-  *Forslag: et felt pr. livrente ("fortsætter til efterlevende: nej / X år / livsvarigt, Y %"),
-  standard nej. Det aflæses fra rapporten, hvis det står der.*]
-- [NEEDS CLARIFICATION: Afdødes ratepension og kapitalpension. *Forslag: den efterlevende
+- **Besluttet 2026-10-27 (som foreslået):** Hvem dør, og hvornår? → borgeren vælger "din partner" eller "dig"
+  og en alder. Standard er partnerens forventede levealder (019).
+- **Besluttet 2026-10-27 (som foreslået):** Ægtefælledækning på livrenten. PensionsInfo-rapporten kan indeholde den.
+  → et felt pr. livrente ("fortsætter til efterlevende: nej / X år / livsvarigt, Y %"),
+  standard nej. Det aflæses fra rapporten, hvis det står der.
+- **Besluttet 2026-10-27 (som foreslået):** Afdødes ratepension og kapitalpension. → den efterlevende
   ægtefælle fortsætter raterne (personlig indkomst). Kapitalpension og aldersopsparing udbetales
-  til den efterlevende; afgiften slås op før plan.*]
-- [NEEDS CLARIFICATION: ATP ved død. *Forslag: uden for scope (ATP Livslang Pension ophører;
-  eventuelle engangsbeløb er sjældne). Registreres som forenkling.*]
-- [NEEDS CLARIFICATION: Samlevende (ikke gift). *Forslag: samme ydelsesregler, men ingen
-  skattefordele og arv kun ved testamente. Vis en advarsel.*]
+  til den efterlevende; afgiften slås op før plan.
+- **Besluttet 2026-10-27 (som foreslået):** ATP ved død. → uden for scope (ATP Livslang Pension ophører;
+  eventuelle engangsbeløb er sjældne). Registreres som forenkling.
+- **Besluttet 2026-10-27 (som foreslået):** Samlevende (ikke gift). → samme ydelsesregler, men ingen
+  skattefordele og arv kun ved testamente. Vis en advarsel.
 
 ## User Scenarios (kort)
 

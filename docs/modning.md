@@ -37,7 +37,7 @@ projektejeren, før der planlægges.
 5. **022 Efterladte.** Kræver mere verifikation af reglerne ved død.
 6. **014a–b Boligskat og lån**, derefter **015 Arv** og **016 Monte Carlo**.
 
-## Det, der skal besluttes
+## Besluttet 2026-10-27
 
-For hver spec: svar på de åbne spørgsmål (eller "som foreslået") og placering i rækkefølgen.
-Derefter laves clarify med primærkilder for de satser, der kun er sekundært verificeret.
+Alle forslag er godkendt som foreslået, også rækkefølgen. Hver spec får clarify med primærkilder for
+de satser, der kun er sekundært verificeret, før den planlægges og bygges.
