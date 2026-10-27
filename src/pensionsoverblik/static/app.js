@@ -995,6 +995,7 @@ function saetNiveau(n) {
   tilstand.niveau = n;
   try { localStorage.setItem("forklaringsniveau", n); } catch { /* kun en bekvemmelighed */ }
   tegnForklaringer();
+  if (!$("#metode").hidden) tegnMetode();
 }
 
 async function hentForklaringer() {
@@ -1028,6 +1029,57 @@ function tegnForklaringer() {
   if (tilstand.forslagVist) $$("[data-optimering]").forEach((b) => tegnOptimeringForklaring(b, tilstand.forslagVist));
   if (tilstand.aarAlder !== undefined && !$("#aar-forklaring").hidden) tegnAar(tilstand.aarAlder);
 }
+
+/* ── Metodesiden, eksport og udskrift (feature 020d) ──────────────────── */
+async function visMetode() {
+  try { tilstand.metode ??= await kald("metode"); } catch { return; }
+  $("#metode").hidden = false;
+  tegnMetode();
+  $("#metode-titel").focus();
+  $("#metode").scrollIntoView?.({ block: "start" });
+}
+
+function tegnMetode() {
+  const m = tilstand.metode;
+  if (!m) return;
+  tilstand.niveau ??= gemtNiveau();
+  const n = tilstand.niveau;
+  niveauVaelger($('[data-niveauvaelger="metode"]'));
+  $("#metode-satsaar").textContent = m.satsaar;
+  // Pladsholdere ({maaned} o.l.) udfyldes først ved borgerens egne tal; her står de som "…".
+  $("#metode-emner").replaceChildren(...m.forklaringer.emner.map((e) => el("section", { class: "metode-emne" },
+    el("h3", { tekst: e.titel }), ...afsnit(e[n].replace(/\{\w+\}/g, "…")))));
+  $("#metode-forenklinger").replaceChildren(...m.forenklinger.map((f) => el("li", {},
+    el("span", { class: "status status--info", "aria-hidden": "true", tekst: "~" }),
+    el("span", {}, el("strong", { tekst: `${f.titel}. ` }), `${f.beskrivelse} ${f.betydning}`),
+    el("small", { tekst: `Hvorfor: ${f.begrundelse} Kilde: ${f.kilde}.` }))));
+  const STATUS = { verificeret: "Bekræftet i lov eller hos myndighed", sekundaer: "Fra en sekundær kilde", uverificeret: "Ikke bekræftet" };
+  const vaerdi = (s) => (s.vaerdi === null ? "tabel" : s.enhed === "brok" ? procent(s.vaerdi) : s.enhed === "kr_aar" ? `${kr(s.vaerdi)} kr.` : decimal(s.vaerdi));
+  $("#metode-satser").replaceChildren(tabel(`Satser og kilder for ${m.satsaar}`, ["Sats", "Værdi", "Status", "Kilde"],
+    m.satser.map((s) => [SATS_NAVNE[s.id] || s.id, vaerdi(s), STATUS[s.status], s.kilde])));
+}
+
+async function hentEksport(slags) {
+  const r = await kald("eksport", JSON.stringify(tilstand.aktuelleSvar), idag());
+  if (!r.ok) { visFejl(r.fejl.felt, r.fejl.besked); return; }
+  // CSV med BOM, så regneark læser æ, ø og å rigtigt. Intet sendes ud; filen laves i browseren.
+  const [indhold, type, endelse] = slags === "json"
+    ? [r.data.json, "application/json", "json"] : [`\ufeff${r.data.csv}`, "text/csv", "csv"];
+  const url = URL.createObjectURL(new Blob([indhold], { type: `${type};charset=utf-8` }));
+  const a = el("a", { href: url, download: `${r.data.filnavn}.${endelse}` });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// Udskrift: alle fold-ud'er åbnes, mens der udskrives, og lukkes igen bagefter.
+let lukketFoerUdskrift = [];
+window.addEventListener("beforeprint", () => {
+  lukketFoerUdskrift = $$("#resultat details:not([open]), #metode details:not([open])");
+  lukketFoerUdskrift.forEach((d) => (d.open = true));
+});
+window.addEventListener("afterprint", () => { lukketFoerUdskrift.forEach((d) => (d.open = false)); lukketFoerUdskrift = []; });
 
 // "Sådan læser du …" (020b): emnets tekst på det valgte niveau. Grafen nævner kun det, der faktisk vises.
 function tegnLaesevejledninger() {
@@ -1919,6 +1971,12 @@ function forbind() {
   $("#stop-knap").addEventListener("click", findStopalder);
   $("#aar-forklaring-luk").addEventListener("click", () => { $("#aar-forklaring").hidden = true; $("#graf").focus?.(); });
   hentForklaringer();
+  $("#metode-link").addEventListener("click", (e) => { e.preventDefault(); visMetode(); });
+  $("#metode-luk").addEventListener("click", () => { $("#metode").hidden = true; $("#metode-link").focus(); });
+  $("#metode-udskriv").addEventListener("click", () => window.print());
+  $("#udskriv").addEventListener("click", () => window.print());
+  $("#eksport-json").addEventListener("click", () => hentEksport("json"));
+  $("#eksport-csv").addEventListener("click", () => hentEksport("csv"));
   // Rulbare tabeller skal kunne nås og rulles med tastaturet (WCAG 2.1.1; axe scrollable-region-focusable).
   const rulbare = () => $$(".tabel-rul:not([tabindex])").forEach((d) => {
     d.tabIndex = 0;

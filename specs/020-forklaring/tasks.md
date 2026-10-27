@@ -34,3 +34,8 @@
 - [x] T023 020c: "Sådan har vi fundet forslaget" på tre niveauer med søgningens omfang og forbehold (`tests/browser/test_forklaring_020c.py`)
 
 ## Del 5: 020d
+
+- [x] T024 [P] `tests/app/test_metode_eksport.py`: metodesiden uden data med hele registret; eksport som JSON og CSV uden CPR, navne og aftalenumre
+- [x] T025 `app.metode()` og `app.eksport()`; worker
+- [x] T026 Metodesiden fra bunden af siden (tre niveauer, forenklinger, satser og kilder), udskrift og eksportknapper
+- [x] T027 `tests/browser/test_forklaring_020d.py`: metodeside, download, udskrift åbner og lukker fold-ud'er, axe og 360 px

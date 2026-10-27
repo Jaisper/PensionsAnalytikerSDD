@@ -43,6 +43,55 @@ def forklaringer() -> dict:
     return katalog()
 
 
+def metode() -> dict:
+    """Metodesiden (feature 020d, US4): kataloget, forenklingerne og hele regelregistret for det
+    nyeste satsår. Kræver ingen data fra borgeren; teksterne følger registret automatisk."""
+    from dataclasses import asdict
+
+    from .forklaring import katalog
+
+    aar = _satsaar()
+    return {
+        "satsaar": aar,
+        "forklaringer": katalog(),
+        "forenklinger": [asdict(f) for f in register.forenklinger()],
+        "satser": [{"id": p.id, "vaerdi": p.vaerdi if p.enhed != "tabel" else None, "enhed": p.enhed,
+                    "kilde": p.kilde, "status": p.status} for p in register.poster(aar)],
+    }
+
+
+CSV_KOLONNER = (  # (overskrift, nøgle i visningens år) — år for år, beløb i årets kroner, hele kroner
+    ("Alder", "alder"), ("Kalenderår", "kalenderaar"), ("Personlig indkomst", "personlig_indkomst"),
+    ("Skat", "skat"), ("Efter skat", "netto"), ("Efter skat i dagens kroner", "netto_real"),
+    ("Indtægtsgrundlag", "indtaegtsgrundlag"), ("Tillægsprocent", "tillaegsprocent"),
+    ("Engangsbeløb", "engangsbeloeb"), ("Kapitalindkomst", "kapitalindkomst"),
+    ("Skat af kapitalindkomst", "skat_kapitalindkomst"),
+)
+
+
+def eksport(guide_json: str, idag: str) -> dict:
+    """Eksport af regnestykket (feature 020d, US6): hele beregningen som JSON og år for år som CSV.
+    Laves lokalt; borgerens svar indeholder hverken CPR, navne eller policenumre (Princip VII)."""
+    r = beregn(guide_json, idag)
+    if not r["ok"]:
+        return r
+    v = r["data"]
+
+    def del_af(visning: dict) -> dict:
+        return {k: visning[k] for k in ("hovedtal", "aar", "formue")}
+
+    data = {"satsaar": _satsaar(), "beregnet": idag, "input": json.loads(guide_json),
+            "antagelser": v["antagelser"], "satser": v["satser"], "forenklinger": v["forenklinger"],
+            "advarsler": v["hovedtal_advarsler"] + v["generelle_advarsler"], **del_af(v)}
+    if v.get("husstand"):
+        data["partner"] = del_af(v["husstand"]["partner"])
+    linjer = [";".join(navn for navn, _ in CSV_KOLONNER)]
+    for a in v["aar"]:
+        linjer.append(";".join(str(a[k]) if isinstance(a[k], int) else str(round(a[k])) for _, k in CSV_KOLONNER))
+    return _ok({"filnavn": f"pensionsoverblik-{idag}", "json": json.dumps(data, ensure_ascii=False, indent=2),
+                "csv": "\n".join(linjer) + "\n"})
+
+
 def kommuner() -> list[dict]:
     navne = register.kommunenavne(_satsaar())
     return sorted(({"noegle": k, "navn": v} for k, v in navne.items()), key=lambda k: k["navn"].casefold())

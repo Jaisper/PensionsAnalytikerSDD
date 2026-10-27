@@ -461,6 +461,12 @@
             <summary>Se vores forudsætninger <span aria-hidden="true">→</span></summary>
             <ul class="satsliste" id="antagelser"></ul>
           </details>
+          <div class="eksport">
+            <button type="button" class="knap knap--sekundaer" id="eksport-json">Hent hele beregningen (JSON)</button>
+            <button type="button" class="knap knap--sekundaer" id="eksport-csv">Hent år for år (CSV)</button>
+            <button type="button" class="knap knap--tekst" id="udskriv">Udskriv til din rådgiver</button>
+            <p class="felt__hjaelp">Filerne laves her i din browser. De indeholder dine svar, satserne og tallene, men ikke dit navn eller CPR-nummer.</p>
+          </div>
           <details class="fold">
             <summary>Ordliste <span aria-hidden="true">→</span></summary>
             <dl class="ordliste" id="ordliste"></dl>
@@ -474,12 +480,31 @@
       </section>
     </section>
 
+    <!-- ── Metodesiden (feature 020d) ────────────────────────────────────── -->
+    <section class="sektion" id="metode" aria-labelledby="metode-titel" hidden>
+      <div class="ramme">
+        <h2 id="metode-titel" tabindex="-1">Sådan regner PensionsAnalytikeren</h2>
+        <p class="sektion__intro">Hele metoden, satserne og forenklingerne for satsåret <span id="metode-satsaar"></span>. Det er de samme tekster og satser, som forklaringerne ved dine tal bruger.</p>
+        <div class="niveauvaelger" data-niveauvaelger="metode"></div>
+        <div class="metode__knapper">
+          <button type="button" class="knap knap--sekundaer" id="metode-udskriv">Udskriv</button>
+          <button type="button" class="knap knap--tekst" id="metode-luk">Luk</button>
+        </div>
+        <div id="metode-emner"></div>
+        <h3>Forenklinger</h3>
+        <ul class="satsliste" id="metode-forenklinger"></ul>
+        <h3>Satser og kilder</h3>
+        <div class="tabel-rul" id="metode-satser"></div>
+      </div>
+    </section>
+
   </main>
 
   <footer class="bund">
     <div class="ramme">
       <p><strong>Pensionsoverblik</strong> er information, ikke rådgivning. Beregningen bygger på dine svar, gældende regler for 2026 og forudsætninger om fremtiden, som ingen kender. Tal med en pensionsrådgiver, før du træffer beslutninger.</p>
       <p>Vi gemmer ikke dine oplysninger. De bruges kun til beregningen, mens siden er åben.</p>
+      <p><a href="#metode" id="metode-link">Sådan regner PensionsAnalytikeren</a></p>
     </div>
   </footer>
 </body>

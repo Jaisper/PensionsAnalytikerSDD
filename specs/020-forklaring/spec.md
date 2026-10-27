@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-26
 
-**Status**: Draft – clarify gennemført, opdeling besluttet (se sidst)
+**Status**: Implementeret 2026-10-27 (020a–d). SC-004 (brugertest) udestår, se ux-evaluering.md
 
 **Input**: "Det er vigtigt at kunne forklare, hvordan pensionsanalytikeren regner – for newbies,
 almindeligt vidende og eksperter. Alt væsentligt ift. præsentation og beregninger skal
