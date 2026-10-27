@@ -106,3 +106,12 @@ def test_axe_og_360(resultat):
     resultat.set_viewport_size({"width": 360, "height": 800})
     resultat.wait_for_function("() => document.documentElement.scrollWidth <= 360", timeout=5000)
     assert resultat.fejl == []
+
+
+def test_engangskortet_viser_sum_pr_ordning_og_aar_for_aar(resultat):
+    k = next(k for k in resultat.evaluate("tilstand.v.kort") if k["noegle"] == "engangsbeloeb")
+    kort = resultat.locator("#kort article", has=resultat.locator(".engangsliste"))
+    assert kort.locator(".engangsliste li").count() == len(k["pr_ordning"])
+    kort.locator(".kort__knap").click()
+    assert kort.locator("tbody tr").count() == len(k["engangs"])
+    assert kort.locator(".tabel-rul").is_visible()

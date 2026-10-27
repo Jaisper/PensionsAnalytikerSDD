@@ -111,6 +111,11 @@ nye kerne skal have en test, der fastholder det.
 
 ## 3. Modelleringsantagelser (ikke lovgivning — skal være eksplicitte valg)
 
+> **Forenklingsregistret** (`src/pensionskerne/register/forenklinger.toml`, feature 020) er den
+> gældende liste over forenklinger med begrundelse og betydning. Borgeren ser den under "Sådan har
+> vi regnet". Listerne over forenklinger i dette dokument er historik pr. feature. En test kræver,
+> at hver markering i kernen (`o.marker("forenkling:…")`) står i registret.
+
 Disse er ikke regler, der kan "valideres mod loven". Det er antagelser, som spec'en skal
 nævne og brugeren skal kunne se:
 
@@ -329,6 +334,30 @@ beløb vises i dagens kroner (inflationskorrigeret med antagelsens inflation, so
   indkomsten i året efter den normale plans slutning (folkepension, ATP og livrente).
 - **Ikke modelleret:** afkast, der svinger fra år til år (sekvensrisiko), og sandsynligheder. Se
   roadmappen.
+
+## 7i. Arbejdsår og løn (feature 017)
+
+**Koblinger efter loven:**
+- AM-bidrag af lønnen (AMBL § 1). Lønnen efter AM-bidrag er personlig indkomst.
+- Pensionsindbetaling til ratepension og livsvarig pension fradrages i den personlige indkomst.
+  Den regnes som arbejdsgiverordning (forenkling i registret).
+- Beskæftigelsesfradrag (LL § 9 J, stk. 1), jobfradrag (§ 9 K) og seniorfradrag (§ 9 J, stk. 5–6,
+  gældende lov: 1,4 % i de to sidste år før folkepensionsalderen) er ligningsmæssige fradrag.
+  De nedsætter kun grundlaget for kommune- og kirkeskat. Personfradraget regnes pr. grundlag.
+- Egen løn indgår ikke i pensionstillæggets indtægtsgrundlag (L 117, 2023). Over bundfradraget
+  (122.004 kr. i 2026) indgår den i den personlige tillægsprocent.
+
+**Modelvalg:**
+- Lønnen er i dagens kroner og reguleres med satsreguleringen, ikke med `loenvaekst`.
+- Med løn begynder tabellen i dag. Udjævningen begynder ved stopalderen
+  (`Fremskrivning.jaevn_fra_alder`). Årene før udjævnes ikke.
+- Opsparing i planen og engangsbeløb før stopalderen samles i bufferen og indsættes ved
+  stopalderen. Afkastet beskattes i arbejdsåret sammen med lønnen.
+- Pensionsindbetalingerne stopper ved stopalderen.
+- Hovedtallet og "Find bedste plan" bruger årene fra stopalderen.
+- År uden indkomst efter stop giver advarslen `INDKOMSTHUL`.
+- "Hvornår kan jeg stoppe?" afprøver alle stopaldre fra i dag til folkepensionsalderen med den
+  nuværende plan.
 
 ## 8. Uden for denne feature (kommer i senere features)
 

@@ -72,8 +72,7 @@
                 <label for="pdf-fil">Vælg rapporten (PDF)</label>
                 <input type="file" id="pdf-fil" accept="application/pdf,.pdf">
               </div>
-              <p class="felt__hjaelp">Rapporten læses kun her i din browser. Den sendes ikke nogen steder hen – heller ikke til AI-tjenester.</p>
-              <button type="button" class="knap knap--sekundaer" id="pdf-knap">Aflæs rapport</button>
+              <p class="felt__hjaelp">Vi aflæser den, så snart du har valgt den. Rapporten læses kun her i din browser. Den sendes ikke nogen steder hen – heller ikke til AI-tjenester.</p>
               <div id="pdf-status" class="upload__status" role="status" aria-live="polite"></div>
             </section>
 
@@ -127,9 +126,33 @@
 
             <div class="felt" data-felt="atp_aarlig person.atp_aarlig">
               <label for="atp">Din ATP pr. år <span class="valgfri">(valgfri)</span></label>
-              <input id="atp" inputmode="numeric" class="beloeb" aria-describedby="atp-hjaelp">
+              <input id="atp" inputmode="numeric" class="beloeb" aria-describedby="atp-hjaelp" placeholder="0">
               <p class="felt__hjaelp" id="atp-hjaelp">Står på pensionsinfo.dk. Lader du feltet stå tomt eller skriver 0, bruger vi ATP's gennemsnit.</p>
             </div>
+
+            <!-- Løn (feature 017) -->
+            <div class="felt" data-felt="loen.aarlig person.loen.aarlig">
+              <label for="loen">Din årsløn før skat <span class="valgfri">(valgfri)</span></label>
+              <input id="loen" inputmode="numeric" class="beloeb" aria-describedby="loen-hjaelp" placeholder="0">
+              <p class="felt__hjaelp" id="loen-hjaelp">Med din egen del af pensionsindbetalingen. Så regner vi også årene, til du stopper, og du kan se, hvornår du kan stoppe.</p>
+            </div>
+            <div class="felt" data-felt="loen.stop_alder">
+              <label for="stop-alder">Jeg stopper med at arbejde som <span class="valgfri">(valgfri)</span></label>
+              <input id="stop-alder" inputmode="numeric" class="alder" aria-describedby="stop-alder-hjaelp" placeholder="år">
+              <p class="felt__hjaelp" id="stop-alder-hjaelp">Lader du feltet stå tomt, regner vi med din folkepensionsalder.</p>
+            </div>
+            <details class="tabel-alternativ" id="deltid">
+              <summary>Arbejder du ved siden af pensionen?</summary>
+              <div class="felt" data-felt="loen.deltid_aarlig">
+                <label for="deltid-loen">Løn om året, efter du er stoppet</label>
+                <input id="deltid-loen" inputmode="numeric" class="beloeb" placeholder="0">
+              </div>
+              <div class="felt" data-felt="loen.deltid_til_alder">
+                <label for="deltid-til">Til jeg er</label>
+                <input id="deltid-til" inputmode="numeric" class="alder" aria-describedby="deltid-til-hjaelp" placeholder="år">
+                <p class="felt__hjaelp" id="deltid-til-hjaelp">Din egen løn nedsætter ikke dit pensionstillæg. Over 122.004 kr. om året kan den nedsætte ældrechecken.</p>
+              </div>
+            </details>
           </fieldset>
 
           <!-- Trin 2 -->
@@ -161,8 +184,7 @@
                 <label for="p-pdf-fil">Vælg din partners rapport (PDF)</label>
                 <input type="file" id="p-pdf-fil" accept="application/pdf,.pdf">
               </div>
-              <p class="felt__hjaelp">Rapporten læses kun her i din browser. Den sendes ikke nogen steder hen.</p>
-              <button type="button" class="knap knap--sekundaer" id="p-pdf-knap">Aflæs rapport</button>
+              <p class="felt__hjaelp">Vi aflæser den, så snart du har valgt den. Rapporten læses kun her i din browser. Den sendes ikke nogen steder hen.</p>
               <div id="p-pdf-status" class="upload__status" role="status" aria-live="polite"></div>
             </section>
             <div class="felt" data-felt="p.foedselsdato">
@@ -185,11 +207,19 @@
             </div>
             <div class="felt" data-felt="person.partner.profil.atp_aarlig">
               <label for="p-atp">Din partners ATP pr. år <span class="valgfri">(valgfri)</span></label>
-              <input id="p-atp" inputmode="numeric" class="beloeb" aria-describedby="p-atp-hjaelp">
+              <input id="p-atp" inputmode="numeric" class="beloeb" aria-describedby="p-atp-hjaelp" placeholder="0">
               <p class="felt__hjaelp" id="p-atp-hjaelp">Lader du feltet stå tomt eller skriver 0, bruger vi ATP's gennemsnit.</p>
             </div>
             <div class="felt felt--afkrydsning">
               <label class="valg"><input type="checkbox" id="p-folkekirke"> Min partner er medlem af folkekirken</label>
+            </div>
+            <div class="felt" data-felt="person.partner.profil.loen.aarlig">
+              <label for="p-loen">Din partners årsløn før skat <span class="valgfri">(valgfri)</span></label>
+              <input id="p-loen" inputmode="numeric" class="beloeb" placeholder="0">
+            </div>
+            <div class="felt">
+              <label for="p-stop-alder">Din partner stopper med at arbejde som <span class="valgfri">(valgfri)</span></label>
+              <input id="p-stop-alder" inputmode="numeric" class="alder" placeholder="år">
             </div>
           </fieldset>
 
@@ -270,6 +300,11 @@
           <p class="hero__forklaring" id="hovedtal-forklaring"></p>
           <p class="hero__aendring" id="hovedtal-aendring" aria-live="polite"></p>
           <p class="hero__spaend" id="hovedtal-spaend"></p>
+          <details class="forklaring forklaring--lys" id="hovedtal-forklaring-boks">
+            <summary>Hvordan fremkommer tallet?</summary>
+            <div class="niveauvaelger" data-niveauvaelger="hovedtal"></div>
+            <div class="forklaring__tekst" id="hovedtal-forklaring-tekst"></div>
+          </details>
           <details class="forudsaetninger" id="hovedtal-forudsaetninger" hidden>
             <summary id="forudsaetninger-titel"></summary>
             <ul class="chips" id="hovedtal-advarsler"></ul>
@@ -328,6 +363,15 @@
             <ul class="forklaring-farver" id="farveforklaring"></ul>
             <p class="graf-forklaring" id="jaevn-forklaring" hidden></p>
             <ul class="markeringer" id="graf-markeringer"></ul>
+            <p class="felt__hjaelp">Klik på et år i grafen for at se, hvordan det er regnet.</p>
+            <section class="aar-forklaring" id="aar-forklaring" aria-labelledby="aar-forklaring-titel" hidden>
+              <div class="aar-forklaring__top">
+                <h3 id="aar-forklaring-titel" tabindex="-1"></h3>
+                <button type="button" class="knap knap--tekst" id="aar-forklaring-luk">Luk</button>
+              </div>
+              <div class="niveauvaelger" data-niveauvaelger="aar"></div>
+              <div class="forklaring__tekst" id="aar-forklaring-tekst"></div>
+            </section>
             <div class="optimering">
               <div class="optimering__top">
                 <button type="button" class="knap knap--sekundaer" id="optimer-knap">Find bedste plan</button>
@@ -369,6 +413,17 @@
               <div class="skyder"><input type="range" id="r-inflation" min="0" max="5" step="0.5"><output for="r-inflation" id="r-inflation-v"></output></div></div>
           </div>
           <button type="button" class="knap knap--tekst" id="nulstil">Nulstil til mine svar</button>
+          <section class="stop-soeg" aria-labelledby="stop-soeg-titel">
+            <h3 id="stop-soeg-titel">Hvornår kan jeg stoppe?</h3>
+            <div class="felt">
+              <label for="oenske">Hvor meget vil du have om måneden efter skat, i dagens kroner?</label>
+              <div class="tilfoej__raekke">
+                <input id="oenske" inputmode="numeric" class="beloeb" placeholder="fx 20.000">
+                <button type="button" class="knap knap--sekundaer" id="stop-knap">Find tidligste alder</button>
+              </div>
+            </div>
+            <div id="stop-svar" role="status" aria-live="polite"></div>
+          </section>
           <details class="fold" id="usikkerhed" hidden>
             <summary>Hvis afkast, inflation eller levetid bliver anderledes <span aria-hidden="true">→</span></summary>
             <p class="sektion__intro">Det faste beløb om måneden efter skat, i dagens kroner, når afkastet er 1 procentpoint lavere eller højere end dit valg, inflationen er 0,5 procentpoint højere eller lavere, eller planen skal række kortere eller længere end til 90 år. Ingen kender fremtiden, så tallene er eksempler, ikke grænser.</p>
@@ -393,6 +448,11 @@
           <details class="fold">
             <summary>Se vores forudsætninger <span aria-hidden="true">→</span></summary>
             <ul class="satsliste" id="antagelser"></ul>
+          </details>
+          <details class="fold">
+            <summary id="forenklinger-titel">Se vores forenklinger <span aria-hidden="true">→</span></summary>
+            <p class="sektion__intro">Her har vi gjort beregningen enklere end virkeligheden. Vi fortæller hvorfor, og hvad det betyder for dit tal.</p>
+            <ul class="satsliste" id="forenklinger"></ul>
           </details>
         </div>
       </section>

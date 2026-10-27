@@ -73,7 +73,6 @@ def koer_guide(page, pdf_sti=None):
     """Guiden som en borger: evt. upload af rapporten, kommune, ordninger og resultat."""
     if pdf_sti is not None:
         page.set_input_files("#pdf-fil", str(pdf_sti))
-        page.click("#pdf-knap")
         page.wait_for_selector("#pdf-status p")
     page.fill("#kommune", "Aarhus")
     page.click("#naeste")

@@ -1,0 +1,291 @@
+# Forklaringskataloget (feature 020, FR-002): tekst pr. emne på tre niveauer.
+#
+#   niveau1 — Kort fortalt: korte sætninger i du-form, ingen paragraffer (LIX under 35).
+#   niveau2 — Sådan regner vi: trinene, fagudtryk forklaret.
+#   niveau3 — For eksperter: lovhenvisninger, formler og modelvalg.
+#
+# Kun ord og pladsholdere i {krøllede parenteser}, aldrig satser eller beløb (Princip II). Tallene
+# kommer fra kernen og regelregistret, når teksten vises. Registerposter og advarsler peger på et
+# emne; en test kræver, at alle har et emne, og at alle inventarpunkter er dækket (FR-006).
+
+inventar = [
+  "Folkepensionsalder og opsat folkepension",
+  "Folkepension: grundbeløb, pensionstillæg, indtægtsgrundlag, modregning, tillægsprocent",
+  "Ældrecheck og mediecheck, likvid formue og formuegrænse",
+  "ATP",
+  "Ratepension, livsvarig pension, aldersopsparing og kapitalpension",
+  "Indkomstskat: bund, mellem, top, toptop, kommune, kirke, personfradrag, skatteloft",
+  "AM-bidrag",
+  "Kapitalindkomst og bundfradrag",
+  "Udjævning, fast beløb og buffer uden lån",
+  "Opsparing uden for pension",
+  "Løn, stopalder og fradrag",
+  "Usikkerhed og levetid",
+  "Optimering",
+  "Husstand og partner",
+  "Afkast, inflation, satsregulering og realfaktor",
+  "Fastpunkt-iterationer",
+  "Afrunding og præcision",
+  "PDF-aflæsning",
+  "Dit år",
+]
+
+[[emne]]
+id = "fast_beloeb"
+titel = "Det faste beløb"
+inventar = ["Udjævning, fast beløb og buffer uden lån"]
+registerposter = []
+advarsler = ["BUFFER_SOM_OPSPARING"]
+niveau1 = "Du kan bruge ca. {maaned} kr. om måneden fra {fra_alder} år. Det er efter skat. Det er i dagens kroner. Så er det lige meget værd hele livet. Beløbet stiger kun, når der kommer flere penge ind. Det lånes aldrig."
+niveau2 = "Dine udbetalinger svinger fra år til år. Vi jævner dem ud: i år med meget sparer vi op, og i år med lidt bruger vi af opsparingen. Det faste beløb er det højeste beløb, der kan holdes hvert år, uden at opsparingen nogensinde går i minus. Når et stort beløb lander senere, kan beløbet først stige fra det år. Opsparingens afkast beskattes som kapitalindkomst, og skatten betales af opsparingen."
+niveau3 = "Forbrugsudjævning med likviditetsbegrænsning, segment for segment: fra et år med opsparing B er niveauet c = min over k af (B + nutidsværdien af indbetalingerne til og med år k) / (nutidsværdien af en voksende annuitet til og med år k). Segmentet slutter i det k, der giver minimum, og opsparingen er der netop brugt op. Renten er pensionens afkast før PAL-skat. Niveauet vokser med inflationen. Hovedtallet er det laveste niveau i perioden, regnet om til dagens kroner og afrundet til hele hundrede kroner."
+
+[[emne]]
+id = "aar"
+titel = "Dit år"
+inventar = ["Dit år"]
+registerposter = []
+advarsler = []
+niveau1 = "I {kalenderaar} er du {alder} år. Du får ca. {netto} kr. om måneden efter skat. Pengene kommer fra: {kilder}."
+niveau2 = "Regnestykket viser hver indkomst før skat, skatten fordelt på typer og beløbet efter skat. Pensionstillægget vises før og efter modregning. Ældrechecken kræver, at din formue pr. 1. januar er under grænsen. Til sidst ser du, hvor meget der går til eller fra din opsparing for at holde det faste beløb."
+niveau3 = "Indkomstskatten regnes af den samlede indkomst (personskatteloven) og fordeles på indkomsterne efter størrelse; fordelingen er kun til visning. Skat pr. type er efter personfradrag. Mellem-, top- og toptopskat rammer grundlaget over hver grænse, og nedslaget for skatteloftet (PSL § 19) trækkes fra. Ligningsmæssige fradrag nedsætter kun kommune- og kirkeskat. Sporingen viser de registerposter, året brugte."
+
+[[emne]]
+id = "folkepensionsalder"
+titel = "Folkepensionsalder og opsat folkepension"
+inventar = ["Folkepensionsalder og opsat folkepension"]
+registerposter = ["fp.folkepensionsalder", "opsat.*"]
+advarsler = ["750_TIMER", "OPSAT_ANDRE_FORMER"]
+niveau1 = "Din alder for folkepension afhænger af, hvornår du er født. Du kan vente med at få den. Så bliver den større hver måned."
+niveau2 = "Folkepensionsalderen står i loven for hver fødselsårgang. Udskyder du folkepensionen, får du et ventetillæg, der gør den større resten af livet. Det kræver, at du arbejder et vist antal timer om året, mens du venter."
+niveau3 = "Lov om social pension § 1 a (folkepensionsalder pr. fødselsdato) og §§ 15 a–15 h (opsat pension). Ventetillægget er regnet som et livsvarigt tillæg med registrets middellevetid. Andre udbetalingsformer (tillæg i ti år eller engangsbeløb) er ikke regnet."
+
+[[emne]]
+id = "grundbeloeb"
+titel = "Grundbeløb"
+inventar = ["Folkepension: grundbeløb, pensionstillæg, indtægtsgrundlag, modregning, tillægsprocent"]
+registerposter = ["fp.grundbeloeb"]
+advarsler = []
+niveau1 = "Grundbeløbet er den faste del af din folkepension. Alle får det samme. Det bliver ikke mindre af anden indkomst."
+niveau2 = "Grundbeløbet udbetales fra folkepensionsalderen. Det er skattepligtigt. I det første år får du kun for de måneder, hvor du har folkepension."
+niveau3 = "Lov om social pension § 12. Siden 2023 nedsættes grundbeløbet ikke af egen arbejdsindkomst (L 117). Satsen reguleres efter satsreguleringen (registret)."
+
+[[emne]]
+id = "pensionstillaeg"
+titel = "Pensionstillæg"
+inventar = ["Folkepension: grundbeløb, pensionstillæg, indtægtsgrundlag, modregning, tillægsprocent"]
+registerposter = ["fp.tillaeg.*", "fp.partner_ikke_pensionist.*", "fp.fradrag_forhoejelse.*", "fp.indtaegtsgrundlag.*"]
+advarsler = []
+niveau1 = "Pensionstillægget er den del af folkepensionen, der afhænger af din anden indkomst. Har du meget anden indkomst, bliver det mindre. Din egen løn tæller ikke med."
+niveau2 = "Vi lægger din anden indkomst sammen: private pensioner, ATP og kapitalindkomst. Det kaldes indtægtsgrundlaget. Over et fradrag trækkes en procentdel af det overskydende fra tillægget. Det kaldes modregning. Er du gift eller samlevende, tæller jeres samlede indkomst. Din partners løn tæller ikke med."
+niveau3 = "Lov om social pension §§ 29–32 a. Indtægtsgrundlaget omfatter personlig indkomst, positiv kapitalindkomst og aktieindkomst ud over udbytte op til grænsen. Egen og partnerens arbejdsindkomst indgår ikke (§ 29, stk. 1, nr. 10; L 117). Er partneren ikke pensionist, ses der bort fra en del af partnerens indkomst (§ 32 a). Modregningen afrundes som i registret."
+
+[[emne]]
+id = "tillaegsprocent"
+titel = "Tillægsprocent, ældrecheck og mediecheck"
+inventar = ["Folkepension: grundbeløb, pensionstillæg, indtægtsgrundlag, modregning, tillægsprocent", "Ældrecheck og mediecheck, likvid formue og formuegrænse"]
+registerposter = ["tp.*", "yd.aeldrecheck", "yd.aeldrecheck.minimum", "yd.mediecheck"]
+advarsler = []
+niveau1 = "Ældrechecken og mediechecken er ekstra penge en gang om året. Du får dem, hvis du har lav indkomst og lille formue. Jo mere indkomst du har, jo mindre får du."
+niveau2 = "Din personlige tillægsprocent styrer checkene. Den er hundrede, hvis din anden indkomst er lav, og falder et point for hvert trin over grænsen. Din løn tæller kun med over et bundfradrag. Checkene gives fra året efter, at du får folkepension, fordi du skal have folkepension pr. 1. januar."
+niveau3 = "Lov om social pension § 14 e (tillægsprocent), § 72 d (ældrecheck) og § 72 e (mediecheck). Ældrechecken er satsen gange tillægsprocenten og udbetales ikke under minimum. Egen arbejdsindkomst over bundfradraget indgår i tillægsprocentens grundlag."
+
+[[emne]]
+id = "formuegraense"
+titel = "Formuegrænsen for ældrechecken"
+inventar = ["Ældrecheck og mediecheck, likvid formue og formuegrænse"]
+registerposter = ["yd.aeldrecheck.formuegraense"]
+advarsler = []
+niveau1 = "Har du for mange penge i banken den 1. januar, får du ikke ældrecheck det år. Din bolig og din pension tæller ikke med."
+niveau2 = "Likvid formue er penge, du hurtigt kan bruge: bank, aktier, obligationer og aktiesparekonto. For et par tæller jeres samlede formue. Grænsen er hård: en krone over, og checken falder bort."
+niveau3 = "Lov om social pension § 72 d, stk. 2. Formuen opgøres pr. 1. januar. Opsparingen i udjævningen, urørt opsparing og partnerens opsparing tæller med. Engangsbeløb udbetales i løbet af året og tæller først fra året efter."
+
+[[emne]]
+id = "atp"
+titel = "ATP"
+inventar = ["ATP"]
+registerposter = ["atp.*"]
+advarsler = ["ATP_SKOENNET"]
+niveau1 = "ATP er en livslang pension. De fleste har betalt til den gennem arbejdet. Du får den fra din alder for folkepension."
+niveau2 = "Vi bruger din ATP fra PensionsInfo. Har du ikke skrevet den, bruger vi ATP's gennemsnit. ATP er skattepligtig og tæller med i pensionstillæggets indtægtsgrundlag."
+niveau3 = "ATP Livslang Pension udbetales fra folkepensionsalderen og påvirkes ikke af opsat folkepension. Beløbet reguleres med satsreguleringen. Uden oplyst beløb bruges registrets gennemsnit, og det markeres."
+
+[[emne]]
+id = "ratepension"
+titel = "Ratepension"
+inventar = ["Ratepension, livsvarig pension, aldersopsparing og kapitalpension"]
+registerposter = ["ordning.ratepension.*"]
+advarsler = ["RATEPENSION_LOFT"]
+niveau1 = "En ratepension betales ud over et fast antal år. Beløbet stiger lidt hvert år. Det er fordi resten af pengene stadig giver afkast."
+niveau2 = "Hvert år udbetales restværdien delt med antallet af år, der er tilbage. Udbetalingen beskattes som personlig indkomst og nedsætter pensionstillægget. Der er et loft over, hvor meget du kan indbetale om året."
+niveau3 = "Pensionsbeskatningsloven § 11 A (rate = restværdi / resterende år) og § 18 (indbetalingsloft). Mindste og længste periode står i registret. Indbetalinger over loftet er regnet som indbetaling til livsvarig pension."
+
+[[emne]]
+id = "livsvarig"
+titel = "Livsvarig pension"
+inventar = ["Ratepension, livsvarig pension, aldersopsparing og kapitalpension"]
+registerposter = []
+advarsler = []
+niveau1 = "En livsvarig pension betales hver måned, så længe du lever. Beløbet er det samme hele livet."
+niveau2 = "Vi regner beløbet ud fra din opsparing, afkastet og en antaget levetid. Pensionsselskabet fastsætter det rigtige beløb. Udbetalingen beskattes som personlig indkomst og nedsætter pensionstillægget."
+niveau3 = "Annuitet over horisonten fra udbetalingsstart til den antagne levealder, dog mindst registrets minimum af år. Ændres planens slutning i et levetidsscenarie, ændres ydelsen ikke."
+
+[[emne]]
+id = "aldersopsparing"
+titel = "Aldersopsparing"
+inventar = ["Ratepension, livsvarig pension, aldersopsparing og kapitalpension"]
+registerposter = ["ordning.aldersopsparing.*"]
+advarsler = []
+niveau1 = "Din aldersopsparing får du som ét beløb. Du betaler ikke skat, når du får den. Den gør ikke dit pensionstillæg mindre."
+niveau2 = "Du betaler skat, når du indbetaler, ikke når du får pengene. Indbetalingen har et lille loft, der er højere de sidste år før folkepensionsalderen. Beløbet indgår i det faste beløb eller udbetales direkte."
+niveau3 = "Pensionsbeskatningsloven §§ 10 A og 16 (indbetalingsloft og forhøjet loft de sidste år før folkepensionsalderen). Udbetalingen er skattefri og indgår ikke i indtægtsgrundlaget."
+
+[[emne]]
+id = "kapitalpension"
+titel = "Kapitalpension"
+inventar = ["Ratepension, livsvarig pension, aldersopsparing og kapitalpension"]
+registerposter = ["ordning.kapitalpension.*"]
+advarsler = ["PORTIONER_KRAEVER_AFTALE", "OMLAEGNING_KRAEVER_OVERFOERSEL"]
+niveau1 = "En kapitalpension udbetales som et samlet beløb. Staten tager en afgift. Den nedsætter ikke dit pensionstillæg. Du kan også få den i portioner."
+niveau2 = "Af hver udbetaling betales en fast afgift. Er afgiften betalt tidligere, er udbetalingen fri. Du kan få pengene i portioner over flere år, eller lægge dem om til en ratepension eller livrente, før udbetalingen begynder. Så beskattes de som indkomst og nedsætter pensionstillægget."
+niveau3 = "Pensionsbeskatningsloven § 26 (afgift og delvis udbetaling), § 41 (omlægning) og fristen for udbetaling efter pensionsudbetalingsalderen. Portioner regnes som ratepensionens formel af restværdien. Kapitalpension fra før 1980 er ikke modelleret."
+
+[[emne]]
+id = "udbetalingsalder"
+titel = "Hvornår en ordning kan udbetales"
+inventar = ["Ratepension, livsvarig pension, aldersopsparing og kapitalpension"]
+registerposter = ["ordning.udbetalingsalder.*"]
+advarsler = ["UDBETALING_FOER_LOVLIG_ALDER"]
+niveau1 = "Du kan få din pension ud et par år før folkepension. Det kommer an på, hvornår du fik den."
+niveau2 = "Ordninger oprettet efter et bestemt år har en udbetalingsalder, der følger folkepensionsalderen. Ældre ordninger har en fast alder. PensionsInfo oplyser ofte alderen direkte, og så bruger vi den."
+niveau3 = "Pensionsbeskatningsloven § 1 A (pensionsudbetalingsalder). Kendes oprettelsesdatoen ikke, bruges den laveste mulige alder, og der advares."
+
+[[emne]]
+id = "indkomstskat"
+titel = "Indkomstskat"
+inventar = ["Indkomstskat: bund, mellem, top, toptop, kommune, kirke, personfradrag, skatteloft"]
+registerposter = ["skat.bundskat", "skat.personfradrag"]
+advarsler = []
+niveau1 = "Du betaler skat til staten og din kommune. Er du medlem af folkekirken, betaler du også kirkeskat. En del af din indkomst er fri for skat."
+niveau2 = "Bundskat, kommuneskat og kirkeskat er en procent af din indkomst. Personfradraget er den del, der er fri for skat. Vi regner skatten af hele din indkomst samlet."
+niveau3 = "Personskatteloven §§ 6 (bundskat), 10 (personfradrag) og kommuneskatteloven. Kommune- og kirkeskat beregnes af den skattepligtige indkomst efter ligningsmæssige fradrag; bundskat af personlig indkomst og positiv kapitalindkomst. Personfradraget regnes pr. grundlag."
+
+[[emne]]
+id = "skattetrin"
+titel = "Mellemskat, topskat og skatteloft"
+inventar = ["Indkomstskat: bund, mellem, top, toptop, kommune, kirke, personfradrag, skatteloft"]
+registerposter = ["skat.mellemskat.*", "skat.topskat.*", "skat.toptopskat.*", "skat.skatteloft.*"]
+advarsler = ["MELLEMSKAT_INTERVAL"]
+niveau1 = "Har du en høj indkomst, betaler du mere i skat af de sidste kroner. Der er et loft over, hvor høj skatten kan blive."
+niveau2 = "Over hver grænse kommer et ekstra skattetrin: mellemskat, topskat og toptopskat. Skatteloftet sikrer, at den samlede sats ikke bliver højere end loftet. Kapitalindkomst under et bundfradrag rammes ikke af trinnene."
+niveau3 = "Personskatteloven §§ 6 a, 7 og 7 a og det skrå skatteloft i § 19. Hvert trin rammer grundlaget over trinnets grænse. Nedslaget for skatteloftet beregnes pr. bånd og separat for kapitalindkomst."
+
+[[emne]]
+id = "am_bidrag"
+titel = "AM-bidrag"
+inventar = ["AM-bidrag"]
+registerposter = ["skat.am_bidrag"]
+advarsler = []
+niveau1 = "Af din løn betaler du først AM-bidrag. Af din pension betaler du det ikke. Det er betalt, da pengene blev sat ind."
+niveau2 = "AM-bidraget trækkes af hele lønnen, før den øvrige skat. Pensionsudbetalinger, folkepension og ATP er fri for AM-bidrag."
+niveau3 = "Arbejdsmarkedsbidragsloven § 1. Ved arbejdsgiverordninger betales bidraget ved indbetalingen, aldrig ved udbetaling fra pensionsinstitutter."
+
+[[emne]]
+id = "kapitalindkomst"
+titel = "Kapitalindkomst"
+inventar = ["Kapitalindkomst og bundfradrag"]
+registerposter = ["skat.kapitalindkomst.*", "pal.sats"]
+advarsler = []
+niveau1 = "Renter og afkast af din opsparing i banken er kapitalindkomst. Den beskattes. Den kan gøre dit pensionstillæg mindre."
+niveau2 = "Afkastet af opsparing uden for pension beskattes med bundskat, kommuneskat og kirkeskat. Kun over et bundfradrag rammes det også af de højere trin. For gifte kan et ubrugt bundfradrag gå til den anden."
+niveau3 = "Personskatteloven § 4 (kapitalindkomst), § 7, stk. 1 og 5 (bundfradrag og overførsel mellem ægtefæller) og § 19, stk. 2 (skatteloft for kapitalindkomst). Renten er pensionens afkast før PAL-skat."
+
+[[emne]]
+id = "opsparing"
+titel = "Opsparing uden for pension"
+inventar = ["Opsparing uden for pension"]
+registerposter = []
+advarsler = ["OPSPARING_FOER_UDBETALING"]
+niveau1 = "Din opsparing i banken kan bruges i det faste beløb. Den kan også stå urørt og vokse. Den tæller med i formuegrænsen for ældrechecken."
+niveau2 = "Opsparing, du bruger, lægges i bufferen fra din første udbetaling eller fra du stopper med at arbejde. Urørt opsparing vokser med afkastet, og skatten af afkastet betales af det faste beløb. Det, der står tilbage ved planens slutning, er din restformue."
+niveau3 = "Afkastet er positiv kapitalindkomst (PSL § 4) og indgår i indtægtsgrundlaget (lov om social pension § 29). Saldoen pr. 1. januar indgår i den likvide formue (§ 72 d, stk. 2)."
+
+[[emne]]
+id = "loen"
+titel = "Løn, stopalder og fradrag"
+inventar = ["Løn, stopalder og fradrag"]
+registerposter = ["skat.beskaeftigelsesfradrag.*", "skat.jobfradrag.*", "skat.seniorfradrag.*"]
+advarsler = ["INDKOMSTHUL"]
+niveau1 = "Skriver du din løn, regner vi årene, til du stopper. Det faste beløb begynder, når du stopper. Du kan se, hvornår du kan stoppe."
+niveau2 = "Af lønnen trækkes AM-bidrag og din pensionsindbetaling. Beskæftigelsesfradrag, jobfradrag og seniorfradrag gør skatten lidt mindre. Din løn nedsætter ikke dit pensionstillæg, men over et bundfradrag kan den nedsætte ældrechecken. Har du ingen indkomst, fra du stopper, til din første udbetaling, siger vi det."
+niveau3 = "Ligningsloven § 9 J (beskæftigelsesfradrag og ekstra fradrag til seniorer de to sidste år før folkepensionsalderen, gældende lov) og § 9 K (jobfradrag). Fradragene nedsætter den skattepligtige indkomst. Lønnen reguleres med satsreguleringen. L 117 (2023) om arbejdsindkomst og pensionstillæg."
+
+[[emne]]
+id = "usikkerhed"
+titel = "Usikkerhed og levetid"
+inventar = ["Usikkerhed og levetid"]
+registerposter = []
+advarsler = []
+niveau1 = "Ingen kender fremtiden. Vi viser, hvad dit beløb bliver, hvis afkastet eller prisstigningerne bliver anderledes. Vi viser også, hvad der sker, hvis du lever kortere eller længere."
+niveau2 = "Hvert scenarie er en hel ny beregning med et andet afkast, en anden inflation eller en anden slutning på planen. Din livrente ændres ikke af levetiden, fordi selskabet betaler den, så længe du lever."
+niveau3 = "Afkast ± et procentpoint og inflation ± et halvt procentpoint omkring dit valg, hver for sig og sammen; ingen sats under nul. Planens slutning ændres uden at ændre livrentens beregningshorisont. Udsving fra år til år er ikke modelleret."
+
+[[emne]]
+id = "optimering"
+titel = "Find bedste plan"
+inventar = ["Optimering"]
+registerposter = []
+advarsler = []
+niveau1 = "Vi prøver mange måder at tage dine pensioner ud på. Vi foreslår den, der giver det højeste faste beløb. Du bestemmer selv, om du vil bruge forslaget."
+niveau2 = "Vi flytter, hvornår og hvor længe dine ordninger udbetales, og om folkepensionen skal udskydes. Et forslag må ikke give nye huller i din indkomst. Vi viser, hvor mange kombinationer vi har prøvet."
+niveau3 = "Deterministisk koordinatsøgning over startalder, periode, udbetalingsform og opsættelse inden for lovens grænser og et fast budget af beregninger. Målet er det laveste faste beløb i perioden; uafgjort afgøres af det senere niveau."
+
+[[emne]]
+id = "husstand"
+titel = "Husstand og partner"
+inventar = ["Husstand og partner"]
+registerposter = []
+advarsler = []
+niveau1 = "Har du en partner, regner vi jer hver for sig. Men loven kobler jer nogle steder. Fanen Samlet viser jer begge."
+niveau2 = "Hver af jer har jeres egen skat og jeres eget faste beløb. Jeres indkomst tæller sammen i pensionstillægget, og jeres formue tæller sammen i ældrechecken. Er I gift, kan et ubrugt personfradrag gå til den anden."
+niveau3 = "Lov om social pension § 29 og § 32 a (indtægtsgrundlag for par), § 72 d, stk. 2 (fælles formue), personskatteloven § 10, stk. 3 og § 7, stk. 5 (overførsler mellem ægtefæller). Koblingen løses ved fastpunkt-iteration mellem de to beregninger."
+
+[[emne]]
+id = "antagelser"
+titel = "Afkast, inflation og dagens kroner"
+inventar = ["Afkast, inflation, satsregulering og realfaktor"]
+registerposter = []
+advarsler = []
+niveau1 = "Vi antager et afkast og en prisstigning. Du kan ændre dem. Alle beløb vises i dagens kroner, så de kan sammenlignes."
+niveau2 = "Et beløb om tyve år er mindre værd end i dag. Vi regner det om med den antagne inflation. Satser i loven stiger med inflationen. Afkastet er efter skat på pensionen."
+niveau3 = "Realfaktor = 1 / (1 + inflation) opløftet i antal år fra i dag. Satsreguleringen følger inflationen, medmindre andet er valgt. Afkastet er efter PAL-skat; bufferens rente er afkastet før PAL-skat."
+
+[[emne]]
+id = "fastpunkt"
+titel = "Når tallene påvirker hinanden"
+inventar = ["Fastpunkt-iterationer"]
+registerposter = []
+advarsler = ["BUFFER_IKKE_KONVERGERET"]
+niveau1 = "Din opsparing giver renter. Renterne påvirker skat og tillæg. Det påvirker igen, hvor meget du kan spare op. Vi regner det igennem flere gange, til tallet ligger fast."
+niveau2 = "Vi regner årene, finder det faste beløb og opsparingen, og regner så årene igen med opsparingens renter og formue. Vi stopper, når beløbet ikke ændrer sig mærkbart. Lykkes det ikke, siger vi det."
+niveau3 = "Deterministisk fastpunkt-iteration med fast loft over antal runder; stop, når det jævne beløb ændrer sig mindre end tolerancen i alle år, eller ingen år krydser formuegrænsen. For et par itereres også mellem de to personer."
+
+[[emne]]
+id = "afrunding"
+titel = "Afrunding"
+inventar = ["Afrunding og præcision"]
+registerposter = []
+advarsler = []
+niveau1 = "Vi runder det faste beløb af til hele hundrede kroner. Det er et overslag, ikke et præcist tal."
+niveau2 = "Beregningen sker med fuld præcision. Kun det, vi viser, er afrundet. Små forskelle i summer skyldes afrunding."
+niveau3 = "Hovedtallet afrundes til nærmeste hundrede kroner; tabeller til hele kroner. Optimeringen sammenligner afrundede beløb, så forslag ikke afhænger af regnestøj."
+
+[[emne]]
+id = "pdf"
+titel = "Din rapport fra PensionsInfo"
+inventar = ["PDF-aflæsning"]
+registerposter = []
+advarsler = []
+niveau1 = "Vi læser din rapport fra PensionsInfo her i din browser. Den sendes ikke nogen steder hen. Tjek altid tallene bagefter."
+niveau2 = "Vi læser ordninger, saldo, udbetalingsalder og ATP. Forsikringer og omkostninger læses ikke. Kan vi ikke læse noget sikkert, beder vi dig skrive det."
+niveau3 = "Lokal, regelbaseret aflæsning uden kunstig intelligens (forfatningens princip XI). Intet skrives til disk eller logs."

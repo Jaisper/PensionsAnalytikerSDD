@@ -423,7 +423,19 @@ function partnerSvar() {
     folkekirkemedlem: $("#p-folkekirke").checked,
     folkepension_opsaettelse_aar: +$("#p-opsaettelse").value,
     opsparing: opsparingSvar("p-"),
+    loen: loenSvar("p-"),
   } };
+}
+
+/* Løn (feature 017): uden årsløn og deltidsløn sendes ingen løn. */
+function loenSvar(pre = "") {
+  const aarlig = beloeb($(`#${pre}loen`).value) ?? 0;
+  const deltid = pre ? 0 : beloeb($("#deltid-loen").value) ?? 0;
+  if (!aarlig && !deltid) return null;
+  return {
+    aarlig, stop_alder: beloeb($(`#${pre}stop-alder`).value) || null,
+    deltid_aarlig: deltid, deltid_til_alder: pre ? null : beloeb($("#deltid-til").value) || null,
+  };
 }
 
 /* Opsparing uden for pension (feature 013): ét bankaktiv pr. person. */
@@ -441,6 +453,7 @@ function guideSvar() {
       folkekirkemedlem: $("#folkekirke").checked,
       likvid_formue: erPar() && !fuldPartner() ? beloeb($("#partner-formue").value) ?? 0 : 0,  // partnerens, ved overslag
       opsparing: opsparingSvar(),
+      loen: loenSvar(),
       atp_aarlig: beloeb($("#atp").value) || null,  // tomt eller 0: ATP's gennemsnit (kernens fallback)
       partner: partnerSvar(),
     },
@@ -462,8 +475,8 @@ async function aflaesPdf(hvem = "dig") {
   const fil = $(`#${pre}pdf-fil`).files[0];
   if (!fil) { visFejl(felt, "Vælg rapporten først."); return; }
   if (fil.size > MAKS_PDF_BYTES) { visFejl(felt, `Filen er for stor. Den må højst fylde ${MAKS_PDF_BYTES / 1024 / 1024} MB.`); return; }
-  const knap = $(`#${pre}pdf-knap`);
-  knap.disabled = true;
+  const input = $(`#${pre}pdf-fil`);
+  input.disabled = true;  // aflæsningen starter, når filen er valgt; ingen ny fil imens
   status.textContent = "Aflæser rapporten …";
   try {
     const svar = await kald("pdf", await fil.arrayBuffer());
@@ -477,7 +490,7 @@ async function aflaesPdf(hvem = "dig") {
     status.textContent = "";
     visFejl(felt, "Rapporten kunne ikke aflæses. Prøv igen, eller indtast oplysningerne selv.");
   } finally {
-    knap.disabled = false;
+    input.disabled = false;
   }
 }
 
@@ -621,6 +634,12 @@ function tegnGraf(v) {
         footer: (t) => `I alt: ${kr(t.filter((x) => x.dataset.type !== "line").reduce((s, x) => s + x.raw, 0))} kr. om måneden` } },
     },
     onResize: () => requestAnimationFrame(placerBjaelker),
+    // Feature 020: klik på et år åbner "Dit år".
+    onClick: (_e, elementer, chart) => {
+      if (!elementer.length) return;
+      const alder = +chart.data.labels[elementer[0].index];
+      if (tilstand.v.aar.some((a) => a.alder === alder)) visAar(alder);
+    },
     scales: {
       x: { stacked: true, grid: { display: false }, title: { display: true, text: "Alder" }, ticks: { maxRotation: 0, autoSkipPadding: 8 } },
       y: { stacked: true, ticks: { callback: (x) => `${kr(x)} kr.` }, grid: { color: css("--graa-200") }, afterFit: fastYAkse },
@@ -781,15 +800,28 @@ function tegnKort(v) {
     knap.addEventListener("click", () => { const aaben = knap.getAttribute("aria-expanded") === "true"; knap.setAttribute("aria-expanded", String(!aaben)); tabel.hidden = aaben; });
 
     if (k.engangs) {
+      // Summen pr. ordning; de enkelte udbetalinger (fx portioner) under "Se år for år".
+      const navn = (id, type) => {
+        const o = aktivSvar()?.ordninger.find((x) => x.id === id);
+        return o ? ordningstitel(o) : TYPER[type]?.titel;
+      };
+      const hvor = (iBuffer) => (iBuffer ? "til buffer" : "udbetales direkte");
+      const engangsTabel = el("div", { class: "tabel-rul", id: detaljeId, hidden: true },
+        el("table", {},
+          el("caption", { class: "sr-only", tekst: "Engangsbeløb år for år" }),
+          el("thead", {}, el("tr", {}, ...["Alder", "Ordning", "Efter afgift", "I dagens kroner", "Bruges"].map((t) => el("th", { scope: "col", tekst: t })))),
+          el("tbody", {}, k.engangs.map((e) => el("tr", {}, el("th", { scope: "row", tekst: `${e.alder} år` }),
+            el("td", { tekst: navn(e.ordning_id, e.type) }), el("td", { tekst: `${kr(e.netto)} kr.` }),
+            el("td", { tekst: `${kr(e.netto_real)} kr.` }), el("td", { tekst: hvor(e.i_buffer) }))))));
+      knap.addEventListener("click", () => { engangsTabel.hidden = knap.getAttribute("aria-expanded") !== "true"; });
       return el("article", { class: "kort", style: `--farve: var(${k.farve})` },
         el("div", { class: "kort__ikon", "aria-hidden": "true" }),
         el("h3", { class: "kort__titel" }, k.titel, info), infoTekst,
-        el("ul", { class: "engangsliste" }, k.engangs.map((e) => {
-          const o = aktivSvar()?.ordninger.find((x) => x.id === e.ordning_id);
-          return el("li", {}, `${o ? ordningstitel(o) : TYPER[e.type]?.titel}: ${kr(e.netto)} kr. `,
-            el("small", { tekst: `som ${e.alder}-årig – ${kr(e.netto_real)} kr. i dagens kroner – ${e.i_buffer ? "til buffer" : "udbetales direkte"}` }));
-        })),
-        el("p", { class: "kort__periode", tekst: "Efter eventuel afgift. Udbetales én gang." }));
+        el("ul", { class: "engangsliste" }, k.pr_ordning.map((o) => el("li", {}, `${navn(o.ordning_id, o.type)}: ${kr(o.netto)} kr. `,
+          el("small", { tekst: `${o.antal > 1 ? `${o.antal} udbetalinger som ${o.fra_alder}–${o.til_alder}-årig` : `som ${o.fra_alder}-årig`}`
+            + ` – ${kr(o.netto_real)} kr. i dagens kroner – ${hvor(o.i_buffer)}` })))),
+        el("p", { class: "kort__periode", tekst: "Efter eventuel afgift." }),
+        knap, engangsTabel);
     }
     return el("article", { class: "kort", style: `--farve: var(${k.farve})` },
       el("div", { class: "kort__ikon", "aria-hidden": "true" }),
@@ -813,6 +845,13 @@ function tegnSaadan(v) {
       el("td", { tekst: `${kr(a.personlig_indkomst)} kr.` }), el("td", { tekst: `${kr(a.skat)} kr.` }),
       el("td", { tekst: `${kr(a.netto / 12)} kr.` }), el("td", { tekst: `${kr(a.netto_real / 12)} kr.` }),
       el("td", { tekst: `${kr(a.indtaegtsgrundlag)} kr.` }), el("td", { tekst: `${a.tillaegsprocent} %` }))))));
+  // Feature 020: årets række åbner forklaringen af året.
+  $$("#aar-tabel tbody th").forEach((th, i) => {
+    const alder = v.aar[i].alder;
+    const knap = el("button", { type: "button", class: "aar-tabel-knap", tekst: th.textContent, "aria-label": `Forklar året, hvor du er ${alder} år` });
+    knap.addEventListener("click", () => { aabnPanel("graf", true); visAar(alder); });
+    th.replaceChildren(knap);
+  });
 
   const STATUS = { verificeret: ["✓", "status--ok", "Bekræftet i lov eller hos myndighed"], sekundaer: ["≈", "status--ca", "Fra en sekundær kilde"], uverificeret: ["!", "status--ca", "Ikke bekræftet"] };
   const vis = (s) => {
@@ -830,6 +869,15 @@ function tegnSaadan(v) {
   }));
   $("#antagelser").replaceChildren(...Object.entries(ANTAGELSE_NAVNE).map(([k, [tekst, fmt]]) =>
     el("li", {}, el("span", { class: "status status--ca", tekst: "≈" }), el("span", {}, el("strong", { tekst: `${tekst}: ` }), fmt(v.antagelser[k])))));
+
+  // Forenklingsregistret (feature 020): dem, der påvirker borgerens beregning, står først og siger det i tekst.
+  const anvendte = v.forenklinger.filter((f) => f.anvendt).length;
+  $("#forenklinger-titel").firstChild.textContent = anvendte
+    ? `Se vores forenklinger (${anvendte === 1 ? "én" : anvendte} påvirker din beregning) ` : "Se vores forenklinger ";
+  $("#forenklinger").replaceChildren(...v.forenklinger.map((f) => el("li", {},
+    el("span", { class: `status ${f.anvendt ? "status--ca" : "status--info"}`, "aria-hidden": "true", tekst: f.anvendt ? "!" : "~" }),
+    el("span", {}, el("strong", { tekst: f.anvendt ? `Påvirker din beregning: ${f.titel}. ` : `${f.titel}. ` }), `${f.beskrivelse} ${f.betydning}`),
+    el("small", { tekst: `Hvorfor: ${f.begrundelse}` }))));
 }
 
 function tegnSkydere() {
@@ -906,7 +954,189 @@ function synkroniserFormular() {
   $("#afkast-v").textContent = procent(s.antagelser.afkast_efter_pal);
   $("#inflation").value = s.antagelser.inflation * 100;
   $("#inflation-v").textContent = procent(s.antagelser.inflation);
+  $("#stop-alder").value = s.person.loen?.stop_alder ?? "";
   tegnOrdninger();
+}
+
+/* ── Forklaringer i tre niveauer (feature 020) ────────────────────────── */
+// Kataloget (ord og pladsholdere) hentes én gang. Tallene kommer fra den aktuelle beregning, så en
+// forklaring åbner uden et nyt kald til motoren. Niveauet huskes kun i denne browser.
+const NIVEAUER = [["niveau1", "Kort fortalt"], ["niveau2", "Sådan regner vi"], ["niveau3", "For eksperter"]];
+
+function gemtNiveau() {
+  try { return localStorage.getItem("forklaringsniveau") || "niveau1"; } catch { return "niveau1"; }
+}
+
+function saetNiveau(n) {
+  tilstand.niveau = n;
+  try { localStorage.setItem("forklaringsniveau", n); } catch { /* kun en bekvemmelighed */ }
+  tegnForklaringer();
+}
+
+async function hentForklaringer() {
+  try { tilstand.forklaringer = await kald("forklaringer"); } catch { tilstand.forklaringer = null; }
+  if (tilstand.v) tegnForklaringer();
+}
+
+const emne = (id) => tilstand.forklaringer?.emner.find((e) => e.id === id);
+const udfyld = (tekst, vaerdier) => tekst.replace(/\{(\w+)\}/g, (_, k) => vaerdier[k] ?? "");
+
+function niveauVaelger(rod) {
+  const navn = `niveau-${rod.dataset.niveauvaelger}`;
+  const n = tilstand.niveau ?? gemtNiveau();
+  rod.replaceChildren(el("fieldset", {}, el("legend", { tekst: "Hvor meget vil du vide?" }),
+    ...NIVEAUER.map(([id, tekst]) => {
+      const input = el("input", { type: "radio", name: navn, value: id });
+      input.checked = id === n;
+      input.addEventListener("change", () => saetNiveau(id));
+      return el("label", { class: "valg" }, input, ` ${tekst}`);
+    })));
+}
+
+function tegnForklaringer() {
+  if (!tilstand.forklaringer || !tilstand.v) return;
+  tilstand.niveau ??= gemtNiveau();
+  $$("[data-niveauvaelger]").forEach(niveauVaelger);
+  tegnHovedtalForklaring();
+  if (tilstand.aarAlder !== undefined && !$("#aar-forklaring").hidden) tegnAar(tilstand.aarAlder);
+}
+
+function afsnit(...tekster) { return tekster.filter(Boolean).map((t) => el("p", { tekst: t })); }
+
+function tabel(caption, hoved, raekker) {
+  return el("div", { class: "tabel-rul" }, el("table", {}, el("caption", { class: "sr-only", tekst: caption }),
+    el("thead", {}, el("tr", {}, ...hoved.map((h) => el("th", { scope: "col", tekst: h })))),
+    el("tbody", {}, raekker.map(([th, ...td]) => el("tr", {}, el("th", { scope: "row", tekst: th }), ...td.map((x) => el("td", { tekst: x })))))));
+}
+
+function tegnHovedtalForklaring() {
+  const boks = $("#hovedtal-forklaring-tekst");
+  const n = tilstand.niveau;
+  if (tilstand.hvem === "samlet") {
+    boks.replaceChildren(...afsnit(emne("husstand")[n]));
+    return;
+  }
+  const v = tilstand.v;
+  const h = v.hovedtal;
+  const e = emne("fast_beloeb");
+  const dele = h.forklaring.drivere.map((d) => `${d.titel} ca. ${kr(d.maaned)} kr.`).join(", ");
+  const tekst = [udfyld(e.niveau1, { maaned: kr(h.maaned), fra_alder: h.fra_alder })];
+  if (n === "niveau1") tekst.push(dele ? `Det største bidrag i gennemsnit om måneden: ${dele}.` : "");
+  if (n !== "niveau1") tekst.push(e.niveau2);
+  if (h.senere) tekst.push(`Fra ${h.senere.fra_alder} år stiger beløbet til ca. ${kr(h.senere.maaned)} kr.`);
+  if (n === "niveau3") {
+    tekst.push(e.niveau3, `Afkast ${procent(v.antagelser.afkast_efter_pal)} efter PAL-skat og inflation ${procent(v.antagelser.inflation)}. `
+      + `Opsparingens renter, skat og formue blev regnet igennem ${h.forklaring.iterationer} ${h.forklaring.iterationer === 1 ? "gang" : "gange"}.`);
+  }
+  boks.replaceChildren(...afsnit(...tekst));
+}
+
+function visAar(alder) {
+  tilstand.aarAlder = alder;
+  $("#aar-forklaring").hidden = false;
+  tegnForklaringer();
+  tegnAar(alder);
+  $("#aar-forklaring-titel").focus();
+}
+
+function tegnAar(alder) {
+  const v = tilstand.v;
+  const a = v.aar.find((x) => x.alder === alder);
+  if (!a || !tilstand.forklaringer) return;
+  const n = tilstand.niveau;
+  const e = emne("aar");
+  const md = (x) => `${kr(x * a.realfaktor / 12)} kr.`;      // om måneden i dagens kroner
+  const aar = (x) => `${kr(x)} kr.`;                         // om året i årets kroner
+  $("#aar-forklaring-titel").textContent = `Dit år ${a.kalenderaar} (du er ${a.alder})`;
+  const navne = [...new Set(a.kilder.map((k) => k.titel.toLowerCase()))];
+  const indhold = [];
+  const intro = [udfyld(e.niveau1, { kalenderaar: a.kalenderaar, alder: a.alder, netto: kr(a.netto_real / 12),
+    kilder: navne.length ? navne.join(", ") : "ingen indkomst" })];
+  if (a.aendring) {
+    intro.push(`Det er ${a.aendring.maaned > 0 ? "mere" : "mindre"} end året før. Den største ændring er ${a.aendring.titel.toLowerCase()}, `
+      + `der ${a.aendring.maaned > 0 ? "stiger" : "falder"} med ca. ${kr(Math.abs(a.aendring.maaned))} kr. om måneden.`);
+  }
+  if (a.fra_opsparing > 1) intro.push(`Du bruger ca. ${md(a.fra_opsparing)} om måneden af din opsparing for at holde det faste beløb.`);
+  if (a.til_opsparing > 1) intro.push(`Du sparer ca. ${md(a.til_opsparing)} om måneden op til senere år.`);
+  indhold.push(...afsnit(...intro));
+
+  const d = a.detaljer;
+  if (n !== "niveau1" && d) {
+    indhold.push(...afsnit(e.niveau2, "Beløbene herunder er for hele året, i årets kroner."));
+    const sumBrutto = a.kilder.reduce((s, k) => s + k.brutto, 0);
+    indhold.push(tabel("Årets indkomster før og efter skat", ["Indkomst", "Før skat", "Skat", "Efter skat"], [
+      ...a.kilder.map((k) => [k.titel, aar(k.brutto), aar(k.skat), aar(k.netto)]),
+      ["I alt", aar(sumBrutto), aar(a.skat), aar(a.netto)],
+    ]));
+    const linjer = [];
+    if (d.pensionsindbetaling > 0) linjer.push(`Pensionsindbetaling trukket fra lønnen før skat: ${aar(d.pensionsindbetaling)}.`);
+    if (d.am_bidrag > 0) linjer.push(`Heraf AM-bidrag: ${aar(d.am_bidrag)}.`);
+    if (d.pensionstillaeg_foer_modregning > 0) {
+      const udbetalt = a.kilder.find((k) => k.type === "pensionstillaeg")?.brutto ?? 0;
+      linjer.push(`Pensionstillæg før modregning ${aar(d.pensionstillaeg_foer_modregning)}. Din anden indkomst (indtægtsgrundlaget) er ${aar(a.indtaegtsgrundlag)}, `
+        + `så tillægget nedsættes med ${aar(d.pensionstillaeg_foer_modregning - udbetalt)} til ${aar(udbetalt)}.`);
+    }
+    if (d.formue_primo !== null) {
+      const check = a.kilder.some((k) => k.type === "aeldrecheck");
+      linjer.push(`Ældrecheck: din formue pr. 1. januar er ${aar(d.formue_primo)}, og grænsen er ${aar(d.formuegraense)}. `
+        + (d.formue_primo > d.formuegraense ? "Formuen er over grænsen, så du får ingen ældrecheck."
+          : check ? `Din tillægsprocent er ${a.tillaegsprocent} %, og du får ældrecheck.` : `Din tillægsprocent er ${a.tillaegsprocent} %, så du får ingen ældrecheck.`));
+    }
+    if (a.skat_kapitalindkomst > 0) linjer.push(`Afkastet af din opsparing er ${aar(a.kapitalindkomst)}. Skatten af det, ${aar(a.skat_kapitalindkomst)}, betales af opsparingen.`);
+    indhold.push(...afsnit(...linjer));
+  }
+  if (n === "niveau3" && d) {
+    const s = d.skat;
+    indhold.push(...afsnit(e.niveau3));
+    const typer = [["Bundskat", s.bundskat], ["Kommuneskat", s.kommuneskat], ["Kirkeskat", s.kirkeskat], ["Mellemskat", s.mellemskat],
+      ["Topskat", s.topskat], ["Toptopskat", s.toptopskat], ["Nedslag for skatteloftet", -s.skatteloft_nedslag],
+      ["Nedsættelse fra ægtefælle", -s.aegtefaelle_nedsaettelse], ["AM-bidrag", d.am_bidrag]].filter(([, x]) => Math.abs(x) >= 0.5);
+    indhold.push(tabel("Årets skat pr. type", ["Skattetype", "Beløb"], [
+      ...typer.map(([t, x]) => [t, aar(x)]),
+      ["I alt (inkl. skat af kapitalindkomst)", aar(a.skat + a.skat_kapitalindkomst)],
+    ]));
+    indhold.push(...afsnit(
+      d.ligningsmaessige_fradrag > 0 ? `Ligningsmæssige fradrag (kun kommune- og kirkeskat): ${aar(d.ligningsmaessige_fradrag)}.` : "",
+      `Realfaktor ${String(a.realfaktor.toFixed(4)).replace(".", ",")}: årets kroner gange realfaktoren giver dagens kroner.`,
+      `Registerposter brugt i året: ${a.sporing.filter((id) => !id.startsWith("antagelse.")).map((id) => SATS_NAVNE[id] || id).join(", ")}.`));
+  }
+  $("#aar-forklaring-tekst").replaceChildren(...indhold);
+}
+
+/* ── "Hvornår kan jeg stoppe?" (feature 017, US3) ─────────────────────── */
+async function findStopalder() {
+  const svar = $("#stop-svar");
+  const oenske = beloeb($("#oenske").value);
+  if (!tilstand.aktuelleSvar.person.loen?.aarlig) {
+    svar.replaceChildren(el("p", { tekst: "Skriv din løn under \"Dine oplysninger\", så kan vi finde ud af, hvornår du kan stoppe." }));
+    return;
+  }
+  if (!oenske) { svar.replaceChildren(el("p", { tekst: "Skriv, hvor meget du vil have om måneden." })); return; }
+  const knap = $("#stop-knap");
+  knap.disabled = true;
+  svar.replaceChildren(el("p", { tekst: "Vi afprøver hver alder …" }));
+  try {
+    const r = await kald("stopalder", JSON.stringify(tilstand.aktuelleSvar), idag(), oenske);
+    if (!r.ok) { svar.replaceChildren(el("p", { tekst: r.fejl.besked })); return; }
+    const d = r.data;
+    const omfang = el("p", { class: "felt__hjaelp", tekst: `Vi har afprøvet alle ${d.afproevet} aldre fra ${d.fra} til ${d.til} år med din nuværende plan. Efter skat og i dagens kroner.` });
+    const alder = d.kunne ? d.alder : d.bedste.alder;
+    const brug = el("button", { type: "button", class: "knap knap--sekundaer", tekst: `Brug ${alder} år` });
+    brug.addEventListener("click", () => {
+      tilstand.aktuelleSvar.person.loen = { ...tilstand.aktuelleSvar.person.loen, stop_alder: alder };
+      synkroniserFormular();
+      genberegn();
+    });
+    svar.replaceChildren(
+      el("p", { class: "forslag__resultat", tekst: d.kunne
+        ? `Du kan stoppe som ${d.alder}-årig og få ca. ${kr(d.maaned)} kr. om måneden.`
+        : `Det når du ikke før folkepensionen. Mest får du ved at stoppe som ${d.bedste.alder}-årig: ca. ${kr(d.bedste.maaned)} kr. om måneden.` }),
+      omfang, brug);
+  } catch {
+    svar.replaceChildren(el("p", { tekst: "Det kunne ikke regnes lige nu. Prøv igen." }));
+  } finally {
+    knap.disabled = false;
+  }
 }
 
 async function opdaterFraPanel() {
@@ -1433,6 +1663,7 @@ function tegnPerson(v, foersteGang) {
   tegnSaadan(v);
   tegnSkydere();
   tegnUsikkerhed();
+  tegnForklaringer();
   if (foersteGang) { window.scrollTo({ top: 0 }); $("#resultat-titel").setAttribute("tabindex", "-1"); $("#resultat-titel").focus(); }
 }
 
@@ -1466,6 +1697,7 @@ function tegnSamlet() {
   tegnSamletGraf(s);
   tegnSamletTidslinje(s);
   tegnUsikkerhed();
+  tegnForklaringer();
   $("#samlet-formue").hidden = !s.formue;
   if (s.formue) $("#samlet-formue").textContent = `Jeres opsparing uden for pension: ${kr(s.formue.rest)} kr. tilbage ved udgangen af jeres planer, i dagens kroner.`;
 }
@@ -1555,8 +1787,9 @@ function forbind() {
   $("#motor-igen").addEventListener("click", () => { startMotor(); hentKommuner(); });
   hentKommuner();
   visTrin(1, false);
-  $("#pdf-knap").addEventListener("click", () => aflaesPdf("dig"));
-  $("#p-pdf-knap").addEventListener("click", () => aflaesPdf("partner"));
+  // Rapporten aflæses, så snart den er valgt (ingen knap).
+  $("#pdf-fil").addEventListener("change", () => aflaesPdf("dig"));
+  $("#p-pdf-fil").addEventListener("change", () => aflaesPdf("partner"));
   $$("input[name=civilstand], input[name=partnerdata]").forEach((r) => r.addEventListener("change", opdaterPartnerFelter));
   opdaterPartnerFelter();
   $("#p-tilfoej-ordning").addEventListener("click", () => tilfoejOrdning($("#p-ny-type").value, "partner"));
@@ -1592,6 +1825,9 @@ function forbind() {
     $(`#${navn}-panel-knap`).addEventListener("click", (e) => aabnPanel(navn, e.currentTarget.getAttribute("aria-expanded") !== "true"));
   }
   $("#opdater").addEventListener("click", opdaterFraPanel);
+  $("#stop-knap").addEventListener("click", findStopalder);
+  $("#aar-forklaring-luk").addEventListener("click", () => { $("#aar-forklaring").hidden = true; $("#graf").focus?.(); });
+  hentForklaringer();
 
   const skyder = (id, opdater, fmt) => $(`#${id}`).addEventListener("input", (e) => {
     $(`#${id}-v`).textContent = fmt(+e.target.value);

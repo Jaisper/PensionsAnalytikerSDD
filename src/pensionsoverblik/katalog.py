@@ -26,6 +26,11 @@ KORT: dict[str, dict[str, str]] = {
         "forklaring": "Udbetales hver måned resten af livet.",
         "farve": "--kilde-livsvarig",
     },
+    "loen": {
+        "titel": "Løn",
+        "forklaring": "Din løn efter skat og pensionsindbetaling, så længe du arbejder.",
+        "farve": "--kilde-loen",
+    },
     "checks": {
         "titel": "Ældrecheck og mediecheck",
         "forklaring": "Ekstra ydelser til folkepensionister med lav indkomst og lille formue. "
@@ -49,6 +54,14 @@ KORT_FOR_KILDETYPE: dict[str, str] = {
     "livsvarig": "livsvarig",
     "aeldrecheck": "checks",
     "mediecheck": "checks",
+    "loen": "loen",
+}
+
+# Navnet på den enkelte indkomst i forklaringen af et år (feature 020).
+KILDE_TITLER: dict[str, str] = {
+    "grundbeloeb": "Grundbeløb", "pensionstillaeg": "Pensionstillæg", "atp": "ATP",
+    "ratepension": "Ratepension", "livsvarig": "Livsvarig pension", "aeldrecheck": "Ældrecheck",
+    "mediecheck": "Mediecheck", "loen": "Løn",
 }
 
 # Korttyper, hvor det første år typisk kun er et delår (udbetaling fra måneden efter
@@ -63,6 +76,7 @@ ADVARSLER: dict[str, dict[str, str]] = {
     "MELLEMSKAT_INTERVAL": {"placering": "graf", "ikon": "!", "titel": "Høj skat i nogle år"},
     "BUFFER_SOM_OPSPARING": {"placering": "hovedtal", "ikon": "≈", "titel": "Bufferen er opsparing"},
     "OPSPARING_FOER_UDBETALING": {"placering": "hovedtal", "ikon": "≈", "titel": "Opsparingen frem til udbetaling"},
+    "INDKOMSTHUL": {"placering": "graf", "ikon": "!", "titel": "Ingen indkomst i nogle år"},
     "BUFFER_IKKE_KONVERGERET": {"placering": "hovedtal", "ikon": "!", "titel": "Usikkert tal"},
     "UDBETALING_FOER_LOVLIG_ALDER": {"placering": "generel", "ikon": "!", "titel": "Tjek din startalder"},
     "PORTIONER_KRAEVER_AFTALE": {"placering": "generel", "ikon": "≈", "titel": "Kapitalpension i portioner"},

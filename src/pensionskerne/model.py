@@ -16,7 +16,7 @@ Ordningstype = Literal["ratepension", "livsvarig", "aldersopsparing", "kapitalpe
 # frit depot og aktiesparekonto kommer i 013b.
 Aktivtype = Literal["bank"]
 Kildetype = Literal[
-    "ratepension", "livsvarig", "grundbeloeb", "pensionstillaeg", "atp", "aeldrecheck", "mediecheck"
+    "ratepension", "livsvarig", "grundbeloeb", "pensionstillaeg", "atp", "aeldrecheck", "mediecheck", "loen"
 ]
 
 
@@ -69,6 +69,15 @@ class Aktiv:
 
 
 @dataclass(frozen=True)
+class Loen:
+    """Løn (feature 017) i dagens kroner; reguleres med satsreguleringen (konstant købekraft)."""
+    aarlig: float                           # årsløn før skat, inkl. egen pensionsindbetaling
+    stop_alder: int | None = None           # første år uden løn; None = folkepensionsalderen
+    deltid_aarlig: float = 0.0              # løn efter stop (fx ved siden af pensionen)
+    deltid_til_alder: int | None = None     # første år uden deltidsløn
+
+
+@dataclass(frozen=True)
 class PartnerIndkomst:
     am_pligtig_arbejdsindkomst: float = 0.0
     oevrig_indkomst: float = 0.0        # private pensioner, kapitalindkomst, offentlige ydelser
@@ -94,6 +103,7 @@ class Pensionsprofil:
     likvid_formue: float = 0.0          # fast likvid formue pr. 1. januar (§ 72 d, stk. 2); kun ældrechecken
     anden_kapitalindkomst: float = 0.0
     opsparing: tuple[Aktiv, ...] | list[Aktiv] = ()  # feature 013
+    loen: Loen | None = None                          # feature 017
     ordninger: tuple[Ordning, ...] | list[Ordning] = ()
     atp_aarlig: float | None = None     # None = registrets fallback (markeres)
     partner: Partner | None = None
@@ -127,6 +137,32 @@ class Indkomstkilde:
 
 
 @dataclass(frozen=True)
+class SkatDetaljer:
+    """Årets skat pr. type efter personfradrag (feature 020). Summen − skatteloftets nedslag −
+    ægtefællens nedsættelse er indkomstskatten (inkl. skat af kapitalindkomst)."""
+    bundskat: float = 0.0
+    kommuneskat: float = 0.0
+    kirkeskat: float = 0.0
+    mellemskat: float = 0.0
+    topskat: float = 0.0
+    toptopskat: float = 0.0
+    skatteloft_nedslag: float = 0.0
+    aegtefaelle_nedsaettelse: float = 0.0
+
+
+@dataclass(frozen=True)
+class Aarsdetaljer:
+    """Mellemresultater bag et år, så forklaringen ikke skal regne selv (feature 020, FR-003)."""
+    skat: SkatDetaljer
+    am_bidrag: float = 0.0
+    ligningsmaessige_fradrag: float = 0.0
+    pensionsindbetaling: float = 0.0            # fradraget i den personlige indkomst (017)
+    pensionstillaeg_foer_modregning: float = 0.0
+    formue_primo: float | None = None           # husstandens likvide formue pr. 1. januar (ældrecheck)
+    formuegraense: float | None = None
+
+
+@dataclass(frozen=True)
 class Aarsresultat:
     alder: int
     kalenderaar: int
@@ -144,6 +180,7 @@ class Aarsresultat:
     kapitalindkomst: float = 0.0        # bufferens afkast (nominelt), positiv nettokapitalindkomst (009)
     skat_kapitalindkomst: float = 0.0   # merskatten af kapitalindkomsten; betales af bufferen (009)
     uudnyttet_personfradrag: float = 0.0  # skatteværdi, en ægtefælle kan bruge (PSL § 10, stk. 3) (012)
+    detaljer: Aarsdetaljer | None = None  # feature 020
 
 
 @dataclass(frozen=True)
@@ -204,6 +241,7 @@ class Fremskrivning:
     buffer_iterationer: int = 1         # fastpunkt-iterationer for bufferens kapitalindkomst og formue (009)
     formue: tuple[FormueAar, ...] = ()  # fra i dag til sidste år (013)
     formue_start: float = 0.0           # opsparingen i dag (013)
+    jaevn_fra_alder: int | None = None  # første år i udjævningen (017: stopalderen); None = første række
 
     def formue_primo(self) -> dict[int, float]:
         """Opsparingen pr. 1. januar pr. alder: ultimo året før, og i dag startsaldoen (013)."""

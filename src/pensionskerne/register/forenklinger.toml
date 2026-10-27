@@ -1,0 +1,105 @@
+# Forenklingsregistret (feature 020, FR-005): hver forenkling i beregningen, med begrundelse og
+# betydning for resultatet (Princip III og V). Kun ord, ingen satser (Princip II).
+#
+# omfang = "markeret": gælder kun, når kernen markerer den i et år (o.marker("forenkling:<id>")).
+# omfang = "altid":    gælder enhver beregning.
+# En test kræver, at hver markering i kernen står her, og at hver markeret post bruges.
+
+[[forenkling]]
+id = "opsparing_skat_foer_udbetaling"
+omfang = "markeret"
+titel = "Skat af opsparingen, før udbetalingen begynder"
+beskrivelse = "Din opsparing uden for pension vokser med afkastet frem til din første udbetaling. Skatten af afkastet i de år er ikke trukket fra."
+begrundelse = "Skatten betales af din løn i de år, og du har ikke oplyst din løn. Gør du det, regner vi skatten med."
+betydning = "Opsparingen ved første udbetaling er lidt for høj, og det faste beløb derfor også."
+kilde = "Feature 013; feature 017 vil regne lønnen med"
+
+[[forenkling]]
+id = "kapitalindkomst_ikke_beskattet"
+omfang = "markeret"
+titel = "Anden kapitalindkomst beskattes ikke"
+beskrivelse = "Kapitalindkomst, du selv har oplyst (fx renter), tæller med i pensionstillæggets indtægtsgrundlag, men vi trækker ikke skat af den."
+begrundelse = "Feltet er overført fra den tidligere beregner, hvor det kun bruges til pensionstillægget."
+betydning = "Din skat er lidt for lav, og beløbet efter skat lidt for højt."
+kilde = "Feature 001; domænegrundlaget afsnit 7d"
+
+[[forenkling]]
+id = "partnerindkomst_naermeste_aar"
+omfang = "markeret"
+titel = "Partnerens indkomst fra nærmeste år"
+beskrivelse = "For år, hvor vi ikke kender din partners indkomst, bruger vi indkomsten fra det nærmeste år, vi kender."
+begrundelse = "Et overslag over partnerens indkomst gælder ikke for alle år."
+betydning = "Dit pensionstillæg kan være for højt eller for lavt i de år."
+kilde = "Feature 001 og 012"
+
+[[forenkling]]
+id = "skat_fordelt_paa_kilder"
+omfang = "altid"
+titel = "Skatten fordelt på dine indkomster"
+beskrivelse = "Skatten regnes af din samlede indkomst, som loven siger. Når vi viser skat og beløb efter skat for hver indkomst, fordeler vi skatten efter, hvor stor indkomsten er."
+begrundelse = "Loven beskatter den samlede indkomst. Fordelingen er kun til visning."
+betydning = "Den samlede skat er rigtig. Skatten for den enkelte indkomst er en fordeling, ikke et lovbestemt beløb."
+kilde = "Domænegrundlaget afsnit 3, punkt 5"
+
+[[forenkling]]
+id = "afkast_som_kapitalindkomst"
+omfang = "altid"
+titel = "Afkast af opsparing beskattes som renter"
+beskrivelse = "Afkastet af din opsparing uden for pension beskattes som kapitalindkomst, som hvis pengene stod i banken eller i obligationer."
+begrundelse = "Aktier, investeringsfonde og aktiesparekonto er endnu ikke med. De kommer med en senere udvidelse."
+betydning = "Har du aktier, er din skat og dit pensionstillæg ikke helt rigtige."
+kilde = "Feature 009 og 013; feature 013b vil skelne"
+
+[[forenkling]]
+id = "ingen_renteudgifter"
+omfang = "altid"
+titel = "Ingen fradrag for renteudgifter"
+beskrivelse = "Lån og renteudgifter er ikke med, så der er intet fradrag for dem."
+begrundelse = "Lån og bolig kommer i en senere udvidelse."
+betydning = "Har du lån, er din skat lidt for høj."
+kilde = "Feature 009; feature 014 (bolig)"
+
+[[forenkling]]
+id = "samme_afkast_hvert_aar"
+omfang = "altid"
+titel = "Samme afkast hvert år"
+beskrivelse = "Vi regner med det samme afkast og den samme inflation i alle år. Gode og dårlige år udjævnes ikke."
+begrundelse = "Det gør beregningen gennemskuelig. Under \"Hvis afkast, inflation eller levetid bliver anderledes\" ser du, hvad et andet afkast betyder."
+betydning = "Kommer de dårlige år lige efter, at du går på pension, kan det faste beløb blive lavere."
+kilde = "Feature 018; roadmappen (afkast pr. år og Monte Carlo)"
+
+[[forenkling]]
+id = "ingen_loen"
+omfang = "markeret"
+titel = "Ingen løn"
+beskrivelse = "Du har ikke oplyst en løn, så vi regner ikke med løn før pensionen."
+begrundelse = "Lønnen er valgfri. Uden den begynder beregningen ved din første udbetaling."
+betydning = "Arbejder du stadig, er skatten i arbejdsårene ikke med, og din opsparing kan ikke bruges, før din første udbetaling begynder."
+kilde = "Feature 017"
+
+[[forenkling]]
+id = "pensionsindbetaling_som_arbejdsgiverordning"
+omfang = "markeret"
+titel = "Pensionsindbetaling som arbejdsgiverordning"
+beskrivelse = "Din indbetaling til ratepension og livsvarig pension trækkes fra lønnen før skat, som ved en pensionsordning gennem arbejdet. AM-bidraget regnes af hele lønnen."
+begrundelse = "Sådan indbetaler de fleste. Private indbetalinger fradrages lidt anderledes, og vi kender ikke fordelingen."
+betydning = "Indbetaler du privat, kan skatten i arbejdsårene afvige lidt."
+kilde = "Feature 017"
+
+[[forenkling]]
+id = "partnerens_loen_ukendt"
+omfang = "altid"
+titel = "Din partners løn kendes ikke"
+beskrivelse = "Med din partners fulde pension regner vi din partners indkomst som nul i årene før partnerens første udbetaling, hvis du ikke har oplyst din partners løn."
+begrundelse = "Lønnen er valgfri. En partners løn påvirker ikke dit pensionstillæg, men den påvirker overførsel af personfradrag mellem ægtefæller."
+betydning = "For ægtefæller kan skatten være lidt for lav i de år, hvor din partner arbejder."
+kilde = "Feature 012; feature 017"
+
+[[forenkling]]
+id = "kapitalpension_foer_1980"
+omfang = "altid"
+titel = "Kapitalpension oprettet før 1980"
+beskrivelse = "Kapitalpensioner oprettet før 1980 kan have en lavere afgift (pensionsbeskatningsloven §§ 26 A og 27). Vi regner med den almindelige afgift."
+begrundelse = "Reglerne er sjældne og kræver oplysninger, som PensionsInfo-rapporten ikke altid giver."
+betydning = "Har du sådan en ordning, er dit engangsbeløb lidt for lavt."
+kilde = "Feature 009"
