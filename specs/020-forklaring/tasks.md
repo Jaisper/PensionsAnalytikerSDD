@@ -21,4 +21,14 @@
 - [x] T014 Brugerflade: niveauvalg (huskes lokalt), "Hvordan fremkommer tallet?", "Dit år" fra grafen og tabellen
 - [x] T015 `tests/browser/test_forklaring.py`: tre niveauer, niveauet huskes, afstemning, klik i grafen, under 300 ms, axe og 360 px, Pyodide = CPython
 
-## Del 3: 020b–d (venter)
+## Del 3: 020b
+
+- [x] T016 [P] `tests/app/test_forklaring_020b.py`: hver visning og hvert kort har et emne; ordliste med tre niveauer og LIX; realfaktor i graf og formue
+- [x] T017 Kataloget: læsevejledninger (hovedtal, graf, tidslinje, opsparingsgraf, faner, statusikoner, beløb), forbehold, kort → emner, ordliste
+- [x] T018 Skifter mellem dagens og årets kroner (graf, tabel, opsparingsgraf, formue og kort; huskes lokalt). Hovedtallet er altid i dagens kroner
+- [x] T019 "Sådan læser du …" ved hver visning; grafens nævner kun de viste serier
+- [x] T020 Kortenes "i" følger niveauet; ordliste i "Sådan har vi regnet"
+- [x] T021 Rulbare tabeller kan nås med tastaturet (axe scrollable-region-focusable)
+- [x] T022 `tests/browser/test_forklaring_020b.py`
+
+## Del 4: 020c–d

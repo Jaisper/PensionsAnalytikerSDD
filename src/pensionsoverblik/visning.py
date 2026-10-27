@@ -54,6 +54,7 @@ def _formue(res: Fremskrivning) -> dict | None:
     i_plan = [0.0 if (x := f.i_plan * f.realfaktor) < BUFFER_NUL_KR else x for f in res.formue]
     uden = [f.uden_for_plan * f.realfaktor for f in res.formue]
     return {"aldre": [f.alder for f in res.formue], "i_plan": i_plan, "uden_for_plan": uden,
+            "realfaktor": [f.realfaktor for f in res.formue],
             "rest": i_plan[-1] + uden[-1], "rest_alder": res.formue[-1].alder}
 
 
@@ -195,6 +196,8 @@ def byg_visning(res: Fremskrivning) -> dict:
             "skat_buffer": [None] * foran + [a.skat_kapitalindkomst * a.realfaktor / MAANEDER for a in res.aar]  # 009
             if any(a.skat_kapitalindkomst for a in res.aar) else None,
             "engangs": engangs,
+            # Til skifteren mellem dagens og årets kroner (020b); 1 for årene foran første række.
+            "realfaktor": [1.0] * foran + [a.realfaktor for a in res.aar],
         },
         "formue": _formue(res),
         "forenklinger": _forenklinger(res),

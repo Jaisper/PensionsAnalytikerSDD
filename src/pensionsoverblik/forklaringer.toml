@@ -7,6 +7,8 @@
 # Kun ord og pladsholdere i {krøllede parenteser}, aldrig satser eller beløb (Princip II). Tallene
 # kommer fra kernen og regelregistret, når teksten vises. Registerposter og advarsler peger på et
 # emne; en test kræver, at alle har et emne, og at alle inventarpunkter er dækket (FR-006).
+# `kort` og `visninger` (020b) knytter emnet til et kort under "Hvad består beløbet af?" og til en
+# visning med "Sådan læser du …". Ordlisten ([[ord]]) har de samme tre niveauer (FR-009).
 
 inventar = [
   "Folkepensionsalder og opsat folkepension",
@@ -28,6 +30,9 @@ inventar = [
   "Afrunding og præcision",
   "PDF-aflæsning",
   "Dit år",
+  "Præsentation: hovedtal, kort, graf, tidslinje, opsparingsgraf, faner, statusikoner og farver",
+  "Nominelle beløb og dagens kroner, måned og år, alder og kalenderår",
+  "Forbehold: information, ikke rådgivning",
 ]
 
 [[emne]]
@@ -62,6 +67,7 @@ niveau3 = "Lov om social pension § 1 a (folkepensionsalder pr. fødselsdato) og
 
 [[emne]]
 id = "grundbeloeb"
+kort = ["folkepension"]
 titel = "Grundbeløb"
 inventar = ["Folkepension: grundbeløb, pensionstillæg, indtægtsgrundlag, modregning, tillægsprocent"]
 registerposter = ["fp.grundbeloeb"]
@@ -72,6 +78,7 @@ niveau3 = "Lov om social pension § 12. Siden 2023 nedsættes grundbeløbet ikke
 
 [[emne]]
 id = "pensionstillaeg"
+kort = ["folkepension"]
 titel = "Pensionstillæg"
 inventar = ["Folkepension: grundbeløb, pensionstillæg, indtægtsgrundlag, modregning, tillægsprocent"]
 registerposter = ["fp.tillaeg.*", "fp.partner_ikke_pensionist.*", "fp.fradrag_forhoejelse.*", "fp.indtaegtsgrundlag.*"]
@@ -82,6 +89,7 @@ niveau3 = "Lov om social pension §§ 29–32 a. Indtægtsgrundlaget omfatter pe
 
 [[emne]]
 id = "tillaegsprocent"
+kort = ["checks"]
 titel = "Tillægsprocent, ældrecheck og mediecheck"
 inventar = ["Folkepension: grundbeløb, pensionstillæg, indtægtsgrundlag, modregning, tillægsprocent", "Ældrecheck og mediecheck, likvid formue og formuegrænse"]
 registerposter = ["tp.*", "yd.aeldrecheck", "yd.aeldrecheck.minimum", "yd.mediecheck"]
@@ -92,6 +100,7 @@ niveau3 = "Lov om social pension § 14 e (tillægsprocent), § 72 d (ældrecheck
 
 [[emne]]
 id = "formuegraense"
+kort = ["checks"]
 titel = "Formuegrænsen for ældrechecken"
 inventar = ["Ældrecheck og mediecheck, likvid formue og formuegrænse"]
 registerposter = ["yd.aeldrecheck.formuegraense"]
@@ -102,6 +111,7 @@ niveau3 = "Lov om social pension § 72 d, stk. 2. Formuen opgøres pr. 1. januar
 
 [[emne]]
 id = "atp"
+kort = ["atp"]
 titel = "ATP"
 inventar = ["ATP"]
 registerposter = ["atp.*"]
@@ -112,6 +122,7 @@ niveau3 = "ATP Livslang Pension udbetales fra folkepensionsalderen og påvirkes 
 
 [[emne]]
 id = "ratepension"
+kort = ["ratepension"]
 titel = "Ratepension"
 inventar = ["Ratepension, livsvarig pension, aldersopsparing og kapitalpension"]
 registerposter = ["ordning.ratepension.*"]
@@ -122,6 +133,7 @@ niveau3 = "Pensionsbeskatningsloven § 11 A (rate = restværdi / resterende år)
 
 [[emne]]
 id = "livsvarig"
+kort = ["livsvarig"]
 titel = "Livsvarig pension"
 inventar = ["Ratepension, livsvarig pension, aldersopsparing og kapitalpension"]
 registerposter = []
@@ -132,6 +144,7 @@ niveau3 = "Annuitet over horisonten fra udbetalingsstart til den antagne leveald
 
 [[emne]]
 id = "aldersopsparing"
+kort = ["engangsbeloeb"]
 titel = "Aldersopsparing"
 inventar = ["Ratepension, livsvarig pension, aldersopsparing og kapitalpension"]
 registerposter = ["ordning.aldersopsparing.*"]
@@ -142,6 +155,7 @@ niveau3 = "Pensionsbeskatningsloven §§ 10 A og 16 (indbetalingsloft og forhøj
 
 [[emne]]
 id = "kapitalpension"
+kort = ["engangsbeloeb"]
 titel = "Kapitalpension"
 inventar = ["Ratepension, livsvarig pension, aldersopsparing og kapitalpension"]
 registerposter = ["ordning.kapitalpension.*"]
@@ -182,6 +196,7 @@ niveau3 = "Personskatteloven §§ 6 a, 7 og 7 a og det skrå skatteloft i § 19.
 
 [[emne]]
 id = "am_bidrag"
+kort = ["loen"]
 titel = "AM-bidrag"
 inventar = ["AM-bidrag"]
 registerposter = ["skat.am_bidrag"]
@@ -212,6 +227,7 @@ niveau3 = "Afkastet er positiv kapitalindkomst (PSL § 4) og indgår i indtægts
 
 [[emne]]
 id = "loen"
+kort = ["loen"]
 titel = "Løn, stopalder og fradrag"
 inventar = ["Løn, stopalder og fradrag"]
 registerposter = ["skat.beskaeftigelsesfradrag.*", "skat.jobfradrag.*", "skat.seniorfradrag.*"]
@@ -222,6 +238,7 @@ niveau3 = "Ligningsloven § 9 J (beskæftigelsesfradrag og ekstra fradrag til se
 
 [[emne]]
 id = "usikkerhed"
+visninger = ["usikkerhed"]
 titel = "Usikkerhed og levetid"
 inventar = ["Usikkerhed og levetid"]
 registerposter = []
@@ -289,3 +306,202 @@ advarsler = []
 niveau1 = "Vi læser din rapport fra PensionsInfo her i din browser. Den sendes ikke nogen steder hen. Tjek altid tallene bagefter."
 niveau2 = "Vi læser ordninger, saldo, udbetalingsalder og ATP. Forsikringer og omkostninger læses ikke. Kan vi ikke læse noget sikkert, beder vi dig skrive det."
 niveau3 = "Lokal, regelbaseret aflæsning uden kunstig intelligens (forfatningens princip XI). Intet skrives til disk eller logs."
+
+# ── Sådan læser du … (feature 020b) ──────────────────────────────────────────
+
+[[emne]]
+id = "laes_hovedtal"
+titel = "Sådan læser du tallet øverst"
+visninger = ["hovedtal"]
+inventar = ["Præsentation: hovedtal, kort, graf, tidslinje, opsparingsgraf, faner, statusikoner og farver"]
+registerposter = []
+advarsler = []
+niveau1 = "Tallet øverst er det, du kan bruge hver måned. Det er efter skat. Det er i dagens kroner. Under tallet står, hvornår det begynder."
+niveau2 = "Tallet er det faste beløb, du kan holde hele perioden, når dine udbetalinger og din opsparing jævnes ud. Stiger det senere, står det under tallet. Pilen viser, hvor meget tallet ændrede sig ved din sidste ændring."
+niveau3 = "Det laveste jævne niveau fra udjævningens første år til planens slutning, gange realfaktoren, divideret med tolv og afrundet til hele hundrede kroner. Med løn begynder perioden ved stopalderen."
+
+[[emne]]
+id = "laes_graf"
+titel = "Sådan læser du grafen"
+visninger = ["graf"]
+inventar = ["Præsentation: hovedtal, kort, graf, tidslinje, opsparingsgraf, faner, statusikoner og farver"]
+registerposter = []
+advarsler = []
+niveau1 = "Hver søjle er et år. Farverne viser, hvor pengene kommer fra. Den stiplede linje er det faste beløb, du kan bruge. Klik på et år for at se det regnet ud."
+niveau2 = "Søjlerne er det, du får udbetalt efter skat om måneden, fordelt på kilder. Over linjen sparer du op; under linjen bruger du af opsparingen. Mærker over søjlerne viser engangsbeløb, og felter bag søjlerne viser år med en advarsel."
+niveau3 = "Søjlerne er kildernes netto efter den forholdsmæssige skattefordeling, pr. måned. Linjen er det jævne niveau. Aksen begynder ved den tidligste pensionsalder for ordninger eller din alder i dag, så den ikke hopper, når en ordning flyttes."
+
+[[emne]]
+id = "laes_tidslinje"
+titel = "Sådan læser du tidslinjen"
+visninger = ["tidslinje"]
+inventar = ["Præsentation: hovedtal, kort, graf, tidslinje, opsparingsgraf, faner, statusikoner og farver"]
+registerposter = []
+advarsler = []
+niveau1 = "Hver bjælke er en ordning. Den viser, hvornår pengene kommer. Træk i bjælken for at flytte den. Vi regner forfra med det samme."
+niveau2 = "Bjælkens start er det år, udbetalingen begynder. Dens længde er antal år for en ratepension eller portioner. Klik på en bjælke for at justere år for år med knapper. Du kan ikke flytte en ordning til før den tidligste lovlige alder."
+niveau3 = "Grænserne kommer fra kernens regler: pensionsudbetalingsalderen, ratepensionens mindste og længste periode, fristen for kapitalpension og den længste opsættelse af folkepensionen."
+
+[[emne]]
+id = "laes_opsparingsgraf"
+titel = "Sådan læser du opsparingsgrafen"
+visninger = ["opsparingsgraf"]
+inventar = ["Præsentation: hovedtal, kort, graf, tidslinje, opsparingsgraf, faner, statusikoner og farver"]
+registerposter = []
+advarsler = []
+niveau1 = "Grafen viser din opsparing, der bruges til det faste beløb. Den går aldrig i minus. Ved planens slutning er den brugt op."
+niveau2 = "Opsparingen vokser, når du får mere, end du bruger, og når et engangsbeløb lander. Den falder, når du bruger af den. Den er i dagens kroner ved årets udgang."
+niveau3 = "Bufferens restværdi ved årets udgang gange realfaktoren. Beløb under en krone vises som nul (regnestøj)."
+
+[[emne]]
+id = "laes_faner"
+titel = "Sådan læser du fanerne"
+visninger = ["faner"]
+inventar = ["Præsentation: hovedtal, kort, graf, tidslinje, opsparingsgraf, faner, statusikoner og farver"]
+registerposter = []
+advarsler = []
+niveau1 = "Fanen Dig viser dig. Fanen Partner viser din partner. Fanen Samlet viser jer begge lagt sammen."
+niveau2 = "I hver fane kan du flytte den persons ordninger. Under Samlet er tallene summen af jeres faste beløb pr. kalenderår. Jeres pensionstillæg og ældrecheck er regnet sammen, som loven siger."
+niveau3 = "Hver person har sin egen fremskrivning og udjævning. Koblingerne (indtægtsgrundlag, formue og overførsler mellem ægtefæller) løses ved fastpunkt-iteration mellem de to."
+
+[[emne]]
+id = "laes_statusikoner"
+titel = "Sådan læser du ikonerne"
+visninger = ["statusikoner"]
+inventar = ["Præsentation: hovedtal, kort, graf, tidslinje, opsparingsgraf, faner, statusikoner og farver"]
+registerposter = []
+advarsler = []
+niveau1 = "Ikonet ✓ betyder, at vi har tjekket det i loven. Ikonet ≈ er et gæt om fremtiden. Ikonet ! betyder, at du skal se efter."
+niveau2 = "Hvert ikon har også en tekst, så du ikke skal gætte ud fra farven. Forenklinger står under \"Se vores forenklinger\", og dem, der påvirker dit tal, står øverst."
+niveau3 = "Status fra regelregistret: verificeret, sekundær kilde eller uverificeret. Antagelser er brugerens eller standardværdier. Advarsler kommer fra kernen med kode og aldre."
+
+[[emne]]
+id = "laes_beloeb"
+titel = "Dagens kroner og årets kroner"
+visninger = ["beloeb"]
+inventar = ["Nominelle beløb og dagens kroner, måned og år, alder og kalenderår"]
+registerposter = []
+advarsler = []
+niveau1 = "Om tyve år er en krone mindre værd end i dag. I dagens kroner kan du sammenligne beløbene. I årets kroner ser du det beløb, der står på kontoen det år."
+niveau2 = "Dagens kroner er årets kroner regnet om med den antagne inflation. Tallet øverst er altid i dagens kroner. Grafen, kortene og tabellerne kan vise begge dele. Alder er din alder i året, og beløb pr. måned er årets beløb delt med tolv."
+niveau3 = "Beløb i dagens kroner = årets kroner gange realfaktoren 1 / (1 + inflation) opløftet i antal år fra i dag. Valget huskes kun i denne browser."
+
+[[emne]]
+id = "forbehold"
+titel = "Information, ikke rådgivning"
+inventar = ["Forbehold: information, ikke rådgivning"]
+registerposter = []
+advarsler = []
+niveau1 = "Tallene er et overslag. De er ikke et råd. Tal med en rådgiver, før du beslutter noget."
+niveau2 = "Beregningen bygger på dine svar, reglerne i år og antagelser om fremtiden, som ingen kender. Forslag fra Find bedste plan er eksempler, ikke anbefalinger."
+niveau3 = "Information efter gældende regler og registrets satser. Forenklinger og antagelser står i registrene og under Sådan har vi regnet. Kontakt en certificeret pensionsrådgiver ved konkrete beslutninger."
+
+# ── Ordliste (feature 020b, FR-009) ──────────────────────────────────────────
+
+[[ord]]
+ord = "Indtægtsgrundlag"
+niveau1 = "Din anden indkomst ud over folkepensionen. Den bruges til at regne pensionstillægget."
+niveau2 = "Private pensioner, ATP og kapitalindkomst lagt sammen. Din egen løn tæller ikke med. Er du gift eller samlevende, tæller jeres samlede indkomst."
+niveau3 = "Lov om social pension § 29. Partnerens indkomst indgår delvist, når partneren ikke er pensionist (§ 32 a)."
+
+[[ord]]
+ord = "Modregning"
+niveau1 = "Når pensionstillægget bliver mindre, fordi du har anden indkomst."
+niveau2 = "Over et fradrag trækkes en procentdel af indtægtsgrundlaget fra tillægget, til det er nul."
+niveau3 = "Aftrapningen i lov om social pension § 30 og § 32 med registrets fradrag og procentsats."
+
+[[ord]]
+ord = "Personlig tillægsprocent"
+niveau1 = "Et tal fra nul til hundrede. Det styrer, hvor meget du får i ældrecheck og mediecheck."
+niveau2 = "Den er hundrede ved lav indkomst og falder et point for hvert trin over grænsen."
+niveau3 = "Lov om social pension § 14 e. Egen arbejdsindkomst indgår over et bundfradrag."
+
+[[ord]]
+ord = "Likvid formue"
+niveau1 = "Penge, du hurtigt kan bruge. Fx penge i banken og aktier."
+niveau2 = "Bank, obligationer, aktier, investeringsbeviser og aktiesparekonto. Din bolig og din pension tæller ikke med."
+niveau3 = "Lov om social pension § 72 d, stk. 2. Opgøres pr. 1. januar for husstanden samlet."
+
+[[ord]]
+ord = "Personfradrag"
+niveau1 = "Den del af din indkomst, du ikke betaler skat af."
+niveau2 = "Et fast beløb om året, som trækkes fra, før bundskat og kommuneskat regnes. Bruger du det ikke selv, kan din ægtefælle bruge resten."
+niveau3 = "Personskatteloven § 10. Værdien regnes pr. skattegrundlag; uudnyttet skatteværdi overføres til ægtefællen efter § 10, stk. 3."
+
+[[ord]]
+ord = "Personlig indkomst"
+niveau1 = "Din indkomst fra løn og pension, før skat."
+niveau2 = "Løn efter AM-bidrag og pensionsindbetaling, pensionsudbetalinger, folkepension og ATP."
+niveau3 = "Personskatteloven § 3. Grundlag for bundskat, mellemskat og topskat."
+
+[[ord]]
+ord = "Kapitalindkomst"
+niveau1 = "Renter og afkast af penge, du har sparet op uden for pension."
+niveau2 = "Positiv kapitalindkomst beskattes og tæller med i pensionstillæggets indtægtsgrundlag."
+niveau3 = "Personskatteloven § 4. Bundfradrag og skatteloft efter § 7, stk. 1, og § 19, stk. 2."
+
+[[ord]]
+ord = "Skattepligtig indkomst"
+niveau1 = "Det tal, din skat til kommunen regnes af. Fradrag trækkes fra først."
+niveau2 = "Personlig indkomst og kapitalindkomst minus fradrag som beskæftigelsesfradrag."
+niveau3 = "Personskatteloven § 1. Grundlag for kommune- og kirkeskat."
+
+[[ord]]
+ord = "Ligningsmæssige fradrag"
+niveau1 = "Fradrag, der gør din skat til kommunen mindre. Du får dem, når du har et job."
+niveau2 = "Beskæftigelsesfradrag, jobfradrag og seniorfradrag. De trækkes kun fra i kommuneskatten og kirkeskatten."
+niveau3 = "Ligningsloven § 9 J og § 9 K. Fradrages i den skattepligtige indkomst."
+
+[[ord]]
+ord = "AM-bidrag"
+niveau1 = "En skat af din løn. Den trækkes først."
+niveau2 = "Arbejdsmarkedsbidraget er en procent af lønnen. Pensionsudbetalinger er fri for det."
+niveau3 = "Arbejdsmarkedsbidragsloven § 1."
+
+[[ord]]
+ord = "PAL-skat"
+niveau1 = "Skat af det, din pension tjener. Den betales af dit selskab, ikke af dig."
+niveau2 = "Afkastet, du skriver, er efter PAL-skat. Opsparing uden for pension regnes med afkastet før PAL-skat."
+niveau3 = "Pensionsafkastbeskatningsloven. Satsen står i registret."
+
+[[ord]]
+ord = "Dagens kroner"
+niveau1 = "Beløb regnet om, så de er lige meget værd som penge i dag."
+niveau2 = "Vi regner fremtidige beløb om med den antagne inflation. Så kan du sammenligne år med hinanden."
+niveau3 = "Realfaktor = 1 / (1 + inflation) opløftet i antal år fra i dag."
+
+[[ord]]
+ord = "Satsregulering"
+niveau1 = "Satserne i loven stiger hvert år. Fx folkepensionen."
+niveau2 = "Vi lader satserne stige med inflationen, medmindre andet er valgt."
+niveau3 = "Lov om en satsreguleringsprocent. Bruges for alle registerposter markeret som regulerede."
+
+[[ord]]
+ord = "Folkepensionsalder"
+niveau1 = "Den alder, hvor du kan få folkepension."
+niveau2 = "Den afhænger af, hvornår du er født, og står i loven."
+niveau3 = "Lov om social pension § 1 a."
+
+[[ord]]
+ord = "Pensionsudbetalingsalder"
+niveau1 = "Den alder, hvor du kan få din egen pension ud. Den er før folkepension."
+niveau2 = "Den ligger nogle år før folkepensionsalderen og afhænger af, hvornår ordningen er oprettet."
+niveau3 = "Pensionsbeskatningsloven § 1 A."
+
+[[ord]]
+ord = "Buffer"
+niveau1 = "Din opsparing, der bruges til at holde det faste beløb."
+niveau2 = "Engangsbeløb og overskud fra gode år lægges i bufferen og bruges i år med mindre."
+niveau3 = "Bufferen forrentes med afkastet før PAL-skat, og afkastet beskattes som kapitalindkomst. Den er aldrig negativ."
+
+[[ord]]
+ord = "Restformue"
+niveau1 = "De penge, der er tilbage, når planen slutter."
+niveau2 = "Opsparing, du bruger i det faste beløb, er brugt op. Urørt opsparing står tilbage."
+niveau3 = "Summen af aktiverne ved udgangen af planens sidste år i dagens kroner."
+
+[[ord]]
+ord = "Skatteloft"
+niveau1 = "En grænse for, hvor høj din skat kan blive."
+niveau2 = "Bliver den samlede skattesats for høj, nedsættes de højeste skattetrin."
+niveau3 = "Personskatteloven § 19 (det skrå skatteloft), særskilt for kapitalindkomst."

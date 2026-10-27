@@ -14,4 +14,4 @@ from importlib import resources
 @lru_cache(maxsize=None)
 def katalog() -> dict:
     data = tomllib.loads(resources.files(__package__).joinpath("forklaringer.toml").read_text(encoding="utf-8"))
-    return {"inventar": data["inventar"], "emner": data["emne"]}
+    return {"inventar": data["inventar"], "emner": data["emne"], "ordliste": data.get("ord", [])}
