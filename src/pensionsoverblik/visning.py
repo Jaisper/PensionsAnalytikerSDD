@@ -132,9 +132,20 @@ def byg_visning(res: Fremskrivning) -> dict:
     engangs = [{"ordning_id": e.ordning_id, "type": e.type, "alder": e.alder, "i_buffer": e.i_buffer,
                 "netto": e.netto, "netto_real": e.netto * realfaktor[e.alder]} for e in res.engangsbeloeb]
     if engangs:
+        # Summen pr. ordning (portioner og flere engangsbeløb samlet); de enkelte udbetalinger ligger i
+        # `engangs` til "Se år for år".
+        pr_ordning: dict[str, dict] = {}
+        for e in engangs:
+            o = pr_ordning.setdefault(e["ordning_id"], {"ordning_id": e["ordning_id"], "type": e["type"], "netto": 0.0,
+                                                        "netto_real": 0.0, "fra_alder": e["alder"], "til_alder": e["alder"],
+                                                        "antal": 0, "i_buffer": e["i_buffer"]})
+            o["netto"] += e["netto"]
+            o["netto_real"] += e["netto_real"]
+            o["til_alder"] = e["alder"]
+            o["antal"] += 1
         kort.append({"noegle": "engangsbeloeb", **ENGANGSKORT, "netto_maaned": None, "repraesentativ_alder": None,
                      "fra_alder": engangs[0]["alder"], "til_alder": engangs[-1]["alder"],
-                     "advarsler": [], "detaljer": [], "engangs": engangs})
+                     "advarsler": [], "detaljer": [], "engangs": engangs, "pr_ordning": list(pr_ordning.values())})
 
     jaevn = buffer = None
     if res.jaevn:

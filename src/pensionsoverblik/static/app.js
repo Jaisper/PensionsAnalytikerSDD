@@ -475,8 +475,8 @@ async function aflaesPdf(hvem = "dig") {
   const fil = $(`#${pre}pdf-fil`).files[0];
   if (!fil) { visFejl(felt, "Vælg rapporten først."); return; }
   if (fil.size > MAKS_PDF_BYTES) { visFejl(felt, `Filen er for stor. Den må højst fylde ${MAKS_PDF_BYTES / 1024 / 1024} MB.`); return; }
-  const knap = $(`#${pre}pdf-knap`);
-  knap.disabled = true;
+  const input = $(`#${pre}pdf-fil`);
+  input.disabled = true;  // aflæsningen starter, når filen er valgt; ingen ny fil imens
   status.textContent = "Aflæser rapporten …";
   try {
     const svar = await kald("pdf", await fil.arrayBuffer());
@@ -490,7 +490,7 @@ async function aflaesPdf(hvem = "dig") {
     status.textContent = "";
     visFejl(felt, "Rapporten kunne ikke aflæses. Prøv igen, eller indtast oplysningerne selv.");
   } finally {
-    knap.disabled = false;
+    input.disabled = false;
   }
 }
 
@@ -800,15 +800,28 @@ function tegnKort(v) {
     knap.addEventListener("click", () => { const aaben = knap.getAttribute("aria-expanded") === "true"; knap.setAttribute("aria-expanded", String(!aaben)); tabel.hidden = aaben; });
 
     if (k.engangs) {
+      // Summen pr. ordning; de enkelte udbetalinger (fx portioner) under "Se år for år".
+      const navn = (id, type) => {
+        const o = aktivSvar()?.ordninger.find((x) => x.id === id);
+        return o ? ordningstitel(o) : TYPER[type]?.titel;
+      };
+      const hvor = (iBuffer) => (iBuffer ? "til buffer" : "udbetales direkte");
+      const engangsTabel = el("div", { class: "tabel-rul", id: detaljeId, hidden: true },
+        el("table", {},
+          el("caption", { class: "sr-only", tekst: "Engangsbeløb år for år" }),
+          el("thead", {}, el("tr", {}, ...["Alder", "Ordning", "Efter afgift", "I dagens kroner", "Bruges"].map((t) => el("th", { scope: "col", tekst: t })))),
+          el("tbody", {}, k.engangs.map((e) => el("tr", {}, el("th", { scope: "row", tekst: `${e.alder} år` }),
+            el("td", { tekst: navn(e.ordning_id, e.type) }), el("td", { tekst: `${kr(e.netto)} kr.` }),
+            el("td", { tekst: `${kr(e.netto_real)} kr.` }), el("td", { tekst: hvor(e.i_buffer) }))))));
+      knap.addEventListener("click", () => { engangsTabel.hidden = knap.getAttribute("aria-expanded") !== "true"; });
       return el("article", { class: "kort", style: `--farve: var(${k.farve})` },
         el("div", { class: "kort__ikon", "aria-hidden": "true" }),
         el("h3", { class: "kort__titel" }, k.titel, info), infoTekst,
-        el("ul", { class: "engangsliste" }, k.engangs.map((e) => {
-          const o = aktivSvar()?.ordninger.find((x) => x.id === e.ordning_id);
-          return el("li", {}, `${o ? ordningstitel(o) : TYPER[e.type]?.titel}: ${kr(e.netto)} kr. `,
-            el("small", { tekst: `som ${e.alder}-årig – ${kr(e.netto_real)} kr. i dagens kroner – ${e.i_buffer ? "til buffer" : "udbetales direkte"}` }));
-        })),
-        el("p", { class: "kort__periode", tekst: "Efter eventuel afgift. Udbetales én gang." }));
+        el("ul", { class: "engangsliste" }, k.pr_ordning.map((o) => el("li", {}, `${navn(o.ordning_id, o.type)}: ${kr(o.netto)} kr. `,
+          el("small", { tekst: `${o.antal > 1 ? `${o.antal} udbetalinger som ${o.fra_alder}–${o.til_alder}-årig` : `som ${o.fra_alder}-årig`}`
+            + ` – ${kr(o.netto_real)} kr. i dagens kroner – ${hvor(o.i_buffer)}` })))),
+        el("p", { class: "kort__periode", tekst: "Efter eventuel afgift." }),
+        knap, engangsTabel);
     }
     return el("article", { class: "kort", style: `--farve: var(${k.farve})` },
       el("div", { class: "kort__ikon", "aria-hidden": "true" }),
@@ -1774,8 +1787,9 @@ function forbind() {
   $("#motor-igen").addEventListener("click", () => { startMotor(); hentKommuner(); });
   hentKommuner();
   visTrin(1, false);
-  $("#pdf-knap").addEventListener("click", () => aflaesPdf("dig"));
-  $("#p-pdf-knap").addEventListener("click", () => aflaesPdf("partner"));
+  // Rapporten aflæses, så snart den er valgt (ingen knap).
+  $("#pdf-fil").addEventListener("change", () => aflaesPdf("dig"));
+  $("#p-pdf-fil").addEventListener("change", () => aflaesPdf("partner"));
   $$("input[name=civilstand], input[name=partnerdata]").forEach((r) => r.addEventListener("change", opdaterPartnerFelter));
   opdaterPartnerFelter();
   $("#p-tilfoej-ordning").addEventListener("click", () => tilfoejOrdning($("#p-ny-type").value, "partner"));

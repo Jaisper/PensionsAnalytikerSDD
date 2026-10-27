@@ -94,7 +94,6 @@ def test_intet_forlader_browseren(side, base_url, tmp_path):
     pdf = tmp_path / "rapport.pdf"
     pdf.write_bytes(RAPPORT_PDF)
     side.set_input_files("#pdf-fil", str(pdf))
-    side.click("#pdf-knap")
     side.wait_for_selector("#pdf-status p")
     efter_pdf = len(side.requests)
     koer_guide(side)

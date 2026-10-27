@@ -72,8 +72,7 @@
                 <label for="pdf-fil">Vælg rapporten (PDF)</label>
                 <input type="file" id="pdf-fil" accept="application/pdf,.pdf">
               </div>
-              <p class="felt__hjaelp">Rapporten læses kun her i din browser. Den sendes ikke nogen steder hen – heller ikke til AI-tjenester.</p>
-              <button type="button" class="knap knap--sekundaer" id="pdf-knap">Aflæs rapport</button>
+              <p class="felt__hjaelp">Vi aflæser den, så snart du har valgt den. Rapporten læses kun her i din browser. Den sendes ikke nogen steder hen – heller ikke til AI-tjenester.</p>
               <div id="pdf-status" class="upload__status" role="status" aria-live="polite"></div>
             </section>
 
@@ -127,7 +126,7 @@
 
             <div class="felt" data-felt="atp_aarlig person.atp_aarlig">
               <label for="atp">Din ATP pr. år <span class="valgfri">(valgfri)</span></label>
-              <input id="atp" inputmode="numeric" class="beloeb" aria-describedby="atp-hjaelp">
+              <input id="atp" inputmode="numeric" class="beloeb" aria-describedby="atp-hjaelp" placeholder="0">
               <p class="felt__hjaelp" id="atp-hjaelp">Står på pensionsinfo.dk. Lader du feltet stå tomt eller skriver 0, bruger vi ATP's gennemsnit.</p>
             </div>
 
@@ -185,8 +184,7 @@
                 <label for="p-pdf-fil">Vælg din partners rapport (PDF)</label>
                 <input type="file" id="p-pdf-fil" accept="application/pdf,.pdf">
               </div>
-              <p class="felt__hjaelp">Rapporten læses kun her i din browser. Den sendes ikke nogen steder hen.</p>
-              <button type="button" class="knap knap--sekundaer" id="p-pdf-knap">Aflæs rapport</button>
+              <p class="felt__hjaelp">Vi aflæser den, så snart du har valgt den. Rapporten læses kun her i din browser. Den sendes ikke nogen steder hen.</p>
               <div id="p-pdf-status" class="upload__status" role="status" aria-live="polite"></div>
             </section>
             <div class="felt" data-felt="p.foedselsdato">
@@ -209,7 +207,7 @@
             </div>
             <div class="felt" data-felt="person.partner.profil.atp_aarlig">
               <label for="p-atp">Din partners ATP pr. år <span class="valgfri">(valgfri)</span></label>
-              <input id="p-atp" inputmode="numeric" class="beloeb" aria-describedby="p-atp-hjaelp">
+              <input id="p-atp" inputmode="numeric" class="beloeb" aria-describedby="p-atp-hjaelp" placeholder="0">
               <p class="felt__hjaelp" id="p-atp-hjaelp">Lader du feltet stå tomt eller skriver 0, bruger vi ATP's gennemsnit.</p>
             </div>
             <div class="felt felt--afkrydsning">

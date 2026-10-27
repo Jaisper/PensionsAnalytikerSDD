@@ -7,7 +7,7 @@ pytestmark = pytest.mark.browser
 def test_atp_tomt_eller_nul_giver_gennemsnit(resultat):
     resultat.click("#data-panel-knap")
     atp = resultat.locator("#data-panel-form #atp")
-    assert atp.get_attribute("placeholder") in (None, "")  # ingen pladsholder, der ligner et svar
+    assert atp.get_attribute("placeholder") == "0"  # som de andre beløbsfelter (ønsket 2026-10-27); 0 = gennemsnit
     for vaerdi in ("", "0"):
         atp.fill(vaerdi)
         resultat.evaluate("window.__f = tilstand.v")

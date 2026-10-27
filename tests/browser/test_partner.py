@@ -15,7 +15,6 @@ def til_resultat_som_par(side, tmp_path, civilstand="gift"):
     pdf = tmp_path / "rapport.pdf"
     pdf.write_bytes(RAPPORT_PDF)
     side.set_input_files("#pdf-fil", str(pdf))
-    side.click("#pdf-knap")
     side.wait_for_selector("#pdf-status p")
     side.fill("#kommune", "Aarhus")
     side.check(f"input[name=civilstand][value={civilstand}]")
@@ -29,7 +28,6 @@ def til_resultat_som_par(side, tmp_path, civilstand="gift"):
     side.click("#naeste")                       # → trin 3: din partners ordninger
     assert side.locator('.trin[data-trin="3"]').is_visible()
     side.set_input_files("#p-pdf-fil", str(pdf))
-    side.click("#p-pdf-knap")
     side.wait_for_selector("#p-pdf-status p")
     assert side.input_value("#p-foedselsdato")  # hentet fra partnerens rapport
     for felt in side.query_selector_all("#p-ordninger input[id$='-udbetaling_start_alder']"):

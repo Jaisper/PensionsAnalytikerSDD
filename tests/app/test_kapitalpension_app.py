@@ -71,3 +71,19 @@ def test_optimer_beskriver_formaendring():
     for a in d["aendringer"]:
         if a["felt"] == "form":
             assert set(a["fra"]) == {"form", "aar"} and set(a["til"]) == {"form", "aar"}
+
+
+def test_engangskortet_summerer_pr_ordning():
+    """Ønsket 2026-10-27: "Hvad består beløbet af?" viser engangsbeløb som sum pr. ordning; de enkelte
+    udbetalinger (fx portioner) ligger til "Se år for år"."""
+    alders = {"id": "a1", "type": "aldersopsparing", "saldo": 100000, "aarlig_indbetaling": 0,
+              "udbetaling_start_alder": 66, "oprettet": "2000-01-01"}
+    guide = {**GUIDE, "ordninger": [{**KAP, "udbetalingsform": "portioner", "udbetaling_aar": 4}, alders]}
+    v = app.beregn(json.dumps(guide), "2026-10-25")["data"]
+    k = next(k for k in v["kort"] if k["noegle"] == "engangsbeloeb")
+    pr = {o["ordning_id"]: o for o in k["pr_ordning"]}
+    assert set(pr) == {"k1", "a1"}
+    assert pr["k1"]["antal"] == 4 and (pr["k1"]["fra_alder"], pr["k1"]["til_alder"]) == (65, 68)
+    assert pr["k1"]["netto"] == pytest.approx(sum(e["netto"] for e in k["engangs"] if e["ordning_id"] == "k1"))
+    assert pr["a1"]["antal"] == 1
+    assert len(k["engangs"]) == 5
