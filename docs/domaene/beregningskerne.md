@@ -410,6 +410,22 @@ beløb vises i dagens kroner (inflationskorrigeret med antagelsens inflation, so
   iterationer. Golden cases holder 009's SC-002 (højst 6).
 - Uden afkast tæller bufferen fortsat ikke i formuen. Det er uændret fra 009.
 
+## 7k. Indskud af løn og "Hvor skal næste krone hen?" (feature 021)
+
+- Privat ratepension fradrages i den personlige indkomst (PSL § 3, stk. 2, nr. 3). Den gældende
+  PSL § 7 har intet tillæg for ratepension. Det gamle tillæg gjaldt kapitalpension (PBL § 16,
+  stk. 1). Kernens behandling svarer derfor til privat indbetaling.
+- Med løn betales aldersopsparingens indbetaling af beskattet løn. Den trækkes fra årets
+  rådighedsbeløb (`Aarsresultat.indskud_opsparing`). Før 021 blev den ikke trukket fra i
+  arbejdsårene. Hovedtallet fra stopalderen er uændret.
+- Indbetaling over loftet for aldersopsparing giver advarslen `ALDERSOPSPARING_OVER_LOFT`.
+- Løbende indskud (`Aktiv.aarligt_indskud`) gælder bank, frit depot og aktiesparekonto. De
+  kræver løn og indbetales frem til stopalderen.
+- "Hvor skal næste krone hen?" (app-laget) laver en fuld beregning pr. alternativ:
+  - Ratepensionen får beløbet før skat. De andre alternativer får dens pris efter skat.
+  - Målet er det faste beløb i gennemsnit fra stopalderen. Hovedtallet (minimum) ville favorisere
+    likvid opsparing, fordi udjævningen ikke låner.
+
 ## 8. Uden for denne feature (kommer i senere features)
 
 PDF-import fra PensionsInfo · AI-forklaring/chat · Optimering af udbetalingsrækkefølge

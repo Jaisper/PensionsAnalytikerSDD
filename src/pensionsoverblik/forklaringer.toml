@@ -22,6 +22,7 @@ inventar = [
   "Udjævning, fast beløb og buffer uden lån",
   "Opsparing uden for pension",
   "Frit depot og aktiesparekonto",
+  "Hvor skal næste krone hen?",
   "Løn, stopalder og fradrag",
   "Usikkerhed og levetid",
   "Optimering",
@@ -149,7 +150,7 @@ kort = ["engangsbeloeb"]
 titel = "Aldersopsparing"
 inventar = ["Ratepension, livsvarig pension, aldersopsparing og kapitalpension"]
 registerposter = ["ordning.aldersopsparing.*"]
-advarsler = []
+advarsler = ["ALDERSOPSPARING_OVER_LOFT"]
 niveau1 = "Din aldersopsparing får du som ét beløb. Du betaler ikke skat, når du får den. Den gør ikke dit pensionstillæg mindre."
 niveau2 = "Du betaler skat, når du indbetaler, ikke når du får pengene. Indbetalingen har et lille loft, der er højere de sidste år før folkepensionsalderen. Beløbet indgår i det faste beløb eller udbetales direkte."
 niveau3 = "Pensionsbeskatningsloven §§ 10 A og 16 (indbetalingsloft og forhøjet loft de sidste år før folkepensionsalderen). Udbetalingen er skattefri og indgår ikke i indtægtsgrundlaget."
@@ -235,6 +236,16 @@ advarsler = ["AKTIEINDKOMST_OVER_GRAENSE", "ASK_OVER_LOFT"]
 niveau1 = "Aktier i et frit depot giver skat, når du sælger. En aktiesparekonto giver skat hvert år. Vi bruger først banken, så depotet og til sidst kontoen."
 niveau2 = "Når du sælger aktier, er gevinsten aktieindkomst. Den har sin egen skat med en lav og en høj sats. Gevinsten tæller med i dit pensionstillæg. Afkastet på en aktiesparekonto giver skat hvert år, men tæller ikke med i pensionstillægget. Begge dele tæller med i formuegrænsen for ældrechecken. Sælger du meget på et år, siger vi det."
 niveau3 = "Personskatteloven § 8 a om aktieindkomst og progressionsgrænsen. Ægtefæller kan overføre en uudnyttet grænse (stk. 4). Aktiesparekontoloven om lagerskat og indskudsloft. Lov om social pension § 29 om aktieindkomst i indtægtsgrundlaget og § 72 d, stk. 2, om likvid formue. Hele afkastet i depotet er regnet som kursgevinst. Udbytte er ikke med. Alle typer har samme afkast."
+
+[[emne]]
+id = "naeste_krone"
+titel = "Hvor skal næste krone hen?"
+inventar = ["Hvor skal næste krone hen?"]
+registerposter = []
+advarsler = []
+niveau1 = "Vi prøver at lægge et ekstra beløb fra din løn i ratepension, aldersopsparing, aktiesparekonto eller banken. Du ser, hvad hver vej giver dig om måneden senere."
+niveau2 = "Ratepensionen giver fradrag nu, men den beskattes og kan gøre dit pensionstillæg mindre senere. De andre veje giver ikke fradrag. Derfor får de det, ratepensionen koster efter skat. Så er din løn efter skat den samme. Har du en lille pension, kan fradraget nu koste mere senere. Det kalder vi ratepensionsfælden."
+niveau3 = "Hvert alternativ er en fuld beregning. Ratepensionen fradrages i den personlige indkomst (personskatteloven § 3) inden for loftet (pensionsbeskatningsloven § 18). Aldersopsparing har sit eget loft (§ 16) og indgår ikke i indtægtsgrundlaget (lov om social pension § 29). Målet er det faste beløb i gennemsnit fra stopalderen, fordi udjævningen ikke låner af senere år."
 
 [[emne]]
 id = "loen"

@@ -127,8 +127,6 @@ def valider(profil: Pensionsprofil, antagelser: Antagelser, satsaar: int, beregn
                 raise UgyldigtInput(f"{felt}.urealiseret_gevinst", "Gevinsten skal være mellem 0 og depotets værdi")
         if aktiv.aarligt_indskud:
             _ikke_negativ(f"{felt}.aarligt_indskud", aktiv.aarligt_indskud)
-            if aktiv.type != "ask":
-                raise UgyldigtInput(f"{felt}.aarligt_indskud", "Løbende indskud gælder kun aktiesparekontoen")
             if profil.loen is None or (profil.loen.aarlig <= 0 and profil.loen.deltid_aarlig <= 0):
                 raise UgyldigtInput(f"{felt}.aarligt_indskud", "Løbende indskud kræver, at du har en løn")
 

@@ -494,6 +494,17 @@
             </div>
             <div id="stop-svar" role="status" aria-live="polite"></div>
           </section>
+          <section class="stop-soeg" aria-labelledby="naeste-krone-titel">
+            <h3 id="naeste-krone-titel">Hvor skal næste krone hen?</h3>
+            <div class="felt" data-felt="naeste_krone.beloeb">
+              <label for="naeste-beloeb">Et ekstra beløb om året fra din løn, før skat</label>
+              <div class="tilfoej__raekke">
+                <input id="naeste-beloeb" inputmode="numeric" class="beloeb" value="10.000">
+                <button type="button" class="knap knap--sekundaer" id="naeste-knap">Sammenlign</button>
+              </div>
+            </div>
+            <div id="naeste-svar" role="status" aria-live="polite"></div>
+          </section>
           <details class="fold" id="usikkerhed" hidden>
             <summary>Hvis afkast, inflation eller levetid bliver anderledes <span aria-hidden="true">→</span></summary>
             <p class="sektion__intro">Det faste beløb om måneden efter skat, i dagens kroner, når afkastet er 1 procentpoint lavere eller højere end dit valg, inflationen er 0,5 procentpoint højere eller lavere, eller planen skal række kortere eller længere end til 90 år. Ingen kender fremtiden, så tallene er eksempler, ikke grænser.</p>

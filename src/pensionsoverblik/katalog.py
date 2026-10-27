@@ -79,6 +79,7 @@ ADVARSLER: dict[str, dict[str, str]] = {
     "INDKOMSTHUL": {"placering": "graf", "ikon": "!", "titel": "Ingen indkomst i nogle år"},
     "AKTIEINDKOMST_OVER_GRAENSE": {"placering": "generel", "ikon": "!", "titel": "Stort salg af aktier"},
     "ASK_OVER_LOFT": {"placering": "generel", "ikon": "≈", "titel": "Loftet på aktiesparekontoen"},
+    "ALDERSOPSPARING_OVER_LOFT": {"placering": "generel", "ikon": "≈", "titel": "Loftet for aldersopsparing"},
     "BUFFER_IKKE_KONVERGERET": {"placering": "hovedtal", "ikon": "!", "titel": "Usikkert tal"},
     "UDBETALING_FOER_LOVLIG_ALDER": {"placering": "generel", "ikon": "!", "titel": "Tjek din startalder"},
     "PORTIONER_KRAEVER_AFTALE": {"placering": "generel", "ikon": "≈", "titel": "Kapitalpension i portioner"},

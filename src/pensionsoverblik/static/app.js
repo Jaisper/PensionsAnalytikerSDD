@@ -1382,6 +1382,50 @@ async function findStopalder() {
   }
 }
 
+/* ── "Hvor skal næste krone hen?" (feature 021) ─────────────────────────── */
+async function sammenlignNaesteKrone() {
+  const svar = $("#naeste-svar");
+  const beloebAar = beloeb($("#naeste-beloeb").value);
+  if (!tilstand.aktuelleSvar.person.loen?.aarlig) {
+    svar.replaceChildren(el("p", { tekst: "Skriv din løn under \"Dine oplysninger\", så kan vi sammenligne, hvor næste krone gør mest gavn." }));
+    return;
+  }
+  if (!beloebAar) { svar.replaceChildren(el("p", { tekst: "Skriv et beløb om året." })); return; }
+  const knap = $("#naeste-knap");
+  knap.disabled = true;
+  svar.replaceChildren(el("p", { tekst: "Vi regner hvert alternativ igennem …" }));
+  try {
+    const r = await kald("naeste_krone", JSON.stringify(tilstand.aktuelleSvar), idag(), beloebAar);
+    if (!r.ok) { svar.replaceChildren(el("p", { tekst: r.fejl.besked })); return; }
+    const d = r.data;
+    const raekker = d.alternativer.map((a) => [
+      a.titel + (a.loft_naaet ? " (loftet er nået)" : ""),
+      `${kr(a.maaned)} kr.`, `${kr(a.forskel)} kr.`,
+      a.fradrag_nu_aar ? `${kr(a.fradrag_nu_aar)} kr.` : "–",
+      a.skat_senere_maaned || a.modregning_senere_maaned ? `${kr(a.skat_senere_maaned + a.modregning_senere_maaned)} kr.` : "–",
+    ]);
+    const bedst = d.alternativer[0];
+    const indhold = [
+      el("p", { class: "forslag__resultat", tekst: `Mest giver ${bedst.titel.toLowerCase()}: ca. ${kr(bedst.forskel)} kr. mere om måneden${d.par ? " for jer begge" : ""}.` }),
+      tabel("Hvor skal næste krone hen", ["Hvor", "Fast beløb pr. md.", "Mere end i dag", "Skattefordel nu pr. år", "Skat og mindre tillæg senere pr. md."], raekker),
+    ];
+    if (d.faelde) {
+      indhold.push(el("p", { tekst: `Ratepensionsfælden: Ratepensionen giver dig ${kr(d.faelde.fradrag_aar)} kr. i skattefordel om året nu. `
+        + `Senere giver den ${kr(d.faelde.modregning_maaned)} kr. mindre om måneden i pensionstillæg og ældrecheck, og udbetalingen beskattes. `
+        + `Derfor giver aldersopsparing ${kr(d.faelde.forskel_maaned)} kr. mere om måneden.` }));
+    }
+    indhold.push(el("p", { class: "felt__hjaelp", tekst: `Vi har afprøvet ${d.afproevet} måder at bruge ${kr(d.beloeb)} kr. om året før skat fra i dag til ${d.stop_alder} år. `
+      + `Ratepensionen får hele beløbet og giver fradrag. De andre får det, ratepensionen koster efter skat: ${kr(d.pris)} kr. om året. `
+      + `Så er din løn efter skat den samme i alle tilfælde. Det faste beløb er et gennemsnit fra ${d.stop_alder} år i dagens kroner. `
+      + `Alle typer har samme afkast, selv om aktier i virkeligheden svinger mere. Det er et regnestykke, ikke et råd. ${d.kommer}` }));
+    svar.replaceChildren(...indhold);
+  } catch {
+    svar.replaceChildren(el("p", { tekst: "Det kunne ikke regnes lige nu. Prøv igen." }));
+  } finally {
+    knap.disabled = false;
+  }
+}
+
 async function opdaterFraPanel() {
   ryd();
   if (!validerTrin(1) || !validerTrin(2) || !validerTrin(3)) return;
@@ -2106,6 +2150,7 @@ function forbind() {
   }
   $("#opdater").addEventListener("click", opdaterFraPanel);
   $("#stop-knap").addEventListener("click", findStopalder);
+  $("#naeste-knap").addEventListener("click", sammenlignNaesteKrone);
   $("#aar-forklaring-luk").addEventListener("click", () => { $("#aar-forklaring").hidden = true; $("#graf").focus?.(); });
   hentForklaringer();
   $("#metode-link").addEventListener("click", (e) => { e.preventDefault(); visMetode(); });

@@ -69,7 +69,7 @@ class Aktiv:
     type: Aktivtype = "bank"
     i_plan: bool = True                 # True: bruges i den faste udbetaling; False: står urørt og forrentes
     urealiseret_gevinst: float | None = None  # depot: heraf gevinst i dag; None = antagelsens andel (013b)
-    aarligt_indskud: float = 0.0        # aktiesparekonto: indskud om året i dagens kroner, mens der er løn (013b)
+    aarligt_indskud: float = 0.0        # indskud om året i dagens kroner, mens der er løn (013b, 021)
 
 
 @dataclass(frozen=True)

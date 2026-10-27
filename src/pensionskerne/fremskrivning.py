@@ -182,6 +182,8 @@ def beregn(
     overskud_start = max((start[i] for i in rate_ids), default=alder_nu)
     overskud_saldo = 0.0
     foerste_overskud: tuple[int, float] | None = None
+    aldersopsparing_indskud: dict[int, float] = {}  # betales af lønnen; trækkes fra rådighedsbeløbet (021)
+    aldersopsparing_over_loft: int | None = None
 
     for alder in range(alder_nu, max(start.values(), default=alder_nu)):
         o = opslag(alder)
@@ -197,7 +199,12 @@ def beregn(
             beloeb = ordning.aarlig_indbetaling * o.reguleringsfaktor * (
                 1 + o.antagelse("loenvaekst", antagelser.loenvaekst)) ** aar_frem
             if ordning.type == "aldersopsparing":
-                beloeb = min(beloeb, indbetalingsloft(ordning.type, alder, fp_alder, o))
+                loft = indbetalingsloft(ordning.type, alder, fp_alder, o)
+                if beloeb > loft:
+                    aldersopsparing_over_loft = alder if aldersopsparing_over_loft is None else aldersopsparing_over_loft
+                beloeb = min(beloeb, loft)
+                if har_loen:  # betales af beskattet løn (021)
+                    aldersopsparing_indskud[alder] = aldersopsparing_indskud.get(alder, 0.0) + beloeb
             indbetaling[ordning.id] = beloeb
 
         fradragsberettiget[alder] = sum(b for i, b in indbetaling.items()
@@ -325,28 +332,34 @@ def beregn(
                 lag.indsaet(a.type, a.saldo)
         return lag
 
-    # Løbende indskud på aktiesparekontoen, mens der er løn (013b). De hidtidige indskud regnes lig
-    # saldoen (forenkling); indskud over loftet står i frit depot.
+    # Løbende indskud på opsparing, mens der er løn (013b, 021): bank og frit depot uden loft,
+    # aktiesparekontoen op til loftet. De hidtidige ASK-indskud regnes lig saldoen (forenkling);
+    # indskud over loftet står i frit depot. Indskuddene betales af beskattet løn, ligesom
+    # aldersopsparingens indbetaling (afsnit 1).
     indskud_plan: dict[int, _Lag] = {}
     indskud_uroert: dict[int, _Lag] = {}
-    indskud_i_alt: dict[int, float] = {}
+    indskud_i_alt: dict[int, float] = dict(aldersopsparing_indskud)
     ask_over_loft: int | None = None
-    ask_med_indskud = [a for a in profil.opsparing if a.type == "ask" and a.aarligt_indskud > 0] if har_loen else []
-    if ask_med_indskud:
+    med_indskud = [a for a in profil.opsparing if a.aarligt_indskud > 0] if har_loen else []
+    ask_med_indskud = [a for a in med_indskud if a.type == "ask"]
+    if med_indskud:
         indskudt = sum(a.saldo for a in profil.opsparing if a.type == "ask")
         for alder in range(alder_nu, stop):
             o = opslag(alder)
-            plads = max(0.0, o.v("ask.indskudsloft") - indskudt)
-            for a in ask_med_indskud:
+            plads = max(0.0, o.v("ask.indskudsloft") - indskudt) if ask_med_indskud else 0.0
+            for a in med_indskud:
                 beloeb = a.aarligt_indskud * o.reguleringsfaktor
-                til_ask = min(beloeb, plads)
-                plads -= til_ask
-                indskudt += til_ask
                 maal = (indskud_plan if a.i_plan else indskud_uroert).setdefault(alder, _Lag())
-                maal.indsaet("ask", til_ask)
-                if beloeb > til_ask:
-                    maal.indsaet("depot", beloeb - til_ask)
-                    ask_over_loft = alder if ask_over_loft is None else ask_over_loft
+                if a.type == "ask":
+                    til_ask = min(beloeb, plads)
+                    plads -= til_ask
+                    indskudt += til_ask
+                    maal.indsaet("ask", til_ask)
+                    if beloeb > til_ask:
+                        maal.indsaet("depot", beloeb - til_ask)
+                        ask_over_loft = alder if ask_over_loft is None else ask_over_loft
+                else:
+                    maal.indsaet(a.type, beloeb)
                 indskud_i_alt[alder] = indskud_i_alt.get(alder, 0.0) + beloeb
             samlet.overtag(o)
     har_depot = any(a.type == "depot" for a in profil.opsparing) or ask_over_loft is not None
@@ -687,6 +700,14 @@ def beregn(
             "salget over flere år.",
             aldre=(fra, til),
             registerposter=("skat.aktieindkomst.progressionsgraense", "skat.aktieindkomst.sats_hoej"),
+        ))
+    if aldersopsparing_over_loft is not None:
+        advarsler.append(Advarsel(
+            "ALDERSOPSPARING_OVER_LOFT",
+            f"Din indbetaling til aldersopsparing er over loftet som {aldersopsparing_over_loft}-årig. Vi har kun "
+            "regnet med det, du må indbetale.",
+            registerposter=("ordning.aldersopsparing.indbetalingsloft",
+                            "ordning.aldersopsparing.indbetalingsloft_forhoejet"),
         ))
     if ask_over_loft is not None:
         advarsler.append(Advarsel(
