@@ -1025,6 +1025,7 @@ function tegnForklaringer() {
   tegnLaesevejledninger();
   tegnKortforklaringer();
   tegnOrdliste();
+  if (tilstand.forslagVist) $$("[data-optimering]").forEach((b) => tegnOptimeringForklaring(b, tilstand.forslagVist));
   if (tilstand.aarAlder !== undefined && !$("#aar-forklaring").hidden) tegnAar(tilstand.aarAlder);
 }
 
@@ -1487,10 +1488,12 @@ function visForslag(d, noegle) {
     ? `Vi har afprøvet alle ${kr(d.mulige)} mulige kombinationer.`
     : `Vi har afprøvet ${kr(d.evalueret)} af ${stortTal(d.mulige)} mulige kombinationer – de mest lovende, men ikke alle.`;
   const boks = $("#forslag");
+  tilstand.forslagVist = d;
   if (!d.forbedret) {
     boks.replaceChildren(
       el("p", { class: "forslag__resultat", tekst: "Din plan er allerede den bedste, vi kan finde." }),
-      el("p", { class: "felt__hjaelp", tekst: afproevet }));
+      el("p", { class: "felt__hjaelp", tekst: afproevet }),
+      optimeringForklaring(d));
     return;
   }
   const pr = new Map();
@@ -1509,9 +1512,35 @@ function visForslag(d, noegle) {
     el("p", { tekst: `Fast beløb hele perioden: ${kr(d.efter)} kr. i stedet for ${kr(d.foer)} kr. Efter skat og i dagens kroner. De stiplede bjælker viser forslaget.` }),
     el("ul", { class: "forslag__liste" }, linjer),
     el("p", { class: "felt__hjaelp", tekst: afproevet }),
+    el("p", { class: "felt__hjaelp forslag__forbehold", tekst: emne("forbehold")?.niveau1 ?? "" }),
+    optimeringForklaring(d),
     el("div", { class: "forslag__knapper" }, anvend, behold));
   tilstand.forslag = { d, noegle };
   placerBjaelker();
+}
+
+// Feature 020c: sådan har vi fundet forslaget, på det valgte niveau, med søgningens omfang (Princip V).
+function optimeringForklaring(d) {
+  const boks = el("details", { class: "laes", "data-optimering": "" },
+    el("summary", { tekst: "Sådan har vi fundet forslaget" }), el("div", { class: "laes__tekst" }));
+  tegnOptimeringForklaring(boks, d);
+  return boks;
+}
+
+function tegnOptimeringForklaring(boks, d) {
+  const e = emne("optimering");
+  if (!e) return;
+  const n = tilstand.niveau ?? gemtNiveau();
+  const tekster = [e[n]];
+  if (d.forbedret) tekster.push(`Det bedste, vi fandt, giver ${kr(d.efter)} kr. om måneden i stedet for ${kr(d.foer)} kr.`);
+  if (n !== "niveau1") tekster.push("Målet er det højeste faste beløb hele perioden. Et forslag må ikke give nye år uden indkomst.");
+  if (n === "niveau3") {
+    tekster.push(`Søgerum: startalder, varighed, udbetalingsform og opsættelse af folkepensionen inden for lovens grænser. `
+      + `Afprøvet: ${kr(d.evalueret)} af ${kr(d.mulige)} mulige kombinationer (${d.udtoemmende ? "alle" : "ikke alle"}). `
+      + "Søgningen er deterministisk: samme input giver samme forslag.");
+  }
+  tekster.push(emne("forbehold")[n]);
+  $(".laes__tekst", boks).replaceChildren(...afsnit(...tekster));
 }
 
 function anvendForslag() {

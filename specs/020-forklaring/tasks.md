@@ -31,4 +31,6 @@
 - [x] T021 Rulbare tabeller kan nås med tastaturet (axe scrollable-region-focusable)
 - [x] T022 `tests/browser/test_forklaring_020b.py`
 
-## Del 4: 020c–d
+- [x] T023 020c: "Sådan har vi fundet forslaget" på tre niveauer med søgningens omfang og forbehold (`tests/browser/test_forklaring_020c.py`)
+
+## Del 5: 020d
