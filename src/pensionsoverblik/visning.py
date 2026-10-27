@@ -46,6 +46,19 @@ def _hovedtal(res: Fremskrivning) -> dict:
             "fra_alder": foerste_hele.alder, "senere": None}
 
 
+def _loen(res: Fremskrivning, hovedtal: dict) -> dict | None:
+    """Lønnen efter skat og pensionsindbetaling pr. måned i dagens kroner, til sammenligning med
+    hovedtallet (017b): gennemsnittet af lønkildens netto i årene før stopalderen."""
+    til = res.jaevn_fra_alder
+    netto = [k.netto * a.realfaktor for a in res.aar if til is not None and a.alder < til
+             for k in a.kilder if k.type == "loen"]
+    if not netto:
+        return None
+    maaned = round(sum(netto) / len(netto) / MAANEDER, -2)
+    return {"maaned": maaned, "til_alder": til,
+            "andel_pct": round(100 * hovedtal["maaned"] / maaned) if maaned > 0 else None}
+
+
 def _formue(res: Fremskrivning) -> dict | None:
     """Opsparingen uden for pension år for år fra i dag, i dagens kroner (feature 013, US4).
     Restformuen er opsparingen ved udgangen af beregningens sidste år."""
@@ -184,6 +197,7 @@ def byg_visning(res: Fremskrivning) -> dict:
     return {
         "hovedtal": hovedtal,
         "hovedtal_advarsler": hovedtal_advarsler,
+        "loen": _loen(res, hovedtal),
         "folkepensionsalder": res.folkepensionsalder,
         "kort": kort,
         "graf": {

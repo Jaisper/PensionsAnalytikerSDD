@@ -133,7 +133,10 @@ def beregn(
                 continue
             if bidrag_slut is not None and alder >= bidrag_slut:
                 continue
-            beloeb = o.antagelse("loenvaekst", ordning.aarlig_indbetaling * (1 + antagelser.loenvaekst) ** aar_frem)
+            # Indbetalingen er i dagens kroner og reguleres som lønnen (017b); `loenvaekst` er
+            # realvækst oven i.
+            beloeb = ordning.aarlig_indbetaling * o.reguleringsfaktor * (
+                1 + o.antagelse("loenvaekst", antagelser.loenvaekst)) ** aar_frem
             if ordning.type == "aldersopsparing":
                 beloeb = min(beloeb, indbetalingsloft(ordning.type, alder, fp_alder, o))
             indbetaling[ordning.id] = beloeb

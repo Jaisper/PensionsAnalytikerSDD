@@ -115,3 +115,23 @@ def test_deltid_efter_stop():
     assert kilde(res.aar_ved(66), "loen").brutto == pytest.approx(150_000)
     assert kilde(res.aar_ved(67), "loen") is None
     assert res.jaevn_fra_alder == 64
+
+
+def test_pensionsindbetalingen_foelger_satsreguleringen_som_loennen():
+    """017b: indbetalingen er i dagens kroner og reguleres som lønnen (konstant købekraft)."""
+    rate = replace(RATE, aarlig_indbetaling=40_000)
+    ant = Antagelser(afkast_efter_pal=0.03, inflation=0.02)
+    res = regn(person(Loen(500_000, stop_alder=66), ordninger=(rate,)), ant)
+    for alder in (60, 62, 65):
+        f = (1.02) ** (res.aar_ved(alder).kalenderaar - 2026)
+        assert res.aar_ved(alder).personlig_indkomst == pytest.approx(
+            f * (500_000 * (1 - O.v("skat.am_bidrag")) - 40_000))
+
+
+def test_loenvaekst_er_realvaekst_oven_i_satsreguleringen():
+    rate = replace(RATE, aarlig_indbetaling=40_000)
+    ant = Antagelser(afkast_efter_pal=0.03, inflation=0.02, loenvaekst=0.01)
+    res = regn(person(Loen(500_000, stop_alder=66), ordninger=(rate,)), ant)
+    a = res.aar_ved(62)
+    f = (1.02) ** (a.kalenderaar - 2026)
+    assert a.detaljer.pensionsindbetaling == pytest.approx(40_000 * f * 1.01 ** 2)

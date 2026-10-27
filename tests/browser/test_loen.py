@@ -77,3 +77,18 @@ def test_axe_og_360(side):
     assert fejl == []
     side.set_viewport_size({"width": 360, "height": 800})
     side.wait_for_function("() => document.documentElement.scrollWidth <= 360", timeout=5000)
+
+
+def test_nettoloennen_vises_ved_hovedtallet(side):
+    """017b: nettolønnen pr. måned står ved hovedtallet til sammenligning."""
+    til_resultat(side, bank="300000")
+    nl = side.evaluate("tilstand.v.loen")
+    tekst = side.inner_text("#hovedtal-loen")
+    assert f"{nl['maaned']:,.0f}".replace(",", ".") in tekst and "til 64 år" in tekst
+    assert f"{nl['andel_pct']} %" in tekst
+    assert side.fejl == []
+
+
+def test_ingen_nettoloen_uden_loen(side):
+    til_resultat(side, loen=None, stop=None)
+    assert side.is_hidden("#hovedtal-loen")

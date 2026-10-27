@@ -114,7 +114,7 @@ class Antagelser:
     afkast_efter_pal: float = 0.04
     inflation: float = 0.02
     satsregulering: float | None = None  # None = samme som inflation (FR-060)
-    loenvaekst: float = 0.0
+    loenvaekst: float = 0.0              # realvækst i pensionsindbetalingen oven i satsreguleringen (017b)
     livsvarig_horisont_alder: int = 90   # livrentens beregningshorisont (selskabets ydelse)
     plan_slut_alder: int | None = None   # planens sidste år (019); None = livsvarig_horisont_alder
     livsvarig_min_aar: int = 18

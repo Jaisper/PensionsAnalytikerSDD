@@ -65,6 +65,21 @@
             <legend><h2 tabindex="-1">Om dig</h2></legend>
             <p class="hjaelp">Vi bruger oplysningerne til beregningen og gemmer dem ikke.</p>
 
+            <details class="upload gemt" id="aabn-gemt">
+              <summary>Har du gemt en beregning før?</summary>
+              <p class="felt__hjaelp">Vælg filen og skriv adgangskoden. Filen åbnes kun her i din browser.</p>
+              <div class="felt" data-felt="gemt">
+                <label for="gemt-fil">Din gemte fil</label>
+                <input type="file" id="gemt-fil" accept=".json,application/json">
+              </div>
+              <div class="felt">
+                <label for="gemt-kode">Adgangskode</label>
+                <input type="password" id="gemt-kode" autocomplete="current-password">
+              </div>
+              <button type="button" class="knap knap--sekundaer" id="gemt-aabn">Åbn</button>
+              <div id="gemt-status" role="status" aria-live="polite"></div>
+            </details>
+
             <section class="upload" id="upload" aria-labelledby="upload-titel">
               <h3 id="upload-titel">Har du din rapport fra PensionsInfo?</h3>
               <p class="felt__hjaelp">Så kan vi aflæse dine ordninger for dig. Du tjekker tallene bagefter. Rapporten henter du som PDF på pensionsinfo.dk.</p>
@@ -299,6 +314,7 @@
           <p class="hero__lead" id="resultat-titel">Du kan forvente ca.</p>
           <p class="hero__tal" aria-live="polite"><span id="hovedtal">–</span> <span class="hero__enhed">om måneden efter skat</span></p>
           <p class="hero__forklaring" id="hovedtal-forklaring"></p>
+          <p class="hero__loen" id="hovedtal-loen" hidden></p>
           <p class="hero__aendring" id="hovedtal-aendring" aria-live="polite"></p>
           <p class="hero__spaend" id="hovedtal-spaend"></p>
           <details class="forklaring forklaring--lys" id="hovedtal-forklaring-boks">
@@ -465,7 +481,21 @@
             <button type="button" class="knap knap--sekundaer" id="eksport-json">Hent hele beregningen (JSON)</button>
             <button type="button" class="knap knap--sekundaer" id="eksport-csv">Hent år for år (CSV)</button>
             <button type="button" class="knap knap--tekst" id="udskriv">Udskriv til din rådgiver</button>
+            <button type="button" class="knap knap--sekundaer" id="gem-knap" aria-expanded="false" aria-controls="gem-form">Gem til senere</button>
             <p class="felt__hjaelp">Filerne laves her i din browser. De indeholder dine svar, satserne og tallene, men ikke dit navn eller CPR-nummer.</p>
+          </div>
+          <div class="gem-form" id="gem-form" hidden>
+            <p class="felt__hjaelp">Dine svar gemmes i en krypteret fil på din egen computer, så du kan fortsætte næste gang uden at indlæse rapporten igen. Glemmer du adgangskoden, kan filen ikke åbnes – heller ikke af os.</p>
+            <div class="felt" data-felt="gem-kode">
+              <label for="gem-kode">Vælg en adgangskode (mindst 8 tegn)</label>
+              <input type="password" id="gem-kode" autocomplete="new-password">
+            </div>
+            <div class="felt" data-felt="gem-kode2">
+              <label for="gem-kode2">Gentag adgangskoden</label>
+              <input type="password" id="gem-kode2" autocomplete="new-password">
+            </div>
+            <button type="button" class="knap knap--primaer" id="gem-fil">Gem fil</button>
+            <div id="gem-status" role="status" aria-live="polite"></div>
           </div>
           <details class="fold">
             <summary>Ordliste <span aria-hidden="true">→</span></summary>
