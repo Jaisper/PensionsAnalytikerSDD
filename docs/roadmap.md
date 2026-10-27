@@ -26,9 +26,9 @@ Numrene følger, hvornår en spec blev oprettet, ikke rækkefølgen herunder.
 
 ## Små gevinster, der kan lægges ind imellem
 
-- **Skift mellem nominelle beløb og dagens kroner.** Kernen leverer allerede `realfaktor`, så
+- ~~**Skift mellem nominelle beløb og dagens kroner.**~~ Lavet i 020b. Kernen leverer allerede `realfaktor`, så
   det er ren visning.
-- **Rapport til rådgiveren.** Start med en udskriftsvenlig side med forudsætninger og satser
+- ~~**Rapport til rådgiveren.**~~ Lavet i 020d (udskrift og eksport). Start med en udskriftsvenlig side med forudsætninger og satser
   (Princip V). Det kræver ingen ny afhængighed.
 - **Gem og genindlæs lokalt.** En fil krypteret med browserens Web Crypto. Ingen server og ingen
   ny afhængighed (Princip VII).
