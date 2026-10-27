@@ -12,7 +12,7 @@ Numrene følger, hvornår en spec blev oprettet, ikke rækkefølgen herunder.
 | 019 | Levetid som scenarie (planen til 85 og 95 år) | I luften (2026-10-26) | 018 |
 | 017 | Arbejdsår og løn før pension | I luften (2026-10-27) | 013 |
 | 020 | Forklaring i tre niveauer (020a–d), forenklingsregistret | I luften (2026-10-27); SC-004 brugertest udestår | 017 |
-| [024](../specs/024-gem-lokalt/spec.md) | Gem og genindlæs lokalt | Spec (modnes) | – |
+| [024](../specs/024-gem-lokalt/spec.md) | Gem og genindlæs lokalt | Færdig, ikke merget | – |
 | [013b](../specs/013b-frit-depot-ask/spec.md) | Frit depot og aktiesparekonto | Spec (modnes) | 013, 017 |
 | [021](../specs/021-naeste-krone/spec.md) | "Hvor skal næste krone hen?" | Spec (modnes) | 017, 013b (014 for afdrag) |
 | [023](../specs/023-afkast-pr-aar/spec.md) | Afkast pr. år og "dårlige år først" | Spec (modnes) | – |
@@ -30,7 +30,7 @@ Rækkefølgen er et forslag fra modningen; se [modning.md](modning.md).
   det er ren visning.
 - ~~**Rapport til rådgiveren.**~~ Lavet i 020d (udskrift og eksport). Start med en udskriftsvenlig side med forudsætninger og satser
   (Princip V). Det kræver ingen ny afhængighed.
-- **Gem og genindlæs lokalt.** En fil krypteret med browserens Web Crypto. Ingen server og ingen
+- ~~**Gem og genindlæs lokalt.**~~ Lavet i 024. En fil krypteret med browserens Web Crypto. Ingen server og ingen
   ny afhængighed (Princip VII).
 
 ## Tungere, senere

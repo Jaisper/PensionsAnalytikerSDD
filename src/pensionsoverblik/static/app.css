@@ -352,6 +352,10 @@ thead th { background: var(--graa-50); position: sticky; top: 0; }
   .graf-ramme { break-inside: avoid; }
 }
 
+/* Feature 024: gem og genindlæs */
+.gemt summary { cursor: pointer; font-weight: 700; }
+.gem-form { margin: 8px 0 16px; max-width: 520px; }
+
 /* Feature 017: aldersfelter og "Hvornår kan jeg stoppe?" */
 .felt input.alder { max-width: 8rem; }
 .stop-soeg { margin-top: 24px; max-width: 640px; }

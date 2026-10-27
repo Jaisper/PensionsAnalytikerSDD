@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-27
 
-**Status**: Draft – besluttet 2026-10-27 (som foreslået); clarify med primærkilder før plan
+**Status**: Implementeret 2026-10-27 (intet lovgrundlag; ingen clarify nødvendig)
 
 **Input**: Idéliste punkt 10: "En krypteret fil i stedet for en server, så brugeren kan genbruge sin
 profil uden at uploade PDF'en igen næste år. Det passer med Princip VII."

@@ -1030,6 +1030,120 @@ function tegnForklaringer() {
   if (tilstand.aarAlder !== undefined && !$("#aar-forklaring").hidden) tegnAar(tilstand.aarAlder);
 }
 
+/* ── Gem og genindlæs lokalt (feature 024) ─────────────────────────────── */
+// Svarene krypteres i browseren med AES-GCM og en nøgle, der udledes af adgangskoden (PBKDF2-SHA-256).
+// Filen indeholder kun format, version, salt, nonce og ciffertekst. Intet sendes ud (Princip VII).
+const GEM = { format: "pensionsoverblik-gem", version: 1, iterationer: 600000, skema: 1 };
+
+function tilB64(bytes) {
+  let s = "";
+  for (const b of new Uint8Array(bytes)) s += String.fromCharCode(b);
+  return btoa(s);
+}
+const fraB64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+
+async function gemNoegle(kode, salt, iterationer) {
+  const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(kode), "PBKDF2", false, ["deriveKey"]);
+  return crypto.subtle.deriveKey({ name: "PBKDF2", hash: "SHA-256", salt, iterations: iterationer }, base,
+    { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+}
+
+async function krypter(data, kode) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const noegle = await gemNoegle(kode, salt, GEM.iterationer);
+  const ciffer = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, noegle, new TextEncoder().encode(JSON.stringify(data)));
+  return { format: GEM.format, version: GEM.version, kdf: { navn: "PBKDF2-SHA-256", iterationer: GEM.iterationer, salt: tilB64(salt) },
+    cipher: { navn: "AES-GCM", iv: tilB64(iv) }, data: tilB64(ciffer) };
+}
+
+async function dekrypter(fil, kode) {
+  if (fil.format !== GEM.format || fil.version !== GEM.version) throw new Error("format");
+  const noegle = await gemNoegle(kode, fraB64(fil.kdf.salt), fil.kdf.iterationer);
+  const klar = await crypto.subtle.decrypt({ name: "AES-GCM", iv: fraB64(fil.cipher.iv) }, noegle, fraB64(fil.data));
+  return JSON.parse(new TextDecoder().decode(klar));
+}
+
+// Guidens felter gemmes generelt (id → værdi), så nye felter kommer med uden ændring af formatet.
+function guideFelter() {
+  const felter = {};
+  for (const i of $$("#guide-form input[id], #guide-form select[id]")) {
+    if (i.type === "file" || i.type === "password") continue;
+    felter[i.id] = i.type === "checkbox" ? i.checked : i.value;
+  }
+  for (const r of $$("#guide-form input[type=radio]:checked")) felter[`radio:${r.name}`] = r.value;
+  return felter;
+}
+
+function saetGuideFelter(felter) {
+  for (const [id, v] of Object.entries(felter)) {
+    if (id.startsWith("radio:")) {
+      const r = $(`#guide-form input[name="${id.slice(6)}"][value="${v}"]`);
+      if (r) r.checked = true;
+      continue;
+    }
+    const i = document.getElementById(id);
+    if (!i) continue;
+    if (i.type === "checkbox") i.checked = v; else i.value = v;
+  }
+}
+
+async function gemTilSenere() {
+  const status = $("#gem-status");
+  ryd();
+  const kode = $("#gem-kode").value;
+  if (kode.length < 8) { visFejl("gem-kode", "Adgangskoden skal være mindst 8 tegn."); return; }
+  if (kode !== $("#gem-kode2").value) { visFejl("gem-kode2", "De to adgangskoder er ikke ens."); return; }
+  status.textContent = "Krypterer …";
+  const data = {
+    skema: GEM.skema, gemt: idag(), felter: guideFelter(),
+    ordninger: tilstand.ordninger, partnerOrdninger: tilstand.partnerOrdninger,
+    naesteId: tilstand.naesteId, naestePid: tilstand.naestePid,
+    valg: { niveau: tilstand.niveau ?? null, kroner: tilstand.kroner ?? null },
+  };
+  const fil = await krypter(data, kode);
+  const url = URL.createObjectURL(new Blob([JSON.stringify(fil)], { type: "application/json" }));
+  const a = el("a", { href: url, download: `pensionsoverblik-gemt-${idag()}.json` });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  $("#gem-kode").value = $("#gem-kode2").value = "";
+  status.textContent = "Filen er gemt i din browsers overførsler. Husk adgangskoden.";
+}
+
+async function aabnGemt() {
+  const status = $("#gemt-status");
+  ryd();
+  const fil = $("#gemt-fil").files[0];
+  if (!fil) { visFejl("gemt", "Vælg din gemte fil."); return; }
+  status.textContent = "Åbner …";
+  let data;
+  try {
+    data = await dekrypter(JSON.parse(await fil.text()), $("#gemt-kode").value);
+  } catch {
+    status.textContent = "";
+    visFejl("gemt", "Filen kunne ikke åbnes. Tjek adgangskoden, og at det er en fil gemt her.");
+    return;
+  }
+  if (data.skema !== GEM.skema) { status.textContent = ""; visFejl("gemt", "Filen er fra en version, vi ikke kan læse."); return; }
+  saetGuideFelter(data.felter);
+  tilstand.ordninger = data.ordninger || [];
+  tilstand.partnerOrdninger = data.partnerOrdninger || [];
+  tilstand.naesteId = data.naesteId || tilstand.naesteId;
+  tilstand.naestePid = data.naestePid || tilstand.naestePid;
+  if (data.valg?.niveau) saetNiveau(data.valg.niveau);
+  if (data.valg?.kroner) { tilstand.kroner = data.valg.kroner; $$("input[name=kroner]").forEach((r) => (r.checked = r.value === tilstand.kroner)); }
+  opdaterPartnerFelter();
+  tegnOrdninger();
+  $("#gemt-kode").value = "";
+  status.textContent = "";
+  await beregnFraGuide();
+  if (!$("#resultat").hidden) {
+    $("#hovedtal-aendring").textContent = `Din gemte beregning fra ${data.gemt}. Regnet med reglerne for i år, så tallene kan have ændret sig.`;
+  }
+}
+
 /* ── Metodesiden, eksport og udskrift (feature 020d) ──────────────────── */
 async function visMetode() {
   try { tilstand.metode ??= await kald("metode"); } catch { return; }
@@ -1977,6 +2091,13 @@ function forbind() {
   $("#udskriv").addEventListener("click", () => window.print());
   $("#eksport-json").addEventListener("click", () => hentEksport("json"));
   $("#eksport-csv").addEventListener("click", () => hentEksport("csv"));
+  $("#gem-knap").addEventListener("click", () => {
+    const aaben = $("#gem-knap").getAttribute("aria-expanded") === "true";
+    $("#gem-knap").setAttribute("aria-expanded", String(!aaben));
+    $("#gem-form").hidden = aaben;
+  });
+  $("#gem-fil").addEventListener("click", gemTilSenere);
+  $("#gemt-aabn").addEventListener("click", aabnGemt);
   // Rulbare tabeller skal kunne nås og rulles med tastaturet (WCAG 2.1.1; axe scrollable-region-focusable).
   const rulbare = () => $$(".tabel-rul:not([tabindex])").forEach((d) => {
     d.tabIndex = 0;
