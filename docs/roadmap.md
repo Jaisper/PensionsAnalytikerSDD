@@ -12,7 +12,7 @@ Numrene følger, hvornår en spec blev oprettet, ikke rækkefølgen herunder.
 | 019 | Levetid som scenarie (planen til 85 og 95 år) | I luften (2026-10-26) | 018 | Billigere end Monte Carlo. Levetiden er ofte den største risiko |
 | 020a¹ | Forenklingsregistret (fra 020) | Færdig, ikke merget | – | Lille. Gør forenklingerne synlige og testede |
 | 017 | Arbejdsår og løn før pension | Færdig, ikke merget | 013 | Uden løn kender kernen ikke skatten i arbejdsårene. Giver "Hvornår kan jeg stoppe?" og arbejde ved siden af pensionen |
-| 020 | Forklaring i tre niveauer: 020a færdig, ikke merget; 020b–d venter | 020a færdig | 017; 020b kræver skifteren nominel/dagens kroner | Efter 017 (besluttet 2026-10-26) |
+| 020 | Forklaring i tre niveauer (020a–d) | 020a i luften; 020b–d færdig, ikke merget | 017; 020b kræver skifteren nominel/dagens kroner | Efter 017 (besluttet 2026-10-26) |
 | 013b | Frit depot og aktiesparekonto | Godkendt i 013's opdeling | 013 | Aktieindkomst, ASK og trækrækkefølge |
 | – | "Hvor skal næste krone hen?" | Idé | 017, 013b (014 for afdrag på lån) | Kræver skatten i arbejdsårene (fradragsværdi) og ASK at sammenligne med |
 | – | "Hvad hvis min partner dør?" | Idé | 012 | Efterladtescenarie |
@@ -26,9 +26,9 @@ Numrene følger, hvornår en spec blev oprettet, ikke rækkefølgen herunder.
 
 ## Små gevinster, der kan lægges ind imellem
 
-- **Skift mellem nominelle beløb og dagens kroner.** Kernen leverer allerede `realfaktor`, så
+- ~~**Skift mellem nominelle beløb og dagens kroner.**~~ Lavet i 020b. Kernen leverer allerede `realfaktor`, så
   det er ren visning.
-- **Rapport til rådgiveren.** Start med en udskriftsvenlig side med forudsætninger og satser
+- ~~**Rapport til rådgiveren.**~~ Lavet i 020d (udskrift og eksport). Start med en udskriftsvenlig side med forudsætninger og satser
   (Princip V). Det kræver ingen ny afhængighed.
 - **Gem og genindlæs lokalt.** En fil krypteret med browserens Web Crypto. Ingen server og ingen
   ny afhængighed (Princip VII).

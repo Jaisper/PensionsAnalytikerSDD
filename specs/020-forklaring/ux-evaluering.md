@@ -17,6 +17,19 @@
 | axe (begge forklaringer åbne, niveau 3) og 360 px | 0 fejl, ingen scroll | FR-010 |
 | Forenklingerne vises med begrundelse. Dem, der påvirker beregningen, står først | ja (test) | FR-005 |
 
+### 020b–d
+
+| Måling | Resultat | Krav |
+|---|---|---|
+| Skifter mellem dagens og årets kroner i graf, tabel, opsparingsgraf, formue og kort. Hovedtallet er altid i dagens kroner. Valget huskes | ja (test) | US3 |
+| "Sådan læser du …" ved hovedtal, graf, tidslinje, opsparingsgraf, faner, ikoner, usikkerhed og beløb. Grafens nævner kun de viste serier | ja (test) | US3, AS1 |
+| Kortenes "i" og ordlisten følger det valgte niveau | ja (test) | FR-002, FR-009 |
+| "Sådan har vi fundet forslaget" med søgningens omfang og forbehold | ja (test) | US5 |
+| Metodesiden uden data: alle emner, alle forenklinger, alle satser med kilde og status | ja (test) | US4 |
+| Eksport som JSON (hele beregningen) og CSV (år for år) uden CPR, navne eller aftalenumre | ja (test) | US6 |
+| Udskrift åbner alle fold-ud'er og skjuler knapper | ja (test) | US4 |
+| Rulbare tabeller kan nås med tastaturet; link i bunden har nok kontrast | rettet (axe) | FR-010 |
+
 ## Heuristik (kort)
 
 - **Svaret først:** Hovedtallet står uændret. Forklaringen er en fold-ud lige under det.
@@ -30,5 +43,5 @@
 | # | Fund | Alv. |
 |---|---|---|
 | F1 | SC-004 (brugertest med tre personer pr. målgruppe) er ikke udført. Det er et manuelt krav | 2 |
-| F2 | Kortene, tidslinjen og fanerne har endnu ikke tre niveauer (020b) | 1 |
+| F2 | ~~Kortene, tidslinjen og fanerne har endnu ikke tre niveauer~~ Løst i 020b | – |
 | F3 | Under "Samlet" forklares hovedtallet kun med husstandsemnet, ikke med parrets egne tal | 1 |

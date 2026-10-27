@@ -330,8 +330,33 @@ thead th { background: var(--graa-50); position: sticky; top: 0; }
 .aar-forklaring h3 { margin: 0; }
 .aar-tabel-knap { background: none; border: 0; padding: 0; font: inherit; font-weight: 700; color: inherit; text-decoration: underline; cursor: pointer; }
 
+/* Feature 020b: skifter, læsevejledninger og ordliste */
+.beloebsvalg { border: 0; padding: 0; margin: 8px 0; display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; }
+.beloebsvalg legend { float: left; margin-right: 8px; font-weight: 700; }
+.laes { margin: 8px 0; }
+.laes summary { cursor: pointer; color: var(--petrol-700, inherit); }
+.laes__tekst p { margin: 6px 0; }
+.ordliste dt { font-weight: 700; margin-top: 10px; }
+.ordliste dd { margin: 2px 0 0; }
+
+/* Feature 020d: metodeside, eksport og udskrift */
+.metode__knapper, .eksport { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin: 12px 0; }
+.eksport .felt__hjaelp { flex-basis: 100%; margin: 0; }
+.metode-emne { margin: 16px 0; }
+.metode-emne h3 { margin: 0 0 4px; font-size: 1.05rem; }
+@media print {
+  .topbjaelke nav, #ny-beregning, #guide, .knap, .niveauvaelger, .tidslinje, .optimering, #forudsaetninger .skydergitter,
+  .stop-soeg, .person-faner, .beloebsvalg, #motor { display: none !important; }
+  body { background: #fff; }
+  .panel__indhold[hidden] { display: block !important; }
+  .graf-ramme { break-inside: avoid; }
+}
+
 /* Feature 017: aldersfelter og "Hvornår kan jeg stoppe?" */
 .felt input.alder { max-width: 8rem; }
 .stop-soeg { margin-top: 24px; max-width: 640px; }
 .stop-soeg h3 { margin: 0 0 8px; }
 #stop-svar p { margin: 8px 0; }
+
+/* Feature 020d: link i den mørke bund */
+.bund a { color: var(--hvid); text-decoration: underline; }

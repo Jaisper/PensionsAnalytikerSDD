@@ -292,6 +292,7 @@
           <button type="button" role="tab" id="fane-partner" data-hvem="partner" aria-selected="false" aria-controls="resultat" tabindex="-1">Partner</button>
           <button type="button" role="tab" id="fane-samlet" data-hvem="samlet" aria-selected="false" aria-controls="resultat" tabindex="-1">Samlet</button>
         </div>
+        <div class="ramme"><details class="laes" data-laes="faner"><summary></summary><div class="laes__tekst"></div></details></div>
       </div>
       <div class="hero">
         <div class="hero__tekst">
@@ -357,10 +358,17 @@
             </button>
           </h2>
           <div class="panel__indhold" id="graf-panel-indhold">
-            <p class="sektion__intro">Om måneden efter skat, i dagens kroner. Træk i bjælkerne under grafen for at flytte dine ordninger i tid – eller klik på en bjælke og justér år for år. Vi regner forfra med det samme.</p>
+            <p class="sektion__intro">Om måneden efter skat, <span id="kroner-tekst">i dagens kroner</span>. Træk i bjælkerne under grafen for at flytte dine ordninger i tid – eller klik på en bjælke og justér år for år. Vi regner forfra med det samme.</p>
+            <fieldset class="beloebsvalg">
+              <legend>Vis beløbene</legend>
+              <label class="valg"><input type="radio" name="kroner" value="dagens" checked> I dagens kroner</label>
+              <label class="valg"><input type="radio" name="kroner" value="aarets"> I årets kroner</label>
+            </fieldset>
+            <details class="laes" data-laes="beloeb"><summary></summary><div class="laes__tekst"></div></details>
             <div class="graf-ramme graf-ramme--bred"><canvas id="graf" role="img" aria-label="Søjlediagram over din udbetaling pr. år, fordelt på kilder. Tallene findes også som tabel under diagrammet."></canvas></div>
             <div class="graf-ramme graf-ramme--buffer" id="buffergraf-ramme" hidden><canvas id="buffergraf" role="img" aria-label="Linjediagram over den opsparing uden for pension, der bruges i din faste udbetaling, pr. år i dagens kroner. Den går aldrig i minus. Tallene findes også i tabellen under diagrammet."></canvas></div>
             <ul class="forklaring-farver" id="farveforklaring"></ul>
+            <details class="laes" data-laes="graf"><summary></summary><div class="laes__tekst"></div></details>
             <p class="graf-forklaring" id="jaevn-forklaring" hidden></p>
             <ul class="markeringer" id="graf-markeringer"></ul>
             <p class="felt__hjaelp">Klik på et år i grafen for at se, hvordan det er regnet.</p>
@@ -380,13 +388,15 @@
               <div class="forslag" id="forslag" role="status" aria-live="polite" hidden></div>
             </div>
             <div class="tidslinje" id="tidslinje" role="group" aria-label="Dine ordninger over tid"></div>
+            <details class="laes" data-laes="tidslinje"><summary></summary><div class="laes__tekst"></div></details>
+            <details class="laes" data-laes="opsparingsgraf"><summary></summary><div class="laes__tekst"></div></details>
             <details class="tabel-alternativ">
               <summary>Vis tallene som tabel</summary>
               <div class="tabel-rul" id="graf-tabel"></div>
             </details>
             <details class="tabel-alternativ" id="formue-fold" hidden>
               <summary id="formue-titel">Din opsparing uden for pension over tid</summary>
-              <p class="felt__hjaelp">I dagens kroner ved årets udgang. Den opsparing, der bruges i din faste udbetaling, er brugt op ved planens slutning. Urørt opsparing vokser med afkastet.</p>
+              <p class="felt__hjaelp"><span class="kroner-stort">I dagens kroner</span> ved årets udgang. Den opsparing, der bruges i din faste udbetaling, er brugt op ved planens slutning. Urørt opsparing vokser med afkastet.</p>
               <div class="tabel-rul" id="formue-tabel"></div>
             </details>
           </div>
@@ -428,6 +438,7 @@
             <summary>Hvis afkast, inflation eller levetid bliver anderledes <span aria-hidden="true">→</span></summary>
             <p class="sektion__intro">Det faste beløb om måneden efter skat, i dagens kroner, når afkastet er 1 procentpoint lavere eller højere end dit valg, inflationen er 0,5 procentpoint højere eller lavere, eller planen skal række kortere eller længere end til 90 år. Ingen kender fremtiden, så tallene er eksempler, ikke grænser.</p>
             <div class="tabel-rul" id="usikkerhed-tabel"></div>
+            <details class="laes" data-laes="usikkerhed"><summary></summary><div class="laes__tekst"></div></details>
             <p class="graf-forklaring" id="usikkerhed-efter" hidden></p>
           </details>
         </div>
@@ -443,11 +454,22 @@
           </details>
           <details class="fold">
             <summary>Se de satser, vi har brugt <span aria-hidden="true">→</span></summary>
+            <details class="laes" data-laes="statusikoner"><summary></summary><div class="laes__tekst"></div></details>
             <ul class="satsliste" id="satser"></ul>
           </details>
           <details class="fold">
             <summary>Se vores forudsætninger <span aria-hidden="true">→</span></summary>
             <ul class="satsliste" id="antagelser"></ul>
+          </details>
+          <div class="eksport">
+            <button type="button" class="knap knap--sekundaer" id="eksport-json">Hent hele beregningen (JSON)</button>
+            <button type="button" class="knap knap--sekundaer" id="eksport-csv">Hent år for år (CSV)</button>
+            <button type="button" class="knap knap--tekst" id="udskriv">Udskriv til din rådgiver</button>
+            <p class="felt__hjaelp">Filerne laves her i din browser. De indeholder dine svar, satserne og tallene, men ikke dit navn eller CPR-nummer.</p>
+          </div>
+          <details class="fold">
+            <summary>Ordliste <span aria-hidden="true">→</span></summary>
+            <dl class="ordliste" id="ordliste"></dl>
           </details>
           <details class="fold">
             <summary id="forenklinger-titel">Se vores forenklinger <span aria-hidden="true">→</span></summary>
@@ -458,12 +480,31 @@
       </section>
     </section>
 
+    <!-- ── Metodesiden (feature 020d) ────────────────────────────────────── -->
+    <section class="sektion" id="metode" aria-labelledby="metode-titel" hidden>
+      <div class="ramme">
+        <h2 id="metode-titel" tabindex="-1">Sådan regner PensionsAnalytikeren</h2>
+        <p class="sektion__intro">Hele metoden, satserne og forenklingerne for satsåret <span id="metode-satsaar"></span>. Det er de samme tekster og satser, som forklaringerne ved dine tal bruger.</p>
+        <div class="niveauvaelger" data-niveauvaelger="metode"></div>
+        <div class="metode__knapper">
+          <button type="button" class="knap knap--sekundaer" id="metode-udskriv">Udskriv</button>
+          <button type="button" class="knap knap--tekst" id="metode-luk">Luk</button>
+        </div>
+        <div id="metode-emner"></div>
+        <h3>Forenklinger</h3>
+        <ul class="satsliste" id="metode-forenklinger"></ul>
+        <h3>Satser og kilder</h3>
+        <div class="tabel-rul" id="metode-satser"></div>
+      </div>
+    </section>
+
   </main>
 
   <footer class="bund">
     <div class="ramme">
       <p><strong>Pensionsoverblik</strong> er information, ikke rådgivning. Beregningen bygger på dine svar, gældende regler for 2026 og forudsætninger om fremtiden, som ingen kender. Tal med en pensionsrådgiver, før du træffer beslutninger.</p>
       <p>Vi gemmer ikke dine oplysninger. De bruges kun til beregningen, mens siden er åben.</p>
+      <p><a href="#metode" id="metode-link">Sådan regner PensionsAnalytikeren</a></p>
     </div>
   </footer>
 </body>

@@ -579,7 +579,28 @@ function advarselEl(a, klasse = "advarsel") {
     el("div", {}, el("strong", { tekst: a.titel }), el("span", { class: "sr-only", tekst: a.ikon === "!" ? " (advarsel) " : " (forudsætning) " }), el("span", { tekst: ` ${a.besked}` })));
 }
 
+/* Feature 020b: dagens eller årets kroner. Kernen leverer realfaktoren; her divideres kun med den. */
+function gemtKroner() {
+  try { return localStorage.getItem("beloebsvisning") === "aarets" ? "aarets" : "dagens"; } catch { return "dagens"; }
+}
+const kronerTekst = (stort = false) => (tilstand.kroner === "aarets" ? (stort ? "I årets kroner" : "i årets kroner") : (stort ? "I dagens kroner" : "i dagens kroner"));
+
+function iValgteKroner(v) {
+  if (tilstand.kroner !== "aarets") return v;
+  const f = v.graf.realfaktor;
+  const del = (arr) => arr && arr.map((x, i) => (x === null ? null : x / f[i]));
+  const graf = { ...v.graf, serier: v.graf.serier.map((s) => ({ ...s, vaerdier: del(s.vaerdier) })), jaevn: del(v.graf.jaevn),
+    buffer: del(v.graf.buffer), skat_buffer: del(v.graf.skat_buffer), engangs: v.graf.engangs.map((e) => ({ ...e, netto_real: e.netto })) };
+  const formue = v.formue && { ...v.formue, i_plan: v.formue.i_plan.map((x, i) => x / v.formue.realfaktor[i]),
+    uden_for_plan: v.formue.uden_for_plan.map((x, i) => x / v.formue.realfaktor[i]) };
+  if (formue) formue.rest = formue.i_plan.at(-1) + formue.uden_for_plan.at(-1);
+  return { ...v, graf, formue };
+}
+
 function tegnGraf(v) {
+  v = iValgteKroner(v);
+  $("#kroner-tekst").textContent = kronerTekst();
+  $$(".kroner-stort").forEach((s) => (s.textContent = kronerTekst(true)));
   const serier = v.graf.serier;
   $("#farveforklaring").replaceChildren(...serier.map((s) => el("li", {}, el("i", { style: `background: var(${s.farve})`, "aria-hidden": "true" }), s.titel)),
     ...(v.graf.jaevn ? [el("li", {}, el("i", { class: "linje", "aria-hidden": "true" }), JAEVN_NAVN)] : []));
@@ -610,7 +631,7 @@ function tegnGraf(v) {
     el("td", { tekst: engangsPrAlder.has(alder) ? `${kr(engangsPrAlder.get(alder))} kr.` : "–" }),
     v.graf.buffer ? el("td", { tekst: v.graf.buffer[i] === null ? "–" : `${kr(v.graf.buffer[i])} kr.` }) : null,
     v.graf.skat_buffer ? el("td", { tekst: v.graf.skat_buffer[i] ? `${kr(v.graf.skat_buffer[i])} kr.` : "–" }) : null));
-  $("#graf-tabel").replaceChildren(el("table", {}, el("caption", { class: "sr-only", tekst: "Udbetaling pr. måned efter skat i dagens kroner, pr. alder og kilde" }), el("thead", {}, hoved), el("tbody", {}, raekker)));
+  $("#graf-tabel").replaceChildren(el("table", {}, el("caption", { class: "sr-only", tekst: `Udbetaling pr. måned efter skat ${kronerTekst()}, pr. alder og kilde` }), el("thead", {}, hoved), el("tbody", {}, raekker)));
 
   if (typeof Chart === "undefined") {
     $(".graf-ramme").hidden = true;
@@ -755,7 +776,7 @@ function tegnBuffergraf(v) {
     responsive: true, maintainAspectRatio: false, animation: { duration: 250 },
     plugins: {
       legend: { display: false },
-      title: { display: true, text: "Opsparing uden for pension, som bruges i din faste udbetaling, i dagens kroner", align: "start", color: css("--petrol-900") },
+      title: { display: true, text: `Opsparing uden for pension, som bruges i din faste udbetaling, ${kronerTekst()}`, align: "start", color: css("--petrol-900") },
       tooltip: { callbacks: { title: (t) => `${t[0].label} år`, label: (c) => ` Opsparing: ${kr(c.raw)} kr.` } },
     },
     scales: {
@@ -787,7 +808,8 @@ function tegnKort(v) {
     const infoId = `info-${k.noegle}`;
     const periode = k.til_alder === sidsteAlder ? `Fra du er ${k.fra_alder} år og resten af livet` : `Fra du er ${k.fra_alder} til ${k.til_alder} år`;
     const info = el("button", { type: "button", class: "info-knap", "aria-expanded": "false", "aria-controls": infoId, "aria-label": `Hvad er ${k.titel.toLowerCase()}?`, tekst: "i" });
-    const infoTekst = el("p", { class: "kort__forklaring", id: infoId, hidden: true, tekst: k.forklaring });
+    const infoTekst = el("div", { class: "kort__forklaring", id: infoId, hidden: true, "data-kort-forklaring": k.noegle },
+      el("p", { tekst: k.forklaring }));
     info.addEventListener("click", () => { const aaben = info.getAttribute("aria-expanded") === "true"; info.setAttribute("aria-expanded", String(!aaben)); infoTekst.hidden = aaben; });
 
     const knap = el("button", { type: "button", class: "kort__knap pil-link", "aria-expanded": "false", "aria-controls": detaljeId },
@@ -827,7 +849,9 @@ function tegnKort(v) {
       el("div", { class: "kort__ikon", "aria-hidden": "true" }),
       el("h3", { class: "kort__titel" }, k.titel, info),
       infoTekst,
-      el("p", { class: "kort__beloeb" }, `${kr(k.netto_maaned)} kr.`, el("small", { tekst: " /md." })),
+      el("p", { class: "kort__beloeb" }, `${kr(tilstand.kroner === "aarets"
+        ? k.netto_maaned / (v.aar.find((a) => a.alder === k.repraesentativ_alder)?.realfaktor ?? 1) : k.netto_maaned)} kr.`,
+      el("small", { tekst: ` /md., ${kronerTekst()}` })),
       el("p", { class: "kort__periode", tekst: periode }),
       k.advarsler.length ? el("ul", { class: "advarsler", style: "margin:8px 0 0;padding:0;list-style:none" }, k.advarsler.map((a) => advarselEl(a))) : null,
       knap, tabel);
@@ -971,6 +995,7 @@ function saetNiveau(n) {
   tilstand.niveau = n;
   try { localStorage.setItem("forklaringsniveau", n); } catch { /* kun en bekvemmelighed */ }
   tegnForklaringer();
+  if (!$("#metode").hidden) tegnMetode();
 }
 
 async function hentForklaringer() {
@@ -998,7 +1023,97 @@ function tegnForklaringer() {
   tilstand.niveau ??= gemtNiveau();
   $$("[data-niveauvaelger]").forEach(niveauVaelger);
   tegnHovedtalForklaring();
+  tegnLaesevejledninger();
+  tegnKortforklaringer();
+  tegnOrdliste();
+  if (tilstand.forslagVist) $$("[data-optimering]").forEach((b) => tegnOptimeringForklaring(b, tilstand.forslagVist));
   if (tilstand.aarAlder !== undefined && !$("#aar-forklaring").hidden) tegnAar(tilstand.aarAlder);
+}
+
+/* ── Metodesiden, eksport og udskrift (feature 020d) ──────────────────── */
+async function visMetode() {
+  try { tilstand.metode ??= await kald("metode"); } catch { return; }
+  $("#metode").hidden = false;
+  tegnMetode();
+  $("#metode-titel").focus();
+  $("#metode").scrollIntoView?.({ block: "start" });
+}
+
+function tegnMetode() {
+  const m = tilstand.metode;
+  if (!m) return;
+  tilstand.niveau ??= gemtNiveau();
+  const n = tilstand.niveau;
+  niveauVaelger($('[data-niveauvaelger="metode"]'));
+  $("#metode-satsaar").textContent = m.satsaar;
+  // Pladsholdere ({maaned} o.l.) udfyldes først ved borgerens egne tal; her står de som "…".
+  $("#metode-emner").replaceChildren(...m.forklaringer.emner.map((e) => el("section", { class: "metode-emne" },
+    el("h3", { tekst: e.titel }), ...afsnit(e[n].replace(/\{\w+\}/g, "…")))));
+  $("#metode-forenklinger").replaceChildren(...m.forenklinger.map((f) => el("li", {},
+    el("span", { class: "status status--info", "aria-hidden": "true", tekst: "~" }),
+    el("span", {}, el("strong", { tekst: `${f.titel}. ` }), `${f.beskrivelse} ${f.betydning}`),
+    el("small", { tekst: `Hvorfor: ${f.begrundelse} Kilde: ${f.kilde}.` }))));
+  const STATUS = { verificeret: "Bekræftet i lov eller hos myndighed", sekundaer: "Fra en sekundær kilde", uverificeret: "Ikke bekræftet" };
+  const vaerdi = (s) => (s.vaerdi === null ? "tabel" : s.enhed === "brok" ? procent(s.vaerdi) : s.enhed === "kr_aar" ? `${kr(s.vaerdi)} kr.` : decimal(s.vaerdi));
+  $("#metode-satser").replaceChildren(tabel(`Satser og kilder for ${m.satsaar}`, ["Sats", "Værdi", "Status", "Kilde"],
+    m.satser.map((s) => [SATS_NAVNE[s.id] || s.id, vaerdi(s), STATUS[s.status], s.kilde])));
+}
+
+async function hentEksport(slags) {
+  const r = await kald("eksport", JSON.stringify(tilstand.aktuelleSvar), idag());
+  if (!r.ok) { visFejl(r.fejl.felt, r.fejl.besked); return; }
+  // CSV med BOM, så regneark læser æ, ø og å rigtigt. Intet sendes ud; filen laves i browseren.
+  const [indhold, type, endelse] = slags === "json"
+    ? [r.data.json, "application/json", "json"] : [`\ufeff${r.data.csv}`, "text/csv", "csv"];
+  const url = URL.createObjectURL(new Blob([indhold], { type: `${type};charset=utf-8` }));
+  const a = el("a", { href: url, download: `${r.data.filnavn}.${endelse}` });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// Udskrift: alle fold-ud'er åbnes, mens der udskrives, og lukkes igen bagefter.
+let lukketFoerUdskrift = [];
+window.addEventListener("beforeprint", () => {
+  lukketFoerUdskrift = $$("#resultat details:not([open]), #metode details:not([open])");
+  lukketFoerUdskrift.forEach((d) => (d.open = true));
+});
+window.addEventListener("afterprint", () => { lukketFoerUdskrift.forEach((d) => (d.open = false)); lukketFoerUdskrift = []; });
+
+// "Sådan læser du …" (020b): emnets tekst på det valgte niveau. Grafen nævner kun det, der faktisk vises.
+function tegnLaesevejledninger() {
+  const n = tilstand.niveau;
+  const v = tilstand.v;
+  for (const d of $$("[data-laes]")) {
+    const e = tilstand.forklaringer.emner.find((x) => (x.visninger || []).includes(d.dataset.laes));
+    if (!e) continue;
+    $("summary", d).textContent = e.titel;
+    const tekster = [e[n]];
+    if (d.dataset.laes === "graf") {
+      const vist = [...v.graf.serier.map((s) => s.titel), ...(v.graf.jaevn ? [JAEVN_NAVN] : []),
+        ...(v.graf.engangs.length ? ["mærker for engangsbeløb"] : []), ...(v.graf.markeringer.length ? ["felter for år med en advarsel"] : [])];
+      tekster.push(`I din graf: ${vist.join(", ")}.`);
+    }
+    if (d.dataset.laes === "beloeb") {
+      const a = v.aar.at(-1);
+      tekster.push(`Eksempel fra din beregning: ${kr(a.netto / 12)} kr. om måneden i ${a.kalenderaar} svarer til ${kr(a.netto_real / 12)} kr. i dagens kroner.`);
+    }
+    $(".laes__tekst", d).replaceChildren(...afsnit(...tekster));
+  }
+}
+
+function tegnKortforklaringer() {
+  const n = tilstand.niveau;
+  for (const boks of $$("[data-kort-forklaring]")) {
+    const emner = tilstand.forklaringer.emner.filter((e) => (e.kort || []).includes(boks.dataset.kortForklaring));
+    if (emner.length) boks.replaceChildren(...afsnit(...emner.map((e) => (emner.length > 1 ? `${e.titel}: ${e[n]}` : e[n]))));
+  }
+}
+
+function tegnOrdliste() {
+  const n = tilstand.niveau;
+  $("#ordliste").replaceChildren(...tilstand.forklaringer.ordliste.flatMap((o) => [el("dt", { tekst: o.ord }), el("dd", { tekst: o[n] })]));
 }
 
 function afsnit(...tekster) { return tekster.filter(Boolean).map((t) => el("p", { tekst: t })); }
@@ -1425,10 +1540,12 @@ function visForslag(d, noegle) {
     ? `Vi har afprøvet alle ${kr(d.mulige)} mulige kombinationer.`
     : `Vi har afprøvet ${kr(d.evalueret)} af ${stortTal(d.mulige)} mulige kombinationer – de mest lovende, men ikke alle.`;
   const boks = $("#forslag");
+  tilstand.forslagVist = d;
   if (!d.forbedret) {
     boks.replaceChildren(
       el("p", { class: "forslag__resultat", tekst: "Din plan er allerede den bedste, vi kan finde." }),
-      el("p", { class: "felt__hjaelp", tekst: afproevet }));
+      el("p", { class: "felt__hjaelp", tekst: afproevet }),
+      optimeringForklaring(d));
     return;
   }
   const pr = new Map();
@@ -1447,9 +1564,35 @@ function visForslag(d, noegle) {
     el("p", { tekst: `Fast beløb hele perioden: ${kr(d.efter)} kr. i stedet for ${kr(d.foer)} kr. Efter skat og i dagens kroner. De stiplede bjælker viser forslaget.` }),
     el("ul", { class: "forslag__liste" }, linjer),
     el("p", { class: "felt__hjaelp", tekst: afproevet }),
+    el("p", { class: "felt__hjaelp forslag__forbehold", tekst: emne("forbehold")?.niveau1 ?? "" }),
+    optimeringForklaring(d),
     el("div", { class: "forslag__knapper" }, anvend, behold));
   tilstand.forslag = { d, noegle };
   placerBjaelker();
+}
+
+// Feature 020c: sådan har vi fundet forslaget, på det valgte niveau, med søgningens omfang (Princip V).
+function optimeringForklaring(d) {
+  const boks = el("details", { class: "laes", "data-optimering": "" },
+    el("summary", { tekst: "Sådan har vi fundet forslaget" }), el("div", { class: "laes__tekst" }));
+  tegnOptimeringForklaring(boks, d);
+  return boks;
+}
+
+function tegnOptimeringForklaring(boks, d) {
+  const e = emne("optimering");
+  if (!e) return;
+  const n = tilstand.niveau ?? gemtNiveau();
+  const tekster = [e[n]];
+  if (d.forbedret) tekster.push(`Det bedste, vi fandt, giver ${kr(d.efter)} kr. om måneden i stedet for ${kr(d.foer)} kr.`);
+  if (n !== "niveau1") tekster.push("Målet er det højeste faste beløb hele perioden. Et forslag må ikke give nye år uden indkomst.");
+  if (n === "niveau3") {
+    tekster.push(`Søgerum: startalder, varighed, udbetalingsform og opsættelse af folkepensionen inden for lovens grænser. `
+      + `Afprøvet: ${kr(d.evalueret)} af ${kr(d.mulige)} mulige kombinationer (${d.udtoemmende ? "alle" : "ikke alle"}). `
+      + "Søgningen er deterministisk: samme input giver samme forslag.");
+  }
+  tekster.push(emne("forbehold")[n]);
+  $(".laes__tekst", boks).replaceChildren(...afsnit(...tekster));
 }
 
 function anvendForslag() {
@@ -1828,6 +1971,29 @@ function forbind() {
   $("#stop-knap").addEventListener("click", findStopalder);
   $("#aar-forklaring-luk").addEventListener("click", () => { $("#aar-forklaring").hidden = true; $("#graf").focus?.(); });
   hentForklaringer();
+  $("#metode-link").addEventListener("click", (e) => { e.preventDefault(); visMetode(); });
+  $("#metode-luk").addEventListener("click", () => { $("#metode").hidden = true; $("#metode-link").focus(); });
+  $("#metode-udskriv").addEventListener("click", () => window.print());
+  $("#udskriv").addEventListener("click", () => window.print());
+  $("#eksport-json").addEventListener("click", () => hentEksport("json"));
+  $("#eksport-csv").addEventListener("click", () => hentEksport("csv"));
+  // Rulbare tabeller skal kunne nås og rulles med tastaturet (WCAG 2.1.1; axe scrollable-region-focusable).
+  const rulbare = () => $$(".tabel-rul:not([tabindex])").forEach((d) => {
+    d.tabIndex = 0;
+    d.setAttribute("role", "region");
+    d.setAttribute("aria-label", d.querySelector("caption")?.textContent || "Tabel");
+  });
+  rulbare();
+  new MutationObserver(rulbare).observe(document.body, { childList: true, subtree: true });
+  tilstand.kroner = gemtKroner();
+  for (const r of $$("input[name=kroner]")) {
+    r.checked = r.value === tilstand.kroner;
+    r.addEventListener("change", () => {
+      tilstand.kroner = r.value;
+      try { localStorage.setItem("beloebsvisning", r.value); } catch { /* kun en bekvemmelighed */ }
+      if (tilstand.v) { tegnGraf(tilstand.v); tegnKort(tilstand.v); tegnForklaringer(); }
+    });
+  }
 
   const skyder = (id, opdater, fmt) => $(`#${id}`).addEventListener("input", (e) => {
     $(`#${id}-v`).textContent = fmt(+e.target.value);
