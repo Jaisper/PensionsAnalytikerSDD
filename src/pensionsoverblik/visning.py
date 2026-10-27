@@ -9,7 +9,7 @@ from dataclasses import asdict
 
 from pensionskerne import Fremskrivning, register
 
-from .katalog import ADVARSLER, DELAAR_FOERST, ENGANGSKORT, KORT, KORT_FOR_KILDETYPE, UKENDT_ADVARSEL
+from .katalog import ADVARSLER, DELAAR_FOERST, ENGANGSKORT, KILDE_TITLER, KORT, KORT_FOR_KILDETYPE, UKENDT_ADVARSEL
 
 MAANEDER = 12
 # Grafens og tidslinjens akse starter ved en fast alder (eller borgerens alder, hvis den er højere),
@@ -17,6 +17,10 @@ MAANEDER = 12
 # pensionsudbetalingsalder for ordninger i dag. Ren præsentation.
 AKSE_START_ALDER = 60
 BUFFER_NUL_KR = 1.0
+# "Dit år" (020) nævner årsagen til en ændring fra året før, når en kilde ændrer sig mindst så
+# meget (kr./md., dagens kroner). Ren præsentation.
+AENDRING_TAERSKEL_MAANED = 100
+DRIVERE = 3  # hovedtallets forklaring nævner de største kilder
 
 
 def _advarsel(a) -> dict:
@@ -144,8 +148,29 @@ def byg_visning(res: Fremskrivning) -> dict:
     akse_start = min(aldre[0], max(AKSE_START_ALDER, alder_nu))
     foran = aldre[0] - akse_start  # tomme år foran den første udbetaling
 
+    # Forklaringer (020): årsagen til årets største ændring og hovedtallets største kilder.
+    def aendring(i: int) -> dict | None:
+        if i == 0:
+            return None
+        forskel = {n: serier[n][i] - serier[n][i - 1] for n in KORT}
+        n = max(forskel, key=lambda k: abs(forskel[k]))
+        if abs(forskel[n]) < AENDRING_TAERSKEL_MAANED:
+            return None
+        return {"noegle": n, "titel": KORT[n]["titel"], "maaned": forskel[n]}
+
+    hovedtal = _hovedtal(res)
+    fra = res.jaevn_fra_alder or res.aar[0].alder
+    i_fra = aldre.index(fra) if fra in aldre else 0
+    # De største kilder i perioden med det faste beløb: gennemsnit pr. måned i dagens kroner, afrundet
+    # til hele kroner (sum() kan afvige i sidste decimal mellem Python-versioner, SC-006).
+    periode = len(aldre) - i_fra
+    drivere = sorted(({"noegle": n, "titel": KORT[n]["titel"], "maaned": round(sum(serier[n][i_fra:]) / periode)} for n in KORT
+                      if sum(serier[n][i_fra:]) > 0), key=lambda d: -d["maaned"])[:DRIVERE]
+    hovedtal["forklaring"] = {"drivere": drivere, "iterationer": res.buffer_iterationer}
+    jaevn_aar = {j.alder: j for j in res.jaevn.aar} if res.jaevn else {}
+
     return {
-        "hovedtal": _hovedtal(res),
+        "hovedtal": hovedtal,
         "hovedtal_advarsler": hovedtal_advarsler,
         "folkepensionsalder": res.folkepensionsalder,
         "kort": kort,
@@ -170,7 +195,17 @@ def byg_visning(res: Fremskrivning) -> dict:
             "indtaegtsgrundlag": a.indtaegtsgrundlag, "tillaegsprocent": a.tillaegsprocent,
             "engangsbeloeb": a.engangsbeloeb_netto,
             "kapitalindkomst": a.kapitalindkomst, "skat_kapitalindkomst": a.skat_kapitalindkomst,
-        } for a in res.aar],
+            # Til "Dit år" (020)
+            "realfaktor": a.realfaktor,
+            "kilder": [{"id": k.kilde_id, "type": k.type, "titel": KILDE_TITLER[k.type],
+                        "brutto": k.brutto, "skat": k.skat, "netto": k.netto} for k in a.kilder],
+            "detaljer": asdict(a.detaljer) if a.detaljer else None,
+            "jaevn": jaevn_aar[a.alder].jaevn if a.alder in jaevn_aar else None,
+            "til_opsparing": jaevn_aar[a.alder].til_buffer if a.alder in jaevn_aar else 0.0,
+            "fra_opsparing": jaevn_aar[a.alder].fra_buffer if a.alder in jaevn_aar else 0.0,
+            "aendring": aendring(i),
+            "sporing": list(a.sporing),
+        } for i, a in enumerate(res.aar)],
         "satser": _satser(res),
     }
 

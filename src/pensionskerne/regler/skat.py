@@ -22,7 +22,7 @@ en pensionsordning, aldrig ved udbetaling (domænegrundlag A1).
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, field, replace
 
 from ..register.opslag import Regelopslag
 
@@ -40,6 +40,17 @@ class Skatteberegning:
     kapitalindkomst: float = 0.0
     skat_kapitalindkomst: float = 0.0   # merskatten af kapitalindkomsten (marginalt, oven på PI)
     uudnyttet_personfradrag: float = 0.0  # skatteværdi, ægtefællen kan bruge (PSL § 10, stk. 3)
+    # Skatten pr. type efter personfradrag (feature 020): bundskat, kommuneskat, kirkeskat,
+    # mellemskat, topskat, toptopskat, skatteloft_nedslag og aegtefaelle_nedsaettelse.
+    fordeling: dict[str, float] = field(default_factory=dict)
+
+
+def _trin(o: Regelopslag) -> list[tuple[float, float, float]]:
+    """Skattetrinnene (grænse, sats, skatteloft) i rækkefølge."""
+    return o.husk("skat.trin", lambda: [
+        (o.v(f"skat.{navn}.graense"), o.v(f"skat.{navn}.sats"), o.v(f"skat.skatteloft.{navn}"))
+        for navn in TRIN
+    ])
 
 
 def progressiv_skat(pi: float, kommuneskat: float, o: Regelopslag, ki_over: float = 0.0) -> tuple[float, float]:
@@ -53,10 +64,7 @@ def progressiv_skat(pi: float, kommuneskat: float, o: Regelopslag, ki_over: floa
     båndet, der ligger over den personlige indkomst. Kirkeskat indgår ikke i loftet.
     """
     bundskat = o.v("skat.bundskat")
-    trin = o.husk("skat.trin", lambda: [
-        (o.v(f"skat.{navn}.graense"), o.v(f"skat.{navn}.sats"), o.v(f"skat.skatteloft.{navn}"))
-        for navn in TRIN
-    ])
+    trin = _trin(o)
     loft_ki = o.v("skat.skatteloft.kapitalindkomst") if ki_over > 0 else None
     grundlag = pi + ki_over
     brutto = nedslag = 0.0
@@ -90,8 +98,19 @@ def _beregn(pi: float, ki: float, kommuneskat: float, kirkeskat: float, o: Regel
     ki_over = max(0.0, ki - o.v("skat.kapitalindkomst.bundfradrag") - ekstra_ki_bundfradrag) if ki > 0 else 0.0
     progressiv, nedslag = progressiv_skat(pi, kommuneskat, o, ki_over)
     total = max(0.0, flad - personfradrag - nedsaettelse + progressiv - nedslag)
+    # Fordelingen pr. type (020): hvert trin rammer grundlaget over trinnets grænse; summen er
+    # `progressiv`. Bund-, kommune- og kirkeskat efter personfradrag pr. grundlag.
+    trin_grundlag = pi + ki_over
+    fordeling = {
+        "bundskat": max(0.0, grundlag - pf) * bund_sats,
+        "kommuneskat": max(0.0, skattepligtig - pf) * kommuneskat,
+        "kirkeskat": max(0.0, skattepligtig - pf) * kirkeskat,
+        **{navn: sats * max(0.0, trin_grundlag - graense) for navn, (graense, sats, _) in zip(TRIN, _trin(o))},
+        "skatteloft_nedslag": nedslag,
+        "aegtefaelle_nedsaettelse": nedsaettelse,
+    }
     return Skatteberegning(pi, flad, personfradrag, progressiv, nedslag, total, kapitalindkomst=ki,
-                           uudnyttet_personfradrag=uudnyttet)
+                           uudnyttet_personfradrag=uudnyttet, fordeling=fordeling)
 
 
 def beregn_skat(pi: float, kommuneskat: float, kirkeskat: float, o: Regelopslag,
@@ -106,8 +125,7 @@ def beregn_skat(pi: float, kommuneskat: float, kirkeskat: float, o: Regelopslag,
     if ki == 0:
         return uden
     med = _beregn(pi, ki, kommuneskat, kirkeskat, o, overfoert_personfradrag, ekstra_ki_bundfradrag, lmf)
-    return Skatteberegning(med.personlig_indkomst, med.flad_skat, med.personfradrag_vaerdi, med.progressiv,
-                           med.loftnedslag, med.total, ki, med.total - uden.total, med.uudnyttet_personfradrag)
+    return replace(med, kapitalindkomst=ki, skat_kapitalindkomst=med.total - uden.total)
 
 
 def fordel(total: float, brutto_pr_kilde: dict[str, float]) -> dict[str, float]:

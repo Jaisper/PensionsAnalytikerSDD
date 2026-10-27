@@ -302,6 +302,11 @@
           <p class="hero__forklaring" id="hovedtal-forklaring"></p>
           <p class="hero__aendring" id="hovedtal-aendring" aria-live="polite"></p>
           <p class="hero__spaend" id="hovedtal-spaend"></p>
+          <details class="forklaring forklaring--lys" id="hovedtal-forklaring-boks">
+            <summary>Hvordan fremkommer tallet?</summary>
+            <div class="niveauvaelger" data-niveauvaelger="hovedtal"></div>
+            <div class="forklaring__tekst" id="hovedtal-forklaring-tekst"></div>
+          </details>
           <details class="forudsaetninger" id="hovedtal-forudsaetninger" hidden>
             <summary id="forudsaetninger-titel"></summary>
             <ul class="chips" id="hovedtal-advarsler"></ul>
@@ -360,6 +365,15 @@
             <ul class="forklaring-farver" id="farveforklaring"></ul>
             <p class="graf-forklaring" id="jaevn-forklaring" hidden></p>
             <ul class="markeringer" id="graf-markeringer"></ul>
+            <p class="felt__hjaelp">Klik på et år i grafen for at se, hvordan det er regnet.</p>
+            <section class="aar-forklaring" id="aar-forklaring" aria-labelledby="aar-forklaring-titel" hidden>
+              <div class="aar-forklaring__top">
+                <h3 id="aar-forklaring-titel" tabindex="-1"></h3>
+                <button type="button" class="knap knap--tekst" id="aar-forklaring-luk">Luk</button>
+              </div>
+              <div class="niveauvaelger" data-niveauvaelger="aar"></div>
+              <div class="forklaring__tekst" id="aar-forklaring-tekst"></div>
+            </section>
             <div class="optimering">
               <div class="optimering__top">
                 <button type="button" class="knap knap--sekundaer" id="optimer-knap">Find bedste plan</button>

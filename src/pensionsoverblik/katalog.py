@@ -57,6 +57,13 @@ KORT_FOR_KILDETYPE: dict[str, str] = {
     "loen": "loen",
 }
 
+# Navnet på den enkelte indkomst i forklaringen af et år (feature 020).
+KILDE_TITLER: dict[str, str] = {
+    "grundbeloeb": "Grundbeløb", "pensionstillaeg": "Pensionstillæg", "atp": "ATP",
+    "ratepension": "Ratepension", "livsvarig": "Livsvarig pension", "aeldrecheck": "Ældrecheck",
+    "mediecheck": "Mediecheck", "loen": "Løn",
+}
+
 # Korttyper, hvor det første år typisk kun er et delår (udbetaling fra måneden efter
 # fødselsdagen / checks kræver folkepension pr. 1. januar).
 DELAAR_FOERST = {"folkepension", "atp"}

@@ -137,6 +137,32 @@ class Indkomstkilde:
 
 
 @dataclass(frozen=True)
+class SkatDetaljer:
+    """Årets skat pr. type efter personfradrag (feature 020). Summen − skatteloftets nedslag −
+    ægtefællens nedsættelse er indkomstskatten (inkl. skat af kapitalindkomst)."""
+    bundskat: float = 0.0
+    kommuneskat: float = 0.0
+    kirkeskat: float = 0.0
+    mellemskat: float = 0.0
+    topskat: float = 0.0
+    toptopskat: float = 0.0
+    skatteloft_nedslag: float = 0.0
+    aegtefaelle_nedsaettelse: float = 0.0
+
+
+@dataclass(frozen=True)
+class Aarsdetaljer:
+    """Mellemresultater bag et år, så forklaringen ikke skal regne selv (feature 020, FR-003)."""
+    skat: SkatDetaljer
+    am_bidrag: float = 0.0
+    ligningsmaessige_fradrag: float = 0.0
+    pensionsindbetaling: float = 0.0            # fradraget i den personlige indkomst (017)
+    pensionstillaeg_foer_modregning: float = 0.0
+    formue_primo: float | None = None           # husstandens likvide formue pr. 1. januar (ældrecheck)
+    formuegraense: float | None = None
+
+
+@dataclass(frozen=True)
 class Aarsresultat:
     alder: int
     kalenderaar: int
@@ -154,6 +180,7 @@ class Aarsresultat:
     kapitalindkomst: float = 0.0        # bufferens afkast (nominelt), positiv nettokapitalindkomst (009)
     skat_kapitalindkomst: float = 0.0   # merskatten af kapitalindkomsten; betales af bufferen (009)
     uudnyttet_personfradrag: float = 0.0  # skatteværdi, en ægtefælle kan bruge (PSL § 10, stk. 3) (012)
+    detaljer: Aarsdetaljer | None = None  # feature 020
 
 
 @dataclass(frozen=True)

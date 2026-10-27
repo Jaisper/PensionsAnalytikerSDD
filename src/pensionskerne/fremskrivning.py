@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from datetime import date
 
 from .model import (
-    Engangsbeloeb, FormueAar, JaevnAar, JaevnUdbetaling,
+    Engangsbeloeb, FormueAar, JaevnAar, JaevnUdbetaling, Aarsdetaljer, SkatDetaljer,
     Aarsresultat, Advarsel, Antagelser, Fremskrivning, Indkomstkilde, Ordning,
     Partner, PartnerIndkomst, Pensionsprofil,
 )
@@ -348,10 +348,14 @@ def beregn(
                 _partner_indkomst(profil.partner, kalenderaar, o), partner_er_pensionist, o,
             )
             tp = 0
+            tillaeg_fuldt = 0.0
+            formue_primo = formuegraense = None
             if alder >= fp_start:
                 andel = foerste_andel if alder == fp_start else 1.0
                 brutto["grundbeloeb"] = ("grundbeloeb", o.v("fp.grundbeloeb") * vente * andel)
-                tillaeg = pensionstillaeg(grundlag, tillaegsregel(gift, partner_er_pensionist), o) * vente * andel
+                regel = tillaegsregel(gift, partner_er_pensionist)
+                tillaeg_fuldt = pensionstillaeg(0.0, regel, o) * vente * andel
+                tillaeg = pensionstillaeg(grundlag, regel, o) * vente * andel
                 if tillaeg > 0:
                     brutto["pensionstillaeg"] = ("pensionstillaeg", tillaeg)
                 # Egen løn indgår ikke i pensionstillægget (L 117), men over bundfradraget i den
@@ -359,7 +363,9 @@ def beregn(
                 arbejde = max(0.0, loen_aar - o.v("tp.arbejdsindkomst.bundfradrag")) if loen_aar > 0 else 0.0
                 tp = tillaegsprocent(grundlag + arbejde, gift, o)
                 if alder > fp_start:
-                    for navn, beloeb in (("aeldrecheck", aeldrecheck(tp, husstandens_formue(alder, kalenderaar, formue), o)),
+                    formue_primo = husstandens_formue(alder, kalenderaar, formue)
+                    formuegraense = o.v("yd.aeldrecheck.formuegraense")
+                    for navn, beloeb in (("aeldrecheck", aeldrecheck(tp, formue_primo, o)),
                                          ("mediecheck", mediecheck(tp, o))):
                         if beloeb > 0:
                             brutto[navn] = (navn, beloeb)
@@ -401,6 +407,11 @@ def beregn(
                 sporing=tuple(o.brugt), flag=tuple(o.flag),
                 kapitalindkomst=buffer_ki, skat_kapitalindkomst=skat.skat_kapitalindkomst,
                 uudnyttet_personfradrag=skat.uudnyttet_personfradrag,
+                detaljer=Aarsdetaljer(
+                    skat=SkatDetaljer(**skat.fordeling), am_bidrag=am, ligningsmaessige_fradrag=lmf,
+                    pensionsindbetaling=bidrag, pensionstillaeg_foer_modregning=tillaeg_fuldt,
+                    formue_primo=formue_primo, formuegraense=formuegraense,
+                ),
             ))
             samlet.overtag(o)
         return aar, mellemskat_aldre, atp_skoennet

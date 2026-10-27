@@ -13,6 +13,8 @@ from pensionsoverblik import app
 def kald(op, *args):
     if op == "kommuner":
         svar = app.kommuner()
+    elif op == "forklaringer":
+        svar = app.forklaringer()
     elif op == "beregn":
         svar = app.beregn(args[0], args[1])
     elif op == "stopalder":

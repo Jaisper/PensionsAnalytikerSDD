@@ -36,6 +36,13 @@ def _fejl(kode: str, besked: str, felt: str | None = None) -> dict:
     return {"ok": False, "fejl": {"kode": kode, "felt": felt, "besked": besked}}
 
 
+def forklaringer() -> dict:
+    """Forklaringskataloget (feature 020): ord og pladsholdere, aldrig borgerens tal."""
+    from .forklaring import katalog
+
+    return katalog()
+
+
 def kommuner() -> list[dict]:
     navne = register.kommunenavne(_satsaar())
     return sorted(({"noegle": k, "navn": v} for k, v in navne.items()), key=lambda k: k["navn"].casefold())
