@@ -80,6 +80,8 @@ def til_kerne(data: dict) -> tuple[Pensionsprofil, Antagelser]:
         folkepension_opsaettelse_aar=_heltal(a.get("folkepension_opsaettelse_aar"),
                                              "antagelser.folkepension_opsaettelse_aar", 0),
         plan_slut_alder=_heltal(a.get("plan_slut_alder"), "antagelser.plan_slut_alder"),
+        # 013b: rækkefølgen, opsparingen bruges i (grænseflade til en senere optimering).
+        traekraekkefoelge=tuple(a.get("traekraekkefoelge") or standard.traekraekkefoelge),
     )
     return profil, antagelser
 
@@ -121,12 +123,17 @@ def _loen(l: dict | None) -> Loen | None:
 
 
 def _opsparing(liste: list) -> tuple[Aktiv, ...]:
-    """Opsparing uden for pension (feature 013). Type og brug i planen har standardværdier."""
+    """Opsparing uden for pension (feature 013 og 013b). Type og brug i planen har standardværdier;
+    en tom gevinst på et depot giver antagelsens andel."""
     aktiver = []
     for i, a in enumerate(liste):
         id = str(a.get("id") or f"opsparing{i + 1}")
+        gevinst = a.get("urealiseret_gevinst")
         aktiver.append(Aktiv(id=id, saldo=_tal(a.get("saldo"), f"opsparing[{id}].saldo"),
-                             type=str(a.get("type") or "bank"), i_plan=bool(a.get("i_plan", True))))
+                             type=str(a.get("type") or "bank"), i_plan=bool(a.get("i_plan", True)),
+                             urealiseret_gevinst=None if gevinst in (None, "") else _tal(
+                                 gevinst, f"opsparing[{id}].urealiseret_gevinst"),
+                             aarligt_indskud=_tal(a.get("aarligt_indskud"), f"opsparing[{id}].aarligt_indskud")))
     return tuple(aktiver)
 
 

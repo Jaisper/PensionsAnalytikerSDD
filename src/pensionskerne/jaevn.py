@@ -4,7 +4,8 @@ Det faste beløb er det højeste forløb, der er konstant i dagens købekraft og
 kommer flere penge — uden nogensinde at låne (feature 010). Bufferen er opsparing uden for
 pension (engangsbeløb og det, der spares op i år med høje udbetalinger). Den forrentes med
 afkastet før skat; skatten af afkastet (kapitalindkomst, feature 009) regnes i år-for-år-
-beregningen og trækkes fra årets nettoudbetaling her.
+beregningen og trækkes fra årets nettoudbetaling her, sammen med skatten af aktieindkomst og
+aktiesparekonto og løbende indskud på den (`Aarsresultat.disponibel`, 013b).
 
 Algoritmen er forbrugsudjævning med likviditetsbegrænsning, segment for segment: fra år i med
 buffer B er niveauet
@@ -26,9 +27,11 @@ import math
 from .model import Aarsresultat, JaevnAar, JaevnUdbetaling
 
 # Bufferens fastpunkt (feature 009) — modelparametre, ikke lovsatser: stop, når den jævne
-# udbetaling ændrer sig mindre end 1 kr. om måneden, og giv op (med advarsel) efter 8 iterationer.
+# udbetaling ændrer sig mindre end 1 kr. om måneden, og giv op (med advarsel) efter 12 iterationer.
+# Ved ældrechecks formuegrænse flytter det sidste år over grænsen sig ét år pr. iteration; med
+# depot og aktiesparekonto (013b) kan det tage op til ca. 10 (loftet var 8 før 013b).
 BUFFER_TOLERANCE_KR = 1.0  # pr. måned
-BUFFER_MAKS_ITERATIONER = 8
+BUFFER_MAKS_ITERATIONER = 12
 
 
 def beregn_jaevn(
@@ -43,7 +46,7 @@ def beregn_jaevn(
     vaekst = 1 + inflation
     diskont = 1 / (1 + rente)
     n = len(raekker)
-    normal = [r.netto_i_alt - r.skat_kapitalindkomst for r in raekker]
+    normal = [r.disponibel for r in raekker]
     indbetaling = [normal[t] + engangs_i_buffer.get(r.alder, 0.0) for t, r in enumerate(raekker)]
 
     niveau = [0.0] * n

@@ -23,6 +23,8 @@ def kald(op, *args):
         svar = app.beregn(args[0], args[1])
     elif op == "stopalder":
         svar = app.stopalder(args[0], args[1], args[2])
+    elif op == "naeste_krone":
+        svar = app.naeste_krone(args[0], args[1], args[2])
     elif op == "scenarier":
         svar = app.scenarier(args[0])
     elif op == "scenarie":

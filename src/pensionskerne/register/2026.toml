@@ -172,6 +172,45 @@ enhed = "brok"
 kilde = "Personskatteloven § 19, stk. 2: skatteloft for positiv nettokapitalindkomst 42,0 % (2026). Skatteministeriets satsoversigt for personskatteloven (svmn.dk)"
 status = "verificeret"
 
+# ── Aktieindkomst og aktiesparekonto (feature 013b) ─────────────────────────
+
+[[post]]
+id = "skat.aktieindkomst.sats_lav"
+vaerdi = 0.27
+enhed = "brok"
+kilde = "Personskatteloven § 8 a, stk. 1: aktieindkomst beskattes med 27 % op til progressionsgrænsen. Skatteministeriets satsoversigt 2026"
+status = "verificeret"
+
+[[post]]
+id = "skat.aktieindkomst.sats_hoej"
+vaerdi = 0.42
+enhed = "brok"
+kilde = "Personskatteloven § 8 a, stk. 2: aktieindkomst over progressionsgrænsen beskattes med 42 %. Skatteministeriets satsoversigt 2026"
+status = "verificeret"
+
+[[post]]
+id = "skat.aktieindkomst.progressionsgraense"
+vaerdi = 79400
+enhed = "kr_aar"
+kilde = "Personskatteloven § 8 a, stk. 1, og § 4 a (grundbeløb reguleret efter § 20): 79.400 kr. (2026). For gifte forhøjes grænsen med ægtefællens uudnyttede grænse (§ 8 a, stk. 4; Den juridiske vejledning C.A.8.2). Skatteministeriets satsoversigt 2026"
+status = "verificeret"
+reguleres = true
+
+[[post]]
+id = "ask.sats"
+vaerdi = 0.17
+enhed = "brok"
+kilde = "Aktiesparekontoloven: afkastet lagerbeskattes med 17 %, som afregnes af banken. skat.dk (aktiesparekonto)"
+status = "verificeret"
+
+[[post]]
+id = "ask.indskudsloft"
+vaerdi = 174200
+enhed = "kr_aar"
+kilde = "Aktiesparekontoloven: de samlede indskud pr. person må højst være 174.200 kr. (2026), reguleres årligt. skat.dk (aktiesparekonto)"
+status = "verificeret"
+reguleres = true
+
 [[post]]
 id = "pal.sats"
 vaerdi = 0.153

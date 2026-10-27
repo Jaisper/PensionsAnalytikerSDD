@@ -16,7 +16,7 @@ from pensionskerne import UgyldigtInput, beregn as kerne_beregn, register
 from .oversaet import til_husstand, til_kerne
 from .pdfimport.aflaeser import AflaesningFejl, vaelg_aflaeser
 from .pdfimport.omsaet import til_guide
-from .visning import byg_visning, graenser
+from .visning import MAANEDER, byg_visning, graenser
 
 MAKS_PDF_BYTES = 25 * 1024 * 1024
 # Den lokale parser (Princip XI). Oprettes først ved første PDF, så beregningen kan starte uden
@@ -65,7 +65,9 @@ CSV_KOLONNER = (  # (overskrift, nøgle i visningens år) — år for år, belø
     ("Skat", "skat"), ("Efter skat", "netto"), ("Efter skat i dagens kroner", "netto_real"),
     ("Indtægtsgrundlag", "indtaegtsgrundlag"), ("Tillægsprocent", "tillaegsprocent"),
     ("Engangsbeløb", "engangsbeloeb"), ("Kapitalindkomst", "kapitalindkomst"),
-    ("Skat af kapitalindkomst", "skat_kapitalindkomst"),
+    ("Skat af kapitalindkomst", "skat_kapitalindkomst"), ("Aktieindkomst", "aktieindkomst"),
+    ("Skat af aktieindkomst", "skat_aktieindkomst"), ("Skat af aktiesparekonto", "skat_aktiesparekonto"),
+    ("Indskud på aktiesparekonto", "indskud_opsparing"),
 )
 
 
@@ -236,6 +238,124 @@ def stopalder(guide_json: str, idag: str, maaned: float) -> dict:
     bedste = max(resultater, key=lambda x: (x["maaned"], -x["alder"]))
     return _ok({"kunne": tidligste is not None, **(tidligste or {"alder": None, "maaned": None}),
                 "bedste": bedste, "fra": fra, "til": til, "afproevet": len(resultater), "alle": resultater})
+
+
+# "Hvor skal næste krone hen?" (feature 021): én ekstra årlig indbetaling fra lønnen frem til
+# stopalderen, afprøvet pr. alternativ med en fuld beregning. Ratepensionen får beløbet før skat; de
+# andre får det, ratepensionen koster efter skat, så lønnen efter skat falder lige meget.
+NAESTE_KRONE = (  # nøgle, titel
+    ("ratepension", "Ratepension"),
+    ("aldersopsparing", "Aldersopsparing"),
+    ("ask", "Aktiesparekonto"),
+    ("bank", "Opsparing i banken"),
+)
+NAESTE_KRONE_LOFT = {"ratepension": "RATEPENSION_LOFT", "aldersopsparing": "ALDERSOPSPARING_OVER_LOFT",
+                     "ask": "ASK_OVER_LOFT"}
+YDELSER = ("pensionstillaeg", "aeldrecheck", "mediecheck")
+
+
+def _koder(v) -> set[str]:
+    """Alle advarselskoder i en visning (hovedtal, generelle, kort og graf)."""
+    if isinstance(v, dict):
+        return ({v["kode"]} if isinstance(v.get("kode"), str) else set()).union(*(_koder(x) for x in v.values()))
+    if isinstance(v, list):
+        return set().union(*(_koder(x) for x in v))
+    return set()
+
+
+def _fast_beloeb(v: dict) -> float:
+    """Det faste beløb pr. måned i dagens kroner i gennemsnit fra hovedtallets første år (021).
+    Hovedtallet er det laveste niveau; udjævningen låner aldrig, så penge, der først kommer ved
+    folkepensionsalderen, kan ikke løfte de tidlige år. Gennemsnittet tæller alle pengene med."""
+    fra = v["hovedtal"]["fra_alder"]
+    vaerdier = [a["jaevn"] * a["realfaktor"] / MAANEDER for a in v["aar"] if a["alder"] >= fra and a["jaevn"] is not None]
+    return sum(vaerdier) / len(vaerdier) if vaerdier else v["hovedtal"]["maaned"]
+
+
+def naeste_krone(guide_json: str, idag: str, beloeb: float) -> dict:
+    from pensionskerne.register.opslag import Regelopslag
+    from pensionskerne.regler.folkepension import folkepensionsalder
+
+    try:
+        data, dato = _data(guide_json, idag)
+        profil, _ = til_kerne(data)
+        if profil.loen is None or profil.loen.aarlig <= 0:
+            raise UgyldigtInput("loen.aarlig", "Skriv din løn, så vi kan sammenligne, hvor næste krone gør mest gavn")
+        if not beloeb or beloeb <= 0:
+            raise UgyldigtInput("naeste_krone.beloeb", "Skriv et beløb om året")
+        fp = folkepensionsalder(profil.foedselsdato, Regelopslag(_satsaar(), dato.year, 0.0))
+        stop = profil.loen.stop_alder or fp
+
+        def regn(d: dict) -> dict:
+            r = beregn(json.dumps(d), idag)
+            if not r["ok"]:
+                raise UgyldigtInput(r["fejl"].get("felt"), r["fejl"]["besked"])
+            return r["data"]
+
+        def maal(v: dict) -> float:
+            return _fast_beloeb(v) + (_fast_beloeb(v["husstand"]["partner"]) if v.get("husstand") else 0.0)
+
+        def ordning(type_: str, indbetaling: float) -> dict:
+            return {"id": f"naeste-krone-{type_}", "type": type_, "saldo": 0, "udbetaling_start_alder": fp,
+                    "oprettet": dato.isoformat(), "aarlig_indbetaling": indbetaling,
+                    "udbetaling_aar": 10 if type_ == "ratepension" else None}
+
+        def med_ordning(type_: str, indbetaling: float) -> dict:
+            return {**data, "ordninger": list(data.get("ordninger") or []) + [ordning(type_, indbetaling)]}
+
+        def med_indskud(type_: str, indskud: float) -> dict:
+            aktiv = {"id": f"naeste-krone-{type_}", "type": type_, "saldo": 0, "i_plan": True, "aarligt_indskud": indskud}
+            person = data["person"]
+            return {**data, "person": {**person, "opsparing": list(person.get("opsparing") or []) + [aktiv]}}
+
+        base = regn(data)
+        rate = regn(med_ordning("ratepension", beloeb))
+        # Prisen: faldet i nettoindkomsten i arbejdsårene, i dagens kroner (gennemsnit).
+        arbejde = [(b, r) for b, r in zip(base["aar"], rate["aar"]) if b["alder"] < stop]
+        pris = sum((b["netto"] - r["netto"]) * b["realfaktor"] for b, r in arbejde) / len(arbejde) if arbejde else beloeb
+        visninger = {"ratepension": rate, "aldersopsparing": regn(med_ordning("aldersopsparing", pris)),
+                     "ask": regn(med_indskud("ask", pris)), "bank": regn(med_indskud("bank", pris))}
+    except UgyldigtInput as e:
+        return _fejl("ugyldigt_input", e.besked, e.felt)
+
+    def senere(v: dict) -> tuple[float, float]:
+        """Mer-skat og tabte ydelser fra stopalderen i forhold til i dag, pr. måned i dagens kroner."""
+        par = [(b, a) for b, a in zip(base["aar"], v["aar"]) if b["alder"] >= stop]
+        if not par:
+            return 0.0, 0.0
+
+        def skat(a):
+            return a["skat"] + a["skat_kapitalindkomst"] + a["skat_aktieindkomst"] + a["skat_aktiesparekonto"]
+
+        def ydelser(a):
+            return sum(k["brutto"] for k in a["kilder"] if k["type"] in YDELSER)
+
+        n = len(par) * MAANEDER
+        return (sum((skat(a) - skat(b)) * b["realfaktor"] for b, a in par) / n,
+                sum((ydelser(b) - ydelser(a)) * b["realfaktor"] for b, a in par) / n)
+
+    i_dag = maal(base)
+    koder_i_dag = _koder(base)
+    alternativer = []
+    for noegle, titel in NAESTE_KRONE:
+        v = visninger[noegle]
+        skat_senere, modregning = senere(v)
+        loft = NAESTE_KRONE_LOFT.get(noegle)
+        alternativer.append({
+            "noegle": noegle, "titel": titel, "maaned": round(maal(v)), "forskel": round(maal(v) - i_dag),
+            "fradrag_nu_aar": round(beloeb - pris) if noegle == "ratepension" else 0,
+            "skat_senere_maaned": round(skat_senere), "modregning_senere_maaned": round(modregning),
+            "loft_naaet": bool(loft and loft in _koder(v) and loft not in koder_i_dag),
+        })
+    alternativer.sort(key=lambda a: -a["maaned"])
+    rate_alt = next(a for a in alternativer if a["noegle"] == "ratepension")
+    alders_alt = next(a for a in alternativer if a["noegle"] == "aldersopsparing")
+    faelde = ({"fradrag_aar": rate_alt["fradrag_nu_aar"], "modregning_maaned": rate_alt["modregning_senere_maaned"],
+               "forskel_maaned": alders_alt["maaned"] - rate_alt["maaned"]}
+              if alders_alt["maaned"] > rate_alt["maaned"] and rate_alt["modregning_senere_maaned"] > 0 else None)
+    return _ok({"beloeb": beloeb, "pris": round(pris), "i_dag": round(i_dag), "alternativer": alternativer,
+                "faelde": faelde, "stop_alder": stop, "start_alder": fp, "afproevet": len(alternativer),
+                "par": bool(base.get("husstand")), "kommer": "Afdrag på lån kommer med bolig og lån."})
 
 
 # Usikkerhed (feature 018): afkast og inflation afprøves hver for sig og sammen omkring borgerens

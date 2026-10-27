@@ -438,10 +438,19 @@ function loenSvar(pre = "") {
   };
 }
 
-/* Opsparing uden for pension (feature 013): ét bankaktiv pr. person. */
+/* Opsparing uden for pension (feature 013 og 013b): bank, frit depot og aktiesparekonto pr. person. */
 function opsparingSvar(pre = "") {
-  const saldo = beloeb($(`#${pre}bank`).value);
-  return saldo ? [{ id: `${pre}bank`, type: "bank", saldo, i_plan: $(`#${pre}bank-i-plan`).checked }] : [];
+  const svar = [];
+  const iPlan = (type) => $(`#${pre}${type}-i-plan`).checked;
+  const bank = beloeb($(`#${pre}bank`).value);
+  if (bank) svar.push({ id: `${pre}bank`, type: "bank", saldo: bank, i_plan: iPlan("bank") });
+  const depot = beloeb($(`#${pre}depot`).value);
+  if (depot) svar.push({ id: `${pre}depot`, type: "depot", saldo: depot, i_plan: iPlan("depot"),
+    urealiseret_gevinst: beloeb($(`#${pre}depot-gevinst`).value) });
+  const ask = beloeb($(`#${pre}ask`).value);
+  const indskud = pre ? null : beloeb($("#ask-indskud").value);
+  if (ask || indskud) svar.push({ id: `${pre}ask`, type: "ask", saldo: ask || 0, i_plan: iPlan("ask"), aarligt_indskud: indskud || 0 });
+  return svar;
 }
 
 function guideSvar() {
@@ -621,7 +630,7 @@ function tegnGraf(v) {
   const hoved = el("tr", {}, el("th", { scope: "col", tekst: "Alder" }), ...serier.map((s) => el("th", { scope: "col", tekst: s.titel })),
     el("th", { scope: "col", tekst: "I alt" }), jaevn ? el("th", { scope: "col", tekst: JAEVN_NAVN }) : null,
     el("th", { scope: "col", tekst: "Engangsbeløb" }), v.graf.buffer ? el("th", { scope: "col", tekst: "Buffer" }) : null,
-    v.graf.skat_buffer ? el("th", { scope: "col", tekst: "Skat af buffer pr. md." }) : null);
+    v.graf.skat_buffer ? el("th", { scope: "col", tekst: "Skat af opsparing pr. md." }) : null);
   const engangsPrAlder = new Map();
   for (const e of v.graf.engangs) engangsPrAlder.set(e.alder, (engangsPrAlder.get(e.alder) || 0) + e.netto_real);
   const raekker = v.graf.aldre.map((alder, i) => el("tr", {}, el("th", { scope: "row", tekst: `${alder} år` }),
@@ -1312,6 +1321,9 @@ function tegnAar(alder) {
           : check ? `Din tillægsprocent er ${a.tillaegsprocent} %, og du får ældrecheck.` : `Din tillægsprocent er ${a.tillaegsprocent} %, så du får ingen ældrecheck.`));
     }
     if (a.skat_kapitalindkomst > 0) linjer.push(`Afkastet af din opsparing er ${aar(a.kapitalindkomst)}. Skatten af det, ${aar(a.skat_kapitalindkomst)}, betales af opsparingen.`);
+    if (a.aktieindkomst > 0) linjer.push(`Du sælger aktier med en gevinst på ${aar(a.aktieindkomst)}. Skatten af gevinsten er ${aar(a.skat_aktieindkomst)}.`);
+    if (a.skat_aktiesparekonto > 0) linjer.push(`Skat af afkastet på aktiesparekontoen: ${aar(a.skat_aktiesparekonto)}.`);
+    if (a.indskud_opsparing > 0) linjer.push(`Du indskyder ${aar(a.indskud_opsparing)} på aktiesparekontoen.`);
     indhold.push(...afsnit(...linjer));
   }
   if (n === "niveau3" && d) {
@@ -1322,7 +1334,9 @@ function tegnAar(alder) {
       ["Nedsættelse fra ægtefælle", -s.aegtefaelle_nedsaettelse], ["AM-bidrag", d.am_bidrag]].filter(([, x]) => Math.abs(x) >= 0.5);
     indhold.push(tabel("Årets skat pr. type", ["Skattetype", "Beløb"], [
       ...typer.map(([t, x]) => [t, aar(x)]),
-      ["I alt (inkl. skat af kapitalindkomst)", aar(a.skat + a.skat_kapitalindkomst)],
+      ...[["Skat af aktieindkomst", a.skat_aktieindkomst], ["Skat af aktiesparekonto", a.skat_aktiesparekonto]]
+        .filter(([, x]) => x >= 0.5).map(([t, x]) => [t, aar(x)]),
+      ["I alt (inkl. skat af opsparing)", aar(a.skat + a.skat_kapitalindkomst + a.skat_aktieindkomst + a.skat_aktiesparekonto)],
     ]));
     indhold.push(...afsnit(
       d.ligningsmaessige_fradrag > 0 ? `Ligningsmæssige fradrag (kun kommune- og kirkeskat): ${aar(d.ligningsmaessige_fradrag)}.` : "",
@@ -1361,6 +1375,50 @@ async function findStopalder() {
         ? `Du kan stoppe som ${d.alder}-årig og få ca. ${kr(d.maaned)} kr. om måneden.`
         : `Det når du ikke før folkepensionen. Mest får du ved at stoppe som ${d.bedste.alder}-årig: ca. ${kr(d.bedste.maaned)} kr. om måneden.` }),
       omfang, brug);
+  } catch {
+    svar.replaceChildren(el("p", { tekst: "Det kunne ikke regnes lige nu. Prøv igen." }));
+  } finally {
+    knap.disabled = false;
+  }
+}
+
+/* ── "Hvor skal næste krone hen?" (feature 021) ─────────────────────────── */
+async function sammenlignNaesteKrone() {
+  const svar = $("#naeste-svar");
+  const beloebAar = beloeb($("#naeste-beloeb").value);
+  if (!tilstand.aktuelleSvar.person.loen?.aarlig) {
+    svar.replaceChildren(el("p", { tekst: "Skriv din løn under \"Dine oplysninger\", så kan vi sammenligne, hvor næste krone gør mest gavn." }));
+    return;
+  }
+  if (!beloebAar) { svar.replaceChildren(el("p", { tekst: "Skriv et beløb om året." })); return; }
+  const knap = $("#naeste-knap");
+  knap.disabled = true;
+  svar.replaceChildren(el("p", { tekst: "Vi regner hvert alternativ igennem …" }));
+  try {
+    const r = await kald("naeste_krone", JSON.stringify(tilstand.aktuelleSvar), idag(), beloebAar);
+    if (!r.ok) { svar.replaceChildren(el("p", { tekst: r.fejl.besked })); return; }
+    const d = r.data;
+    const raekker = d.alternativer.map((a) => [
+      a.titel + (a.loft_naaet ? " (loftet er nået)" : ""),
+      `${kr(a.maaned)} kr.`, `${kr(a.forskel)} kr.`,
+      a.fradrag_nu_aar ? `${kr(a.fradrag_nu_aar)} kr.` : "–",
+      a.skat_senere_maaned || a.modregning_senere_maaned ? `${kr(a.skat_senere_maaned + a.modregning_senere_maaned)} kr.` : "–",
+    ]);
+    const bedst = d.alternativer[0];
+    const indhold = [
+      el("p", { class: "forslag__resultat", tekst: `Mest giver ${bedst.titel.toLowerCase()}: ca. ${kr(bedst.forskel)} kr. mere om måneden${d.par ? " for jer begge" : ""}.` }),
+      tabel("Hvor skal næste krone hen", ["Hvor", "Fast beløb pr. md.", "Mere end i dag", "Skattefordel nu pr. år", "Skat og mindre tillæg senere pr. md."], raekker),
+    ];
+    if (d.faelde) {
+      indhold.push(el("p", { tekst: `Ratepensionsfælden: Ratepensionen giver dig ${kr(d.faelde.fradrag_aar)} kr. i skattefordel om året nu. `
+        + `Senere giver den ${kr(d.faelde.modregning_maaned)} kr. mindre om måneden i pensionstillæg og ældrecheck, og udbetalingen beskattes. `
+        + `Derfor giver aldersopsparing ${kr(d.faelde.forskel_maaned)} kr. mere om måneden.` }));
+    }
+    indhold.push(el("p", { class: "felt__hjaelp", tekst: `Vi har afprøvet ${d.afproevet} måder at bruge ${kr(d.beloeb)} kr. om året før skat fra i dag til ${d.stop_alder} år. `
+      + `Ratepensionen får hele beløbet og giver fradrag. De andre får det, ratepensionen koster efter skat: ${kr(d.pris)} kr. om året. `
+      + `Så er din løn efter skat den samme i alle tilfælde. Det faste beløb er et gennemsnit fra ${d.stop_alder} år i dagens kroner. `
+      + `Alle typer har samme afkast, selv om aktier i virkeligheden svinger mere. Det er et regnestykke, ikke et råd. ${d.kommer}` }));
+    svar.replaceChildren(...indhold);
   } catch {
     svar.replaceChildren(el("p", { tekst: "Det kunne ikke regnes lige nu. Prøv igen." }));
   } finally {
@@ -2092,6 +2150,7 @@ function forbind() {
   }
   $("#opdater").addEventListener("click", opdaterFraPanel);
   $("#stop-knap").addEventListener("click", findStopalder);
+  $("#naeste-knap").addEventListener("click", sammenlignNaesteKrone);
   $("#aar-forklaring-luk").addEventListener("click", () => { $("#aar-forklaring").hidden = true; $("#graf").focus?.(); });
   hentForklaringer();
   $("#metode-link").addEventListener("click", (e) => { e.preventDefault(); visMetode(); });

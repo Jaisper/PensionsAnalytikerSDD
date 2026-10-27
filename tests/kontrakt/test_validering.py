@@ -76,5 +76,11 @@ def test_partner_foedt_foer_1955():
 def test_opsparing_valideres():  # feature 013
     from pensionskerne import Aktiv
     assert fejlfelt(enlig_profil(opsparing=(Aktiv("b", -1),))) == "opsparing[b].saldo"
-    assert fejlfelt(enlig_profil(opsparing=(Aktiv("b", 1, type="depot"),))) == "opsparing[b].type"
+    assert fejlfelt(enlig_profil(opsparing=(Aktiv("b", 1, type="aktier"),))) == "opsparing[b].type"
+    # 013b: gevinst kun på depot og højst værdien; løbende indskud kun på ASK og kun med løn.
+    assert fejlfelt(enlig_profil(opsparing=(Aktiv("b", 1, urealiseret_gevinst=1),))) == "opsparing[b].urealiseret_gevinst"
+    assert fejlfelt(enlig_profil(opsparing=(Aktiv("d", 1, type="depot", urealiseret_gevinst=2),))) \
+        == "opsparing[d].urealiseret_gevinst"
+    assert fejlfelt(enlig_profil(opsparing=(Aktiv("a", 1, type="ask", aarligt_indskud=1000),))) \
+        == "opsparing[a].aarligt_indskud"  # kræver løn
     assert fejlfelt(enlig_profil(opsparing=(Aktiv("b", 1), Aktiv("b", 2)))) == "opsparing[b]"

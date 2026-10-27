@@ -14,11 +14,12 @@ from dataclasses import dataclass, field
 from datetime import date
 
 from .model import (
-    Engangsbeloeb, FormueAar, JaevnAar, JaevnUdbetaling, Aarsdetaljer, SkatDetaljer,
+    AKTIVLAG, Engangsbeloeb, FormueAar, JaevnAar, JaevnUdbetaling, Aarsdetaljer, SkatDetaljer,
     Aarsresultat, Advarsel, Antagelser, Fremskrivning, Indkomstkilde, Ordning,
     Partner, PartnerIndkomst, Pensionsprofil,
 )
 from .register.opslag import Regelopslag
+from .regler.aktier import aktieindkomst_skat, ask_skat
 from .regler.loen import ligningsmaessige_fradrag
 from .regler.folkepension import (
     folkepensionsalder, foerste_aar_andel, indtaegtsgrundlag, pensionstillaeg, tillaegsregel,
@@ -69,6 +70,64 @@ def _partner_indkomst(partner: Partner | None, kalenderaar: int, o: Regelopslag)
         return pr_aar[kalenderaar]
     o.marker("forenkling:partnerindkomst_naermeste_aar")
     return pr_aar[max(pr_aar) if kalenderaar > max(pr_aar) else min(pr_aar)]
+
+
+@dataclass
+class _Lag:
+    """Opsparing uden for pension fordelt på skattekasser (013b): bank (kapitalindkomst), frit depot
+    (værdi og anskaffelsessum; gevinsten er aktieindkomst ved salg) og aktiesparekonto (lager)."""
+    bank: float = 0.0
+    depot: float = 0.0
+    anskaffelse: float = 0.0
+    ask: float = 0.0
+
+    @property
+    def total(self) -> float:
+        return self.bank + self.depot + self.ask
+
+    def indsaet(self, type_: str, beloeb: float, anskaffelse: float | None = None) -> None:
+        if type_ == "depot":
+            self.depot += beloeb
+            self.anskaffelse += beloeb if anskaffelse is None else anskaffelse
+        else:
+            setattr(self, type_, getattr(self, type_) + beloeb)
+
+    def tilfoej(self, andet: "_Lag") -> None:
+        self.bank += andet.bank
+        self.depot += andet.depot
+        self.anskaffelse += andet.anskaffelse
+        self.ask += andet.ask
+
+    def traek(self, beloeb: float, raekkefoelge: tuple[str, ...]) -> float:
+        """Træk i rækkefølgen; returnerer den realiserede gevinst fra depotet (forholdsmæssigt)."""
+        gevinst = 0.0
+        for type_ in raekkefoelge:
+            if beloeb <= 0:
+                break
+            tag = min(beloeb, getattr(self, type_))
+            if tag <= 0:
+                continue
+            if type_ == "depot":
+                andel = tag / self.depot
+                gevinst += tag - self.anskaffelse * andel
+                self.anskaffelse -= self.anskaffelse * andel
+            setattr(self, type_, getattr(self, type_) - tag)
+            beloeb -= tag
+        return max(0.0, gevinst)
+
+    def vaekst(self, bank: float, depot: float, ask: float) -> None:
+        self.bank *= bank
+        self.depot *= depot
+        self.ask *= ask
+
+
+@dataclass(frozen=True)
+class _Opsparingsskat:
+    """Bufferens bidrag til skat og formue pr. alder (fastpunktets tilstand, 009 og 013b)."""
+    ki: dict[int, float] = field(default_factory=dict)              # bankens afkast (kapitalindkomst)
+    formue: dict[int, float] = field(default_factory=dict)          # pr. 1. januar
+    aktieindkomst: dict[int, float] = field(default_factory=dict)   # realiseret gevinst fra depotet
+    ask_afkast: dict[int, float] = field(default_factory=dict)      # aktiesparekontoens afkast
 
 
 def beregn(
@@ -123,6 +182,8 @@ def beregn(
     overskud_start = max((start[i] for i in rate_ids), default=alder_nu)
     overskud_saldo = 0.0
     foerste_overskud: tuple[int, float] | None = None
+    aldersopsparing_indskud: dict[int, float] = {}  # betales af lønnen; trækkes fra rådighedsbeløbet (021)
+    aldersopsparing_over_loft: int | None = None
 
     for alder in range(alder_nu, max(start.values(), default=alder_nu)):
         o = opslag(alder)
@@ -138,7 +199,12 @@ def beregn(
             beloeb = ordning.aarlig_indbetaling * o.reguleringsfaktor * (
                 1 + o.antagelse("loenvaekst", antagelser.loenvaekst)) ** aar_frem
             if ordning.type == "aldersopsparing":
-                beloeb = min(beloeb, indbetalingsloft(ordning.type, alder, fp_alder, o))
+                loft = indbetalingsloft(ordning.type, alder, fp_alder, o)
+                if beloeb > loft:
+                    aldersopsparing_over_loft = alder if aldersopsparing_over_loft is None else aldersopsparing_over_loft
+                beloeb = min(beloeb, loft)
+                if har_loen:  # betales af beskattet løn (021)
+                    aldersopsparing_indskud[alder] = aldersopsparing_indskud.get(alder, 0.0) + beloeb
             indbetaling[ordning.id] = beloeb
 
         fradragsberettiget[alder] = sum(b for i, b in indbetaling.items()
@@ -238,19 +304,97 @@ def beregn(
 
     aarets_opslag: dict[int, Regelopslag] = {}  # genbruges på tværs af bufferens iterationer
 
-    # ── 3a. Opsparing uden for pension (feature 013) ─────────────────────────
-    # Banken forrentes som bufferen (pensionens afkast før PAL-skat). Før første udbetalingsår vokser
-    # den brutto: skatten af afkastet betales af lønnen, som kernen ikke kender (forenkling). Aktiver
-    # i planen indsættes i bufferen primo første udbetalingsår; urørte aktiver vokser videre, og
-    # deres afkast er kapitalindkomst, hvis skat betales af den løbende udbetaling (som bufferens).
+    # ── 3a. Opsparing uden for pension (feature 013 og 013b) ─────────────────
+    # Al opsparing forrentes som bufferen (pensionens afkast før PAL-skat); skatten afhænger af
+    # typen. Bankens afkast er kapitalindkomst, depotets er kursgevinst, der beskattes som
+    # aktieindkomst ved salg (PSL § 8 a), og aktiesparekontoens lagerbeskattes. Før første
+    # udbetalingsår vokser banken brutto (skatten betales af lønnen, som kernen ikke kender:
+    # forenkling), depotet uden skat (der sælges ikke) og aktiesparekontoen efter lagerskat (banken
+    # trækker den på kontoen). Opsparing i planen indsættes i bufferen primo første udbetalingsår i
+    # sit eget lag; urørt opsparing vokser videre, og skatten af dens afkast betales af udbetalingen.
     rente_buffer = afkast / (1 - samlet.v("pal.sats"))
     samlet.antagelse("buffer_afkast_som_pension", rente_buffer)
-    i_plan_start = sum(a.saldo for a in profil.opsparing if a.i_plan)
-    uroert_start = sum(a.saldo for a in profil.opsparing if not a.i_plan)
-    i_plan_indskud = i_plan_start * (1 + rente_buffer) ** (tabel_start - alder_nu)
-    uroert_primo = {alder: uroert_start * (1 + rente_buffer) ** (alder - alder_nu)
-                    for alder in range(alder_nu, tabel_slut + 1)} if uroert_start > 0 else {}
-    uroert_ki = {alder: saldo * rente_buffer for alder, saldo in uroert_primo.items() if alder >= tabel_start}
+    ask_sats = samlet.v("ask.sats") if any(a.type == "ask" for a in profil.opsparing) else 0.0
+    vaekst_foer = (1 + rente_buffer, 1 + rente_buffer, 1 + rente_buffer * (1 - ask_sats))
+    vaekst_efter = (1 + rente_buffer,) * len(AKTIVLAG)
+
+    def lag_i_dag(i_plan: bool) -> _Lag:
+        lag = _Lag()
+        for a in profil.opsparing:
+            if a.i_plan != i_plan or a.saldo <= 0:
+                continue
+            if a.type == "depot":
+                gevinst = a.urealiseret_gevinst
+                if gevinst is None:
+                    gevinst = a.saldo * samlet.antagelse("depot_urealiseret_andel", antagelser.depot_urealiseret_andel)
+                lag.indsaet("depot", a.saldo, a.saldo - min(max(0.0, gevinst), a.saldo))
+            else:
+                lag.indsaet(a.type, a.saldo)
+        return lag
+
+    # Løbende indskud på opsparing, mens der er løn (013b, 021): bank og frit depot uden loft,
+    # aktiesparekontoen op til loftet. De hidtidige ASK-indskud regnes lig saldoen (forenkling);
+    # indskud over loftet står i frit depot. Indskuddene betales af beskattet løn, ligesom
+    # aldersopsparingens indbetaling (afsnit 1).
+    indskud_plan: dict[int, _Lag] = {}
+    indskud_uroert: dict[int, _Lag] = {}
+    indskud_i_alt: dict[int, float] = dict(aldersopsparing_indskud)
+    ask_over_loft: int | None = None
+    med_indskud = [a for a in profil.opsparing if a.aarligt_indskud > 0] if har_loen else []
+    ask_med_indskud = [a for a in med_indskud if a.type == "ask"]
+    if med_indskud:
+        indskudt = sum(a.saldo for a in profil.opsparing if a.type == "ask")
+        for alder in range(alder_nu, stop):
+            o = opslag(alder)
+            plads = max(0.0, o.v("ask.indskudsloft") - indskudt) if ask_med_indskud else 0.0
+            for a in med_indskud:
+                beloeb = a.aarligt_indskud * o.reguleringsfaktor
+                maal = (indskud_plan if a.i_plan else indskud_uroert).setdefault(alder, _Lag())
+                if a.type == "ask":
+                    til_ask = min(beloeb, plads)
+                    plads -= til_ask
+                    indskudt += til_ask
+                    maal.indsaet("ask", til_ask)
+                    if beloeb > til_ask:
+                        maal.indsaet("depot", beloeb - til_ask)
+                        ask_over_loft = alder if ask_over_loft is None else ask_over_loft
+                else:
+                    maal.indsaet(a.type, beloeb)
+                indskud_i_alt[alder] = indskud_i_alt.get(alder, 0.0) + beloeb
+            samlet.overtag(o)
+    har_depot = any(a.type == "depot" for a in profil.opsparing) or ask_over_loft is not None
+    bank_foer_udbetaling = tabel_start > alder_nu and any(a.type == "bank" and a.saldo > 0 for a in profil.opsparing)
+
+    # Opsparingen i planen frem til første udbetalingsår (ultimo hvert år).
+    plan_lag = lag_i_dag(True)
+    i_plan_start = plan_lag.total
+    plan_foer_ultimo: dict[int, float] = {}
+    for alder in range(alder_nu, tabel_start):
+        plan_lag.vaekst(*vaekst_foer)
+        plan_foer_ultimo[alder] = plan_lag.total
+    i_plan_indskud = plan_lag.total
+    if i_plan_indskud:
+        indskud_plan.setdefault(tabel_start, _Lag()).tilfoej(plan_lag)
+
+    # Den urørte opsparing: deterministisk, uafhængig af udjævningen.
+    uroert = lag_i_dag(False)
+    uroert_start = uroert.total
+    uroert_primo: dict[int, float] = {}
+    uroert_ultimo: dict[int, float] = {}
+    uroert_ki: dict[int, float] = {}
+    uroert_ask: dict[int, float] = {}
+    if uroert_start > 0 or indskud_uroert:
+        for alder in range(alder_nu, tabel_slut + 1):
+            uroert_primo[alder] = uroert.total
+            if alder in indskud_uroert:
+                uroert.tilfoej(indskud_uroert[alder])
+            if alder >= tabel_start:
+                uroert_ki[alder] = uroert.bank * rente_buffer
+                uroert_ask[alder] = uroert.ask * rente_buffer
+                uroert.vaekst(*vaekst_efter)
+            else:
+                uroert.vaekst(*vaekst_foer)
+            uroert_ultimo[alder] = uroert.total
 
     def husstandens_formue(alder: int, kalenderaar: int, egen_buffer: dict[int, float]) -> float:
         """Likvid formue pr. 1. januar (§ 72 d, stk. 2): den faste formue, egen buffer, egen opsparing
@@ -262,13 +406,15 @@ def beregn(
             egen += i_plan_indskud
         return profil.likvid_formue + egen + partner
 
-    def _samme_buffer(ki, nye_ki, formue, nye_formue) -> bool:
-        """Kapitalindkomsten, årene blev regnet med, er inden for 12 × tolerancen pr. år af den,
-        bufferen giver, og intet år skifter side af ældrechecks formuegrænse. Så ændrer en ny
-        iteration ikke den jævne udbetaling mere end tolerancen — også efter blot én iteration
-        med et godt startgæt."""
-        if max((abs(nye_ki.get(k, 0.0) - ki.get(k, 0.0)) for k in nye_ki.keys() | ki.keys()), default=0.0)                 >= BUFFER_TOLERANCE_KR * 12:
-            return False
+    def _samme_buffer(gl: _Opsparingsskat, ny: _Opsparingsskat) -> bool:
+        """Kapitalindkomsten, aktieindkomsten og ASK-afkastet, årene blev regnet med, er inden for
+        12 × tolerancen pr. år af dem, bufferen giver, og intet år skifter side af ældrechecks
+        formuegrænse. Så ændrer en ny iteration ikke den jævne udbetaling mere end tolerancen — også
+        efter blot én iteration med et godt startgæt."""
+        for x, y in ((gl.ki, ny.ki), (gl.aktieindkomst, ny.aktieindkomst), (gl.ask_afkast, ny.ask_afkast)):
+            if max((abs(y.get(k, 0.0) - x.get(k, 0.0)) for k in y.keys() | x.keys()), default=0.0)                     >= BUFFER_TOLERANCE_KR * 12:
+                return False
+        formue, nye_formue = gl.formue, ny.formue
         for alder in nye_formue.keys() | formue.keys():
             o = aarets_opslag.get(alder)
             if o is None:
@@ -279,10 +425,13 @@ def beregn(
                 return False
         return True
 
-    def aar_for_aar(kapitalindkomst: dict[int, float], formue: dict[int, float]):
-        """Årene for givne kapitalindkomster og formuer fra bufferen (fastpunktet nedenfor)."""
+    def aar_for_aar(bufferen: _Opsparingsskat):
+        """Årene for givne kapitalindkomster, aktieindkomster, ASK-afkast og formuer fra bufferen
+        (fastpunktet nedenfor)."""
+        kapitalindkomst, formue = bufferen.ki, bufferen.formue
         atp_skoennet = False
         mellemskat_aldre: list[int] = []
+        aktie_over_aldre: list[int] = []
         aar: list[Aarsresultat] = []
 
         for alder in range(tabel_start, tabel_slut + 1):
@@ -292,8 +441,12 @@ def beregn(
             kirkeskat = o.kirkeskat(profil.kommune) if profil.folkekirkemedlem else 0.0
             if kalenderaar > satsaar:
                 o.antagelse("satsregulering", satsregulering)
-            if alder == tabel_start > alder_nu and i_plan_start + uroert_start > 0:
+            if alder == tabel_start and bank_foer_udbetaling:
                 o.marker("forenkling:opsparing_skat_foer_udbetaling")
+            if alder == tabel_start and har_depot:
+                o.marker("forenkling:aktieafkast_som_kursgevinst")
+            if alder == tabel_start and ask_med_indskud:
+                o.marker("forenkling:ask_indskud_lig_saldo")
             if alder == tabel_start and not har_loen and alder_nu < fp_alder:
                 o.marker("forenkling:ingen_loen")
 
@@ -346,9 +499,12 @@ def beregn(
                     and kalenderaar - profil.partner.foedselsdato.year >= partner_fp_alder
                 )
             buffer_ki = kapitalindkomst.get(alder, 0.0) + uroert_ki.get(alder, 0.0)
+            aktieindkomst = bufferen.aktieindkomst.get(alder, 0.0)
+            ask_afkast = bufferen.ask_afkast.get(alder, 0.0) + uroert_ask.get(alder, 0.0)
             grundlag = indtaegtsgrundlag(
                 privat_s, atp_aar, profil.anden_kapitalindkomst + buffer_ki,
                 _partner_indkomst(profil.partner, kalenderaar, o), partner_er_pensionist, o,
+                aktieindkomst=aktieindkomst,
             )
             tp = 0
             tillaeg_fuldt = 0.0
@@ -396,6 +552,19 @@ def beregn(
                 for k, (type_, b) in brutto.items()
             )
             netto = pi - skat_pi
+            # Aktieindkomst (PSL § 8 a) beskattes særskilt; en ægtefælles uudnyttede
+            # progressionsgrænse forhøjer grænsen (stk. 4). ASK-afkastet lagerbeskattes (013b).
+            skat_aktier = skat_ask = 0.0
+            if aktieindkomst > 0:
+                graense = o.v("skat.aktieindkomst.progressionsgraense")
+                ekstra = 0.0
+                if aegtefaelle and profil.partner is not None and kalenderaar in profil.partner.aktieindkomst_pr_aar:
+                    ekstra = max(0.0, graense - profil.partner.aktieindkomst_pr_aar[kalenderaar])
+                skat_aktier = aktieindkomst_skat(aktieindkomst, o, ekstra)
+                if aktieindkomst > graense + min(ekstra, graense):
+                    aktie_over_aldre.append(alder)
+            if ask_afkast > 0:
+                skat_ask = ask_skat(ask_afkast, o)
             aar_frem = kalenderaar - beregningsdato.year
             realfaktor = 1 / (1 + o.antagelse("inflation", antagelser.inflation)) ** aar_frem
             netto_real = netto * realfaktor
@@ -415,21 +584,27 @@ def beregn(
                     pensionsindbetaling=bidrag, pensionstillaeg_foer_modregning=tillaeg_fuldt,
                     formue_primo=formue_primo, formuegraense=formuegraense,
                 ),
+                aktieindkomst=aktieindkomst, skat_aktieindkomst=skat_aktier, skat_aktiesparekonto=skat_ask,
+                indskud_opsparing=indskud_i_alt.get(alder, 0.0),
             ))
             samlet.overtag(o)
-        return aar, mellemskat_aldre, atp_skoennet
+        return aar, mellemskat_aldre, atp_skoennet, aktie_over_aldre
 
     # ── 3b. Bufferen: kapitalindkomst og formue (feature 009) ────────────────
     # Bufferen (engangsbeløb uden for pension) giver kapitalindkomst og formue, som påvirker skat,
     # pensionstillæg og ældrecheck — og dermed den jævne udbetaling og bufferen selv. Det løses
     # deterministisk ved fastpunkt-iteration med et fast loft.
-    engangs_i_buffer: dict[int, float] = {}
-    for plan in planer:
-        if plan.i_buffer:
-            for alder, beloeb in plan.engangs.items():
-                engangs_i_buffer[alder] = engangs_i_buffer.get(alder, 0.0) + beloeb
-    if i_plan_indskud:
-        engangs_i_buffer[tabel_start] = engangs_i_buffer.get(tabel_start, 0.0) + i_plan_indskud
+    engangs_bank: dict[int, float] = {}   # engangsbeløb fra ordninger: bufferens banklag
+    for p_ in planer:
+        if p_.i_buffer:
+            for alder, beloeb in p_.engangs.items():
+                engangs_bank[alder] = engangs_bank.get(alder, 0.0) + beloeb
+    engangs_i_buffer = dict(engangs_bank)
+    for alder, lag in indskud_plan.items():
+        engangs_i_buffer[alder] = engangs_i_buffer.get(alder, 0.0) + lag.total
+
+    def opsparingsskat(jaevn: JaevnUdbetaling | None) -> _Opsparingsskat:
+        return _lag_forloeb(jaevn, engangs_bank, indskud_plan, rente_buffer, antagelser.traekraekkefoelge)
 
     def udjaevn(aar: list[Aarsresultat]) -> JaevnUdbetaling | None:
         """Udjævning fra `jaevn_fra` (017). Årene før (arbejdsår) udjævnes ikke: det faste beløb er
@@ -442,7 +617,7 @@ def beregn(
         b = 0.0
         foer_aar = []
         for a in foer:
-            normal = a.netto_i_alt - a.skat_kapitalindkomst
+            normal = a.disponibel
             b = (b + engangs.pop(a.alder, 0.0)) * (1 + rente_buffer)
             foer_aar.append(JaevnAar(alder=a.alder, jaevn=normal, normal=normal, fra_buffer=0.0, til_buffer=0.0,
                                      buffer_rest=b))
@@ -452,24 +627,24 @@ def beregn(
         return JaevnUdbetaling(j.niveau_foerste_aar, j.niveau_real, tuple(foer_aar) + j.aar)
     # Stopkriterium: den jævne udbetaling ændrer sig i intet år mere end BUFFER_TOLERANCE_KR om
     # måneden fra én iteration til den næste (hovedtallet vises afrundet til 100 kr.).
-    ki, formue = _buffer_ki_og_formue(buffer_start.jaevn, rente_buffer) if buffer_start else ({}, {})
+    tilstand = opsparingsskat(buffer_start.jaevn) if buffer_start else _Opsparingsskat()
     forrige: list[float] | None = None
     iteration = 0
     konvergeret = False
     while True:
         iteration += 1
-        aar, mellemskat_aldre, atp_skoennet = aar_for_aar(ki, formue)
+        aar, mellemskat_aldre, atp_skoennet, aktie_over_aldre = aar_for_aar(tilstand)
         jaevn = udjaevn(aar)
         niveauer = [j.jaevn for j in jaevn.aar] if jaevn else []
-        nye_ki, nye_formue = _buffer_ki_og_formue(jaevn, rente_buffer)
-        if (nye_ki == ki and nye_formue == formue) or _samme_buffer(ki, nye_ki, formue, nye_formue) or (
+        ny = opsparingsskat(jaevn)
+        if ny == tilstand or _samme_buffer(tilstand, ny) or (
                 forrige is not None and len(forrige) == len(niveauer)
                 and max((abs(x - y) for x, y in zip(niveauer, forrige)), default=0.0) < BUFFER_TOLERANCE_KR * 12):
             konvergeret = True
             break
         if iteration >= BUFFER_MAKS_ITERATIONER:
             break
-        ki, formue, forrige = nye_ki, nye_formue, niveauer
+        tilstand, forrige = ny, niveauer
 
     # ── 4. Advarsler ─────────────────────────────────────────────────────────
     for fra, til in _intervaller(mellemskat_aldre):
@@ -517,7 +692,31 @@ def beregn(
             "med i ældrechecks formuegrænse.",
             registerposter=("pal.sats", "skat.kapitalindkomst.bundfradrag", "yd.aeldrecheck.formuegraense"),
         ))
-    if tabel_start > alder_nu and i_plan_start + uroert_start > 0:
+    for fra, til in _intervaller(aktie_over_aldre):
+        advarsler.append(Advarsel(
+            "AKTIEINDKOMST_OVER_GRAENSE",
+            f"Som {fra}–{til}-årig sælger du så mange aktier, at gevinsten er over progressionsgrænsen "
+            "for aktieindkomst. Gevinsten over grænsen beskattes hårdere. Det kan betale sig at sprede "
+            "salget over flere år.",
+            aldre=(fra, til),
+            registerposter=("skat.aktieindkomst.progressionsgraense", "skat.aktieindkomst.sats_hoej"),
+        ))
+    if aldersopsparing_over_loft is not None:
+        advarsler.append(Advarsel(
+            "ALDERSOPSPARING_OVER_LOFT",
+            f"Din indbetaling til aldersopsparing er over loftet som {aldersopsparing_over_loft}-årig. Vi har kun "
+            "regnet med det, du må indbetale.",
+            registerposter=("ordning.aldersopsparing.indbetalingsloft",
+                            "ordning.aldersopsparing.indbetalingsloft_forhoejet"),
+        ))
+    if ask_over_loft is not None:
+        advarsler.append(Advarsel(
+            "ASK_OVER_LOFT",
+            f"Dine indskud på aktiesparekontoen når loftet som {ask_over_loft}-årig. Det overskydende er "
+            "regnet som indskud i frit depot.",
+            registerposter=("ask.indskudsloft",),
+        ))
+    if bank_foer_udbetaling:
         advarsler.append(Advarsel(
             "OPSPARING_FOER_UDBETALING",
             f"Din opsparing uden for pension er regnet til at vokse med afkastet frem til første "
@@ -551,14 +750,14 @@ def beregn(
         aar=tuple(aar), advarsler=tuple(advarsler), antagelser=antagelser,
         sporing_samlet=tuple(samlet.brugt), jaevn=jaevn, engangsbeloeb=engangsbeloeb,
         buffer_iterationer=iteration,
-        formue=_formue(alder_nu, tabel_start, aar, jaevn, rente_buffer, i_plan_start, uroert_primo,
+        formue=_formue(alder_nu, tabel_start, aar, jaevn, plan_foer_ultimo, uroert_ultimo,
                        1 + antagelser.inflation),
         formue_start=i_plan_start + uroert_start,
         jaevn_fra_alder=jaevn_fra,
     )
 
 
-def _formue(alder_nu, tabel_start, aar, jaevn, rente, i_plan_start, uroert_primo, vaekst) -> tuple[FormueAar, ...]:
+def _formue(alder_nu, tabel_start, aar, jaevn, plan_foer_ultimo, uroert_ultimo, vaekst) -> tuple[FormueAar, ...]:
     """Opsparingen ved årets udgang fra i dag (013): før første udbetalingsår vokser den med renten;
     derefter er opsparingen i planen bufferen, og den urørte vokser videre."""
     buffer = {j.alder: max(0.0, j.buffer_rest) for j in jaevn.aar} if jaevn else {}
@@ -566,8 +765,8 @@ def _formue(alder_nu, tabel_start, aar, jaevn, rente, i_plan_start, uroert_primo
     return tuple(
         FormueAar(
             alder,
-            i_plan_start * (1 + rente) ** (alder - alder_nu + 1) if alder < tabel_start else buffer.get(alder, 0.0),
-            uroert_primo.get(alder, 0.0) * (1 + rente),
+            plan_foer_ultimo.get(alder, 0.0) if alder < tabel_start else buffer.get(alder, 0.0),
+            uroert_ultimo.get(alder, 0.0),
             1 / vaekst ** (alder - alder_nu),
         )
         for alder in range(alder_nu, slut + 1)
@@ -575,12 +774,35 @@ def _formue(alder_nu, tabel_start, aar, jaevn, rente, i_plan_start, uroert_primo
 
 
 
-def _buffer_ki_og_formue(jaevn: JaevnUdbetaling | None, rente: float) -> tuple[dict[int, float], dict[int, float]]:
-    """Kapitalindkomst (årets afkast af en positiv buffer) og formue pr. 1. januar (bufferen ved
-    udgangen af året før). Negativ buffer — lån af senere udbetalinger — giver hverken
-    kapitalindkomst eller formue (forenkling; der advares særskilt)."""
-    if jaevn is None or rente <= 0:
-        return {}, {}
-    ki = {j.alder: max(0.0, j.buffer_rest) * rente / (1 + rente) for j in jaevn.aar}
-    formue = {nu.alder: max(0.0, foer.buffer_rest) for foer, nu in zip(jaevn.aar, jaevn.aar[1:])}
-    return {k: v for k, v in ki.items() if v > 0}, {k: v for k, v in formue.items() if v > 0}
+def _lag_forloeb(jaevn: JaevnUdbetaling | None, engangs_bank: dict[int, float], indskud: dict[int, "_Lag"],
+                 rente: float, raekkefoelge: tuple[str, ...]) -> _Opsparingsskat:
+    """Bufferen fordelt på lag (013b) ud fra udjævningens indsættelser og træk. Hvert år:
+    engangsbeløb og overskud går i banken og opsparing i sit eget lag; trækket tages i
+    rækkefølgen (depotet realiserer gevinsten forholdsmæssigt); derefter afkastet. Bankens afkast er
+    kapitalindkomst (som 009-bufferens), aktiesparekontoens lagerbeskattes. Formuen er bufferen
+    ved udgangen af året før. Udjævningen låner aldrig (010), så lagene er ikke negative."""
+    if jaevn is None:
+        return _Opsparingsskat()
+    raekkefoelge = tuple(raekkefoelge) + tuple(t for t in AKTIVLAG if t not in raekkefoelge)
+    lag = _Lag()
+    ki: dict[int, float] = {}
+    aktieindkomst: dict[int, float] = {}
+    ask_afkast: dict[int, float] = {}
+    formue: dict[int, float] = {}
+    for j in jaevn.aar:
+        lag.indsaet("bank", engangs_bank.get(j.alder, 0.0) + j.til_buffer)
+        if j.alder in indskud:
+            lag.tilfoej(indskud[j.alder])
+        gevinst = lag.traek(j.fra_buffer, raekkefoelge)
+        if gevinst > 0:
+            aktieindkomst[j.alder] = gevinst
+        if lag.bank * rente > 0:
+            ki[j.alder] = lag.bank * rente
+        if lag.ask * rente > 0:
+            ask_afkast[j.alder] = lag.ask * rente
+        lag.vaekst(1 + rente, 1 + rente, 1 + rente)
+        if lag.total > 0 and rente > 0:  # som 009: uden afkast tæller bufferen ikke i formuen
+            formue[j.alder + 1] = lag.total
+    slut = jaevn.aar[-1].alder + 1
+    formue.pop(slut, None)
+    return _Opsparingsskat(ki, formue, aktieindkomst, ask_afkast)

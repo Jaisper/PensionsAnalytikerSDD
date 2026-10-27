@@ -12,9 +12,10 @@ from typing import Literal, Mapping
 # "gift_samlevende" (før 012) læses som samlevende.
 Civilstand = Literal["enlig", "gift", "samlevende", "gift_samlevende"]
 Ordningstype = Literal["ratepension", "livsvarig", "aldersopsparing", "kapitalpension"]
-# Feature 013: opsparing uden for pension. 013 kender kun bank (skattekassen kapitalindkomst);
-# frit depot og aktiesparekonto kommer i 013b.
-Aktivtype = Literal["bank"]
+# Feature 013: opsparing uden for pension. Bank (kapitalindkomst; også obligationsbaserede
+# investeringsbeviser), frit depot (aktieindkomst ved salg) og aktiesparekonto (lagerskat) (013b).
+Aktivtype = Literal["bank", "depot", "ask"]
+AKTIVLAG = ("bank", "depot", "ask")
 Kildetype = Literal[
     "ratepension", "livsvarig", "grundbeloeb", "pensionstillaeg", "atp", "aeldrecheck", "mediecheck", "loen"
 ]
@@ -60,12 +61,15 @@ class Ordning:
 
 @dataclass(frozen=True)
 class Aktiv:
-    """Opsparing uden for pension (feature 013), ejet af den profil, den ligger i. Afkastet er
-    kapitalindkomst, og saldoen er likvid formue (LSP § 72 d, stk. 2)."""
+    """Opsparing uden for pension (feature 013), ejet af den profil, den ligger i. Saldoen er likvid
+    formue (LSP § 72 d, stk. 2). Bankens afkast er kapitalindkomst; depotets er kursgevinst, der
+    beskattes ved salg; aktiesparekontoens lagerbeskattes (013b)."""
     id: str
     saldo: float                        # i dag
     type: Aktivtype = "bank"
     i_plan: bool = True                 # True: bruges i den faste udbetaling; False: står urørt og forrentes
+    urealiseret_gevinst: float | None = None  # depot: heraf gevinst i dag; None = antagelsens andel (013b)
+    aarligt_indskud: float = 0.0        # indskud om året i dagens kroner, mens der er løn (013b, 021)
 
 
 @dataclass(frozen=True)
@@ -91,6 +95,7 @@ class Partner:
     formue_pr_aar: Mapping[int, float] = field(default_factory=dict)          # partnerens opsparing pr. 1. januar
     kapitalindkomst_pr_aar: Mapping[int, float] = field(default_factory=dict) # partnerens positive KI
     uudnyttet_personfradrag_pr_aar: Mapping[int, float] = field(default_factory=dict)  # skatteværdi
+    aktieindkomst_pr_aar: Mapping[int, float] = field(default_factory=dict)   # partnerens aktieindkomst (013b)
     pensionist_fra_aar: int | None = None  # partnerens faktiske folkepensionsstart (None = ud fra alderen)
 
 
@@ -119,6 +124,8 @@ class Antagelser:
     plan_slut_alder: int | None = None   # planens sidste år (019); None = livsvarig_horisont_alder
     livsvarig_min_aar: int = 18
     folkepension_opsaettelse_aar: int = 0
+    depot_urealiseret_andel: float = 0.5  # depotets gevinstandel, når den ikke er oplyst (013b)
+    traekraekkefoelge: tuple[str, ...] = AKTIVLAG  # rækkefølgen, opsparingen bruges i (013b)
 
     @property
     def effektiv_satsregulering(self) -> float:
@@ -181,6 +188,22 @@ class Aarsresultat:
     skat_kapitalindkomst: float = 0.0   # merskatten af kapitalindkomsten; betales af bufferen (009)
     uudnyttet_personfradrag: float = 0.0  # skatteværdi, en ægtefælle kan bruge (PSL § 10, stk. 3) (012)
     detaljer: Aarsdetaljer | None = None  # feature 020
+    # Feature 013b: realiseret gevinst fra frit depot og skatten af den (PSL § 8 a), lagerskat af
+    # aktiesparekontoen og løbende indskud på den. Skatterne betales af årets udbetaling.
+    aktieindkomst: float = 0.0
+    skat_aktieindkomst: float = 0.0
+    skat_aktiesparekonto: float = 0.0
+    indskud_opsparing: float = 0.0
+
+    @property
+    def skat_opsparing(self) -> float:
+        """Skatten af opsparingen uden for pension (kapitalindkomst, aktieindkomst og ASK)."""
+        return self.skat_kapitalindkomst + self.skat_aktieindkomst + self.skat_aktiesparekonto
+
+    @property
+    def disponibel(self) -> float:
+        """Årets nettoindkomst efter skat af opsparing og indskud på den: det, udjævningen fordeler."""
+        return self.netto_i_alt - self.skat_opsparing - self.indskud_opsparing
 
 
 @dataclass(frozen=True)

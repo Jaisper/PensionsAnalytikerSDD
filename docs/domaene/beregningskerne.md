@@ -365,6 +365,67 @@ beløb vises i dagens kroner (inflationskorrigeret med antagelsens inflation, so
 - "Hvornår kan jeg stoppe?" afprøver alle stopaldre fra i dag til folkepensionsalderen med den
   nuværende plan.
 
+## 7j. Frit depot og aktiesparekonto (feature 013b)
+
+**Koblinger efter loven:**
+- Gevinst ved salg af aktier og aktiebaserede investeringsbeviser er aktieindkomst (PSL § 4 a). Den
+  beskattes særskilt med 27 % op til progressionsgrænsen og 42 % over (§ 8 a, stk. 1–2). Grænsen
+  er 79.400 kr. i 2026 og reguleres. Personfradraget bruges ikke.
+- Gifte: den ene ægtefælles uudnyttede progressionsgrænse forhøjer den andens, højst med én
+  grænse (§ 8 a, stk. 4). Husstanden giver partnerens aktieindkomst videre
+  (`Partner.aktieindkomst_pr_aar`).
+- Aktieindkomst indgår i pensionstillæggets indtægtsgrundlag og i den personlige tillægsprocent
+  (LSP § 29). Undtaget er aktieudbytte op til 5.000 kr., men kernen regner ikke med udbytte.
+- Afkastet på en aktiesparekonto lagerbeskattes med 17 % (aktiesparekontoloven) og indgår ikke i
+  § 29. Indskudsloftet er 174.200 kr. i 2026, og det reguleres.
+- Obligationsbaserede investeringsbeviser lagerbeskattes som kapitalindkomst (ABL § 19 C). I guiden
+  står de under bank.
+- Depot og aktiesparekonto er likvid formue (LSP § 72 d, stk. 2).
+
+**Modelvalg:**
+- Én rente for alle typer: pensionens afkast før PAL-skat, som i 013. Afkast pr. aktivtype kommer
+  i 023.
+- Bufferen er delt i tre lag: bank, depot (værdi og anskaffelsessum) og aktiesparekonto.
+  Udjævningen ser én pulje og låner aldrig (010). Lagene afgør kun skatten (`_lag_forloeb`).
+- Engangsbeløb og overskud står i banklaget.
+- Trækket følger `Antagelser.traekraekkefoelge` (standard bank → depot → aktiesparekonto). Et
+  træk fra depotet realiserer gevinsten forholdsmæssigt.
+- Hele aktieafkastet er kursgevinst. Udbytte er ikke med (forenkling
+  `aktieafkast_som_kursgevinst`). Gevinsten i dag er som standard halvdelen af værdien
+  (`Antagelser.depot_urealiseret_andel`). Det er en antagelse, som borgeren kan erstatte.
+- Skatten af aktieindkomst og aktiesparekonto betales af årets udbetaling, som skatten af
+  bufferens kapitalindkomst. Udjævningen fordeler `Aarsresultat.disponibel`.
+- Før første udbetalingsår:
+  - Depotet vokser uden skat (der sælges ikke).
+  - Aktiesparekontoen vokser med afkast efter lagerskat (banken trækker skatten på kontoen).
+  - Kun banken har forenklingen `opsparing_skat_foer_udbetaling`.
+- Løbende indskud på aktiesparekontoen (kun med løn, til stopalderen):
+  - Indskuddet er i dagens kroner og reguleres, og det trækkes fra årets rådighedsbeløb.
+  - De hidtidige indskud regnes lig saldoen (forenkling `ask_indskud_lig_saldo`).
+  - Indskud over loftet står i frit depot med advarslen `ASK_OVER_LOFT`.
+- Aktieindkomst over progressionsgrænsen giver advarslen `AKTIEINDKOMST_OVER_GRAENSE` med forslag
+  om at sprede salget.
+- Fastpunktet (009) har aktieindkomst og ASK-afkast med i tilstanden. Ved ældrechecks formuegrænse
+  flytter det sidste år over grænsen sig ét år pr. iteration. Loftet er derfor hævet fra 8 til 12
+  iterationer. Golden cases holder 009's SC-002 (højst 6).
+- Uden afkast tæller bufferen fortsat ikke i formuen. Det er uændret fra 009.
+
+## 7k. Indskud af løn og "Hvor skal næste krone hen?" (feature 021)
+
+- Privat ratepension fradrages i den personlige indkomst (PSL § 3, stk. 2, nr. 3). Den gældende
+  PSL § 7 har intet tillæg for ratepension. Det gamle tillæg gjaldt kapitalpension (PBL § 16,
+  stk. 1). Kernens behandling svarer derfor til privat indbetaling.
+- Med løn betales aldersopsparingens indbetaling af beskattet løn. Den trækkes fra årets
+  rådighedsbeløb (`Aarsresultat.indskud_opsparing`). Før 021 blev den ikke trukket fra i
+  arbejdsårene. Hovedtallet fra stopalderen er uændret.
+- Indbetaling over loftet for aldersopsparing giver advarslen `ALDERSOPSPARING_OVER_LOFT`.
+- Løbende indskud (`Aktiv.aarligt_indskud`) gælder bank, frit depot og aktiesparekonto. De
+  kræver løn og indbetales frem til stopalderen.
+- "Hvor skal næste krone hen?" (app-laget) laver en fuld beregning pr. alternativ:
+  - Ratepensionen får beløbet før skat. De andre alternativer får dens pris efter skat.
+  - Målet er det faste beløb i gennemsnit fra stopalderen. Hovedtallet (minimum) ville favorisere
+    likvid opsparing, fordi udjævningen ikke låner.
+
 ## 8. Uden for denne feature (kommer i senere features)
 
 PDF-import fra PensionsInfo · AI-forklaring/chat · Optimering af udbetalingsrækkefølge

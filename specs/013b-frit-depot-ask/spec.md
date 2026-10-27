@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-27
 
-**Status**: Draft – besluttet 2026-10-27 (som foreslået); clarify med primærkilder før plan
+**Status**: Implementeret 2026-10-27 (se [plan.md](plan.md); én rente for alle typer, afkast pr. type i 023)
 
 **Input**: 013's godkendte opdeling: "013b: frit depot (aktieindkomst, realisation) og ASK, med
 registersatser".

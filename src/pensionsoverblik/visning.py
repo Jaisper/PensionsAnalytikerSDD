@@ -207,8 +207,9 @@ def byg_visning(res: Fremskrivning) -> dict:
             "markeringer": markeringer,
             "jaevn": None if jaevn is None else [None] * foran + jaevn,
             "buffer": None if buffer is None else [None] * foran + buffer,
-            "skat_buffer": [None] * foran + [a.skat_kapitalindkomst * a.realfaktor / MAANEDER for a in res.aar]  # 009
-            if any(a.skat_kapitalindkomst for a in res.aar) else None,
+            # Skat af opsparing uden for pension (009, 013b): kapitalindkomst, aktieindkomst og ASK.
+            "skat_buffer": [None] * foran + [a.skat_opsparing * a.realfaktor / MAANEDER for a in res.aar]
+            if any(a.skat_opsparing for a in res.aar) else None,
             "engangs": engangs,
             # Til skifteren mellem dagens og årets kroner (020b); 1 for årene foran første række.
             "realfaktor": [1.0] * foran + [a.realfaktor for a in res.aar],
@@ -216,13 +217,16 @@ def byg_visning(res: Fremskrivning) -> dict:
         "formue": _formue(res),
         "forenklinger": _forenklinger(res),
         "generelle_advarsler": generelle,
-        "antagelser": {**asdict(res.antagelser), "satsregulering": res.antagelser.effektiv_satsregulering},
+        "antagelser": {**asdict(res.antagelser), "satsregulering": res.antagelser.effektiv_satsregulering,
+                       "traekraekkefoelge": list(res.antagelser.traekraekkefoelge)},  # JSON-form (013b)
         "aar": [{
             "alder": a.alder, "kalenderaar": a.kalenderaar, "personlig_indkomst": a.personlig_indkomst,
             "skat": a.skat_i_alt, "netto": a.netto_i_alt, "netto_real": a.netto_real,
             "indtaegtsgrundlag": a.indtaegtsgrundlag, "tillaegsprocent": a.tillaegsprocent,
             "engangsbeloeb": a.engangsbeloeb_netto,
             "kapitalindkomst": a.kapitalindkomst, "skat_kapitalindkomst": a.skat_kapitalindkomst,
+            "aktieindkomst": a.aktieindkomst, "skat_aktieindkomst": a.skat_aktieindkomst,  # 013b
+            "skat_aktiesparekonto": a.skat_aktiesparekonto, "indskud_opsparing": a.indskud_opsparing,
             # Til "Dit år" (020)
             "realfaktor": a.realfaktor,
             "kilder": [{"id": k.kilde_id, "type": k.type, "titel": KILDE_TITLER[k.type],
