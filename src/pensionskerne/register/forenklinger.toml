@@ -10,7 +10,7 @@ id = "opsparing_skat_foer_udbetaling"
 omfang = "markeret"
 titel = "Skat af opsparingen, før udbetalingen begynder"
 beskrivelse = "Din opsparing uden for pension vokser med afkastet frem til din første udbetaling. Skatten af afkastet i de år er ikke trukket fra."
-begrundelse = "Skatten betales af din løn i de år, og vi kender ikke din løn."
+begrundelse = "Skatten betales af din løn i de år, og du har ikke oplyst din løn. Gør du det, regner vi skatten med."
 betydning = "Opsparingen ved første udbetaling er lidt for høj, og det faste beløb derfor også."
 kilde = "Feature 013; feature 017 vil regne lønnen med"
 
@@ -70,19 +70,28 @@ kilde = "Feature 018; roadmappen (afkast pr. år og Monte Carlo)"
 
 [[forenkling]]
 id = "ingen_loen"
-omfang = "altid"
+omfang = "markeret"
 titel = "Ingen løn"
-beskrivelse = "Vi regner ikke med løn, hverken før pensionen eller ved siden af den."
-begrundelse = "Løn og arbejdsår kommer i en senere udvidelse."
-betydning = "Arbejder du, er skatten i de år ikke med, og opsparingen kan ikke bruges, før din første udbetaling begynder."
+beskrivelse = "Du har ikke oplyst en løn, så vi regner ikke med løn før pensionen."
+begrundelse = "Lønnen er valgfri. Uden den begynder beregningen ved din første udbetaling."
+betydning = "Arbejder du stadig, er skatten i arbejdsårene ikke med, og din opsparing kan ikke bruges, før din første udbetaling begynder."
+kilde = "Feature 017"
+
+[[forenkling]]
+id = "pensionsindbetaling_som_arbejdsgiverordning"
+omfang = "markeret"
+titel = "Pensionsindbetaling som arbejdsgiverordning"
+beskrivelse = "Din indbetaling til ratepension og livsvarig pension trækkes fra lønnen før skat, som ved en pensionsordning gennem arbejdet. AM-bidraget regnes af hele lønnen."
+begrundelse = "Sådan indbetaler de fleste. Private indbetalinger fradrages lidt anderledes, og vi kender ikke fordelingen."
+betydning = "Indbetaler du privat, kan skatten i arbejdsårene afvige lidt."
 kilde = "Feature 017"
 
 [[forenkling]]
 id = "partnerens_loen_ukendt"
 omfang = "altid"
 titel = "Din partners løn kendes ikke"
-beskrivelse = "Med din partners fulde pension regner vi din partners indkomst som nul i årene før partnerens første udbetaling."
-begrundelse = "Løn er ikke med endnu. En partners løn påvirker ikke dit pensionstillæg, men den påvirker overførsel af personfradrag mellem ægtefæller."
+beskrivelse = "Med din partners fulde pension regner vi din partners indkomst som nul i årene før partnerens første udbetaling, hvis du ikke har oplyst din partners løn."
+begrundelse = "Lønnen er valgfri. En partners løn påvirker ikke dit pensionstillæg, men den påvirker overførsel af personfradrag mellem ægtefæller."
 betydning = "For ægtefæller kan skatten være lidt for lav i de år, hvor din partner arbejder."
 kilde = "Feature 012; feature 017"
 

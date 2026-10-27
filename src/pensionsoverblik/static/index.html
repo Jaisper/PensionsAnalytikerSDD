@@ -130,6 +130,30 @@
               <input id="atp" inputmode="numeric" class="beloeb" aria-describedby="atp-hjaelp">
               <p class="felt__hjaelp" id="atp-hjaelp">Står på pensionsinfo.dk. Lader du feltet stå tomt eller skriver 0, bruger vi ATP's gennemsnit.</p>
             </div>
+
+            <!-- Løn (feature 017) -->
+            <div class="felt" data-felt="loen.aarlig person.loen.aarlig">
+              <label for="loen">Din årsløn før skat <span class="valgfri">(valgfri)</span></label>
+              <input id="loen" inputmode="numeric" class="beloeb" aria-describedby="loen-hjaelp" placeholder="0">
+              <p class="felt__hjaelp" id="loen-hjaelp">Med din egen del af pensionsindbetalingen. Så regner vi også årene, til du stopper, og du kan se, hvornår du kan stoppe.</p>
+            </div>
+            <div class="felt" data-felt="loen.stop_alder">
+              <label for="stop-alder">Jeg stopper med at arbejde som <span class="valgfri">(valgfri)</span></label>
+              <input id="stop-alder" inputmode="numeric" class="alder" aria-describedby="stop-alder-hjaelp" placeholder="år">
+              <p class="felt__hjaelp" id="stop-alder-hjaelp">Lader du feltet stå tomt, regner vi med din folkepensionsalder.</p>
+            </div>
+            <details class="tabel-alternativ" id="deltid">
+              <summary>Arbejder du ved siden af pensionen?</summary>
+              <div class="felt" data-felt="loen.deltid_aarlig">
+                <label for="deltid-loen">Løn om året, efter du er stoppet</label>
+                <input id="deltid-loen" inputmode="numeric" class="beloeb" placeholder="0">
+              </div>
+              <div class="felt" data-felt="loen.deltid_til_alder">
+                <label for="deltid-til">Til jeg er</label>
+                <input id="deltid-til" inputmode="numeric" class="alder" aria-describedby="deltid-til-hjaelp" placeholder="år">
+                <p class="felt__hjaelp" id="deltid-til-hjaelp">Din egen løn nedsætter ikke dit pensionstillæg. Over 122.004 kr. om året kan den nedsætte ældrechecken.</p>
+              </div>
+            </details>
           </fieldset>
 
           <!-- Trin 2 -->
@@ -190,6 +214,14 @@
             </div>
             <div class="felt felt--afkrydsning">
               <label class="valg"><input type="checkbox" id="p-folkekirke"> Min partner er medlem af folkekirken</label>
+            </div>
+            <div class="felt" data-felt="person.partner.profil.loen.aarlig">
+              <label for="p-loen">Din partners årsløn før skat <span class="valgfri">(valgfri)</span></label>
+              <input id="p-loen" inputmode="numeric" class="beloeb" placeholder="0">
+            </div>
+            <div class="felt">
+              <label for="p-stop-alder">Din partner stopper med at arbejde som <span class="valgfri">(valgfri)</span></label>
+              <input id="p-stop-alder" inputmode="numeric" class="alder" placeholder="år">
             </div>
           </fieldset>
 
@@ -369,6 +401,17 @@
               <div class="skyder"><input type="range" id="r-inflation" min="0" max="5" step="0.5"><output for="r-inflation" id="r-inflation-v"></output></div></div>
           </div>
           <button type="button" class="knap knap--tekst" id="nulstil">Nulstil til mine svar</button>
+          <section class="stop-soeg" aria-labelledby="stop-soeg-titel">
+            <h3 id="stop-soeg-titel">Hvornår kan jeg stoppe?</h3>
+            <div class="felt">
+              <label for="oenske">Hvor meget vil du have om måneden efter skat, i dagens kroner?</label>
+              <div class="tilfoej__raekke">
+                <input id="oenske" inputmode="numeric" class="beloeb" placeholder="fx 20.000">
+                <button type="button" class="knap knap--sekundaer" id="stop-knap">Find tidligste alder</button>
+              </div>
+            </div>
+            <div id="stop-svar" role="status" aria-live="polite"></div>
+          </section>
           <details class="fold" id="usikkerhed" hidden>
             <summary>Hvis afkast, inflation eller levetid bliver anderledes <span aria-hidden="true">→</span></summary>
             <p class="sektion__intro">Det faste beløb om måneden efter skat, i dagens kroner, når afkastet er 1 procentpoint lavere eller højere end dit valg, inflationen er 0,5 procentpoint højere eller lavere, eller planen skal række kortere eller længere end til 90 år. Ingen kender fremtiden, så tallene er eksempler, ikke grænser.</p>

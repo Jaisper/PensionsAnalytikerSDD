@@ -24,6 +24,7 @@
   --kilde-livsvarig: #7b4f9a;
   --kilde-checks: #b85a37;
   --kilde-engangs: #4a6b78;
+  --kilde-loen: #8a6d3b;
   --jaevn-linje: #c98a1b;
 
   --radius: 14px;
@@ -315,3 +316,9 @@ thead th { background: var(--graa-50); position: sticky; top: 0; }
 }
 
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+/* Feature 017: aldersfelter og "Hvornår kan jeg stoppe?" */
+.felt input.alder { max-width: 8rem; }
+.stop-soeg { margin-top: 24px; max-width: 640px; }
+.stop-soeg h3 { margin: 0 0 8px; }
+#stop-svar p { margin: 8px 0; }

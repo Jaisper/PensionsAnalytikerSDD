@@ -423,7 +423,19 @@ function partnerSvar() {
     folkekirkemedlem: $("#p-folkekirke").checked,
     folkepension_opsaettelse_aar: +$("#p-opsaettelse").value,
     opsparing: opsparingSvar("p-"),
+    loen: loenSvar("p-"),
   } };
+}
+
+/* Løn (feature 017): uden årsløn og deltidsløn sendes ingen løn. */
+function loenSvar(pre = "") {
+  const aarlig = beloeb($(`#${pre}loen`).value) ?? 0;
+  const deltid = pre ? 0 : beloeb($("#deltid-loen").value) ?? 0;
+  if (!aarlig && !deltid) return null;
+  return {
+    aarlig, stop_alder: beloeb($(`#${pre}stop-alder`).value) || null,
+    deltid_aarlig: deltid, deltid_til_alder: pre ? null : beloeb($("#deltid-til").value) || null,
+  };
 }
 
 /* Opsparing uden for pension (feature 013): ét bankaktiv pr. person. */
@@ -441,6 +453,7 @@ function guideSvar() {
       folkekirkemedlem: $("#folkekirke").checked,
       likvid_formue: erPar() && !fuldPartner() ? beloeb($("#partner-formue").value) ?? 0 : 0,  // partnerens, ved overslag
       opsparing: opsparingSvar(),
+      loen: loenSvar(),
       atp_aarlig: beloeb($("#atp").value) || null,  // tomt eller 0: ATP's gennemsnit (kernens fallback)
       partner: partnerSvar(),
     },
@@ -915,7 +928,44 @@ function synkroniserFormular() {
   $("#afkast-v").textContent = procent(s.antagelser.afkast_efter_pal);
   $("#inflation").value = s.antagelser.inflation * 100;
   $("#inflation-v").textContent = procent(s.antagelser.inflation);
+  $("#stop-alder").value = s.person.loen?.stop_alder ?? "";
   tegnOrdninger();
+}
+
+/* ── "Hvornår kan jeg stoppe?" (feature 017, US3) ─────────────────────── */
+async function findStopalder() {
+  const svar = $("#stop-svar");
+  const oenske = beloeb($("#oenske").value);
+  if (!tilstand.aktuelleSvar.person.loen?.aarlig) {
+    svar.replaceChildren(el("p", { tekst: "Skriv din løn under \"Dine oplysninger\", så kan vi finde ud af, hvornår du kan stoppe." }));
+    return;
+  }
+  if (!oenske) { svar.replaceChildren(el("p", { tekst: "Skriv, hvor meget du vil have om måneden." })); return; }
+  const knap = $("#stop-knap");
+  knap.disabled = true;
+  svar.replaceChildren(el("p", { tekst: "Vi afprøver hver alder …" }));
+  try {
+    const r = await kald("stopalder", JSON.stringify(tilstand.aktuelleSvar), idag(), oenske);
+    if (!r.ok) { svar.replaceChildren(el("p", { tekst: r.fejl.besked })); return; }
+    const d = r.data;
+    const omfang = el("p", { class: "felt__hjaelp", tekst: `Vi har afprøvet alle ${d.afproevet} aldre fra ${d.fra} til ${d.til} år med din nuværende plan. Efter skat og i dagens kroner.` });
+    const alder = d.kunne ? d.alder : d.bedste.alder;
+    const brug = el("button", { type: "button", class: "knap knap--sekundaer", tekst: `Brug ${alder} år` });
+    brug.addEventListener("click", () => {
+      tilstand.aktuelleSvar.person.loen = { ...tilstand.aktuelleSvar.person.loen, stop_alder: alder };
+      synkroniserFormular();
+      genberegn();
+    });
+    svar.replaceChildren(
+      el("p", { class: "forslag__resultat", tekst: d.kunne
+        ? `Du kan stoppe som ${d.alder}-årig og få ca. ${kr(d.maaned)} kr. om måneden.`
+        : `Det når du ikke før folkepensionen. Mest får du ved at stoppe som ${d.bedste.alder}-årig: ca. ${kr(d.bedste.maaned)} kr. om måneden.` }),
+      omfang, brug);
+  } catch {
+    svar.replaceChildren(el("p", { tekst: "Det kunne ikke regnes lige nu. Prøv igen." }));
+  } finally {
+    knap.disabled = false;
+  }
 }
 
 async function opdaterFraPanel() {
@@ -1601,6 +1651,7 @@ function forbind() {
     $(`#${navn}-panel-knap`).addEventListener("click", (e) => aabnPanel(navn, e.currentTarget.getAttribute("aria-expanded") !== "true"));
   }
   $("#opdater").addEventListener("click", opdaterFraPanel);
+  $("#stop-knap").addEventListener("click", findStopalder);
 
   const skyder = (id, opdater, fmt) => $(`#${id}`).addEventListener("input", (e) => {
     $(`#${id}-v`).textContent = fmt(+e.target.value);

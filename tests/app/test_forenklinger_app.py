@@ -26,4 +26,5 @@ def test_anvendt_markering_staar_oeverst():
     guide = {**GUIDE, "person": {**GUIDE["person"], "opsparing": [{"id": "bank", "saldo": 100000}]}}
     f = forenklinger(guide)
     assert f[0]["id"] == "opsparing_skat_foer_udbetaling" and f[0]["anvendt"]
-    assert not any(x["anvendt"] for x in forenklinger(GUIDE))
+    # Uden opsparing gælder kun "Ingen løn" (borgeren er under folkepensionsalderen, 017).
+    assert [x["id"] for x in forenklinger(GUIDE) if x["anvendt"]] == ["ingen_loen"]

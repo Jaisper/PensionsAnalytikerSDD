@@ -8,7 +8,7 @@ from dataclasses import replace
 from datetime import date
 from typing import Any
 
-from pensionskerne import Aktiv, Antagelser, Ordning, Partner, PartnerIndkomst, Pensionsprofil, UgyldigtInput
+from pensionskerne import Aktiv, Antagelser, Loen, Ordning, Partner, PartnerIndkomst, Pensionsprofil, UgyldigtInput
 
 # Partnerens indkomst indtastes som ét årsbeløb og bruges for alle kalenderår.
 PARTNER_AAR = range(2000, 2101)
@@ -68,6 +68,7 @@ def til_kerne(data: dict) -> tuple[Pensionsprofil, Antagelser]:
         atp_aarlig=_tal(person.get("atp_aarlig"), "person.atp_aarlig", None),
         ordninger=_ordninger(data.get("ordninger") or []),
         opsparing=_opsparing(person.get("opsparing") or []),
+        loen=_loen(person.get("loen")),
         partner=partner,
     )
 
@@ -99,11 +100,24 @@ def til_husstand(data: dict) -> tuple[Pensionsprofil, Antagelser, Pensionsprofil
         anden_kapitalindkomst=0.0,
         ordninger=_ordninger(pp.get("ordninger") or []),
         opsparing=_opsparing(pp.get("opsparing") or []),
+        loen=_loen(pp.get("loen")),
         partner=Partner(foedselsdato=profil_a.foedselsdato),
     )
     antagelser_b = replace(antagelser_a, folkepension_opsaettelse_aar=_heltal(
         pp.get("folkepension_opsaettelse_aar"), "person.partner.profil.folkepension_opsaettelse_aar", 0))
     return profil_a, antagelser_a, profil_b, antagelser_b
+
+
+def _loen(l: dict | None) -> Loen | None:
+    """Løn (feature 017). Uden årsløn og deltidsløn: ingen løn."""
+    if not l:
+        return None
+    aarlig = _tal(l.get("aarlig"), "loen.aarlig")
+    deltid = _tal(l.get("deltid_aarlig"), "loen.deltid_aarlig")
+    if not aarlig and not deltid:
+        return None
+    return Loen(aarlig=aarlig, stop_alder=_heltal(l.get("stop_alder"), "loen.stop_alder"),
+                deltid_aarlig=deltid, deltid_til_alder=_heltal(l.get("deltid_til_alder"), "loen.deltid_til_alder"))
 
 
 def _opsparing(liste: list) -> tuple[Aktiv, ...]:

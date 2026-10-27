@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-26
 
-**Status**: Draft – clarify gennemført 2026-10-26
+**Status**: Implementeret 2026-10-27 (se plan.md for afvigelser)
 
 **Input**: Idéliste punkt 1 ("Hvornår kan jeg stoppe?") og punkt 3 ("Arbejde ved siden af
 pensionen"). Featuren er også en forudsætning for punkt 2 ("Hvor skal næste krone hen?") og for

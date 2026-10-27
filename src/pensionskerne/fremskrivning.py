@@ -14,11 +14,12 @@ from dataclasses import dataclass, field
 from datetime import date
 
 from .model import (
-    Engangsbeloeb, FormueAar,
+    Engangsbeloeb, FormueAar, JaevnAar, JaevnUdbetaling,
     Aarsresultat, Advarsel, Antagelser, Fremskrivning, Indkomstkilde, Ordning,
     Partner, PartnerIndkomst, Pensionsprofil,
 )
 from .register.opslag import Regelopslag
+from .regler.loen import ligningsmaessige_fradrag
 from .regler.folkepension import (
     folkepensionsalder, foerste_aar_andel, indtaegtsgrundlag, pensionstillaeg, tillaegsregel,
 )
@@ -97,8 +98,26 @@ def beregn(
     fp_alder = folkepensionsalder(profil.foedselsdato, samlet)
     advarsler: list[Advarsel] = []
 
+    # ── 0. Løn (feature 017) ─────────────────────────────────────────────────
+    # Med løn begynder tabellen i dag, og udjævningen begynder ved stopalderen. Lønnen er i dagens
+    # kroner og reguleres som satserne. Uden løn er alt som før.
+    loen = profil.loen
+    har_loen = loen is not None and (loen.aarlig > 0 or loen.deltid_aarlig > 0)
+    stop = (loen.stop_alder or fp_alder) if loen is not None else fp_alder
+    deltid_til = (loen.deltid_til_alder or stop) if loen is not None else stop
+
+    def loen_i_aar(alder: int) -> float:
+        if not har_loen:
+            return 0.0
+        if alder < stop:
+            return loen.aarlig
+        return loen.deltid_aarlig if alder < deltid_til else 0.0
+
     # ── 1. Opsparing frem til udbetalingsstart ───────────────────────────────
     start = {o.id: max(o.udbetaling_start_alder, alder_nu) for o in ordninger}
+    # Med løn stopper pensionsindbetalingerne, når lønnen stopper (017).
+    bidrag_slut = stop if har_loen else None
+    fradragsberettiget: dict[int, float] = {}  # indbetaling til rate og livsvarig pr. alder (PI-fradrag)
     saldo = {o.id: o.saldo for o in ordninger}
     rate_ids = [o.id for o in ordninger if o.type == "ratepension"]
     overskud_start = max((start[i] for i in rate_ids), default=alder_nu)
@@ -112,11 +131,15 @@ def beregn(
         for ordning in ordninger:
             if alder >= start[ordning.id] or ordning.aarlig_indbetaling <= 0:
                 continue
+            if bidrag_slut is not None and alder >= bidrag_slut:
+                continue
             beloeb = o.antagelse("loenvaekst", ordning.aarlig_indbetaling * (1 + antagelser.loenvaekst) ** aar_frem)
             if ordning.type == "aldersopsparing":
                 beloeb = min(beloeb, indbetalingsloft(ordning.type, alder, fp_alder, o))
             indbetaling[ordning.id] = beloeb
 
+        fradragsberettiget[alder] = sum(b for i, b in indbetaling.items()
+                                        if next(x.type for x in ordninger if x.id == i) in ("ratepension", "livsvarig"))
         overskud = 0.0
         rate_sum = sum(indbetaling.get(i, 0.0) for i in rate_ids)
         if rate_sum > 0:
@@ -191,7 +214,7 @@ def beregn(
             "begynder. Udbetalingen beskattes derefter som personlig indkomst og nedsætter pensionstillægget.",
         ))
 
-    tabel_start = max(alder_nu, min([fp_alder] + [p.start for p in planer]))
+    tabel_start = alder_nu if har_loen else max(alder_nu, min([fp_alder] + [p.start for p in planer]))
     # Planens sidste år (019): levetidsscenarier ændrer det uden at ændre livrentens ydelse.
     plan_slut = antagelser.plan_slut_alder or antagelser.livsvarig_horisont_alder
     if antagelser.plan_slut_alder is not None:
@@ -200,6 +223,8 @@ def beregn(
         [plan_slut, fp_start]
         + [max(p.rater) for p in planer if p.rater]
     )
+    # Første år i udjævningen: stopalderen med løn (017), ellers første række.
+    jaevn_fra = min(max(tabel_start, stop), tabel_slut) if har_loen else tabel_start
 
     # ── 3. År for år ─────────────────────────────────────────────────────────
     gift = profil.civilstand != "enlig"         # par: ydelserne behandler gifte og samlevende ens
@@ -266,6 +291,8 @@ def beregn(
                 o.antagelse("satsregulering", satsregulering)
             if alder == tabel_start > alder_nu and i_plan_start + uroert_start > 0:
                 o.marker("forenkling:opsparing_skat_foer_udbetaling")
+            if alder == tabel_start and not har_loen and alder_nu < fp_alder:
+                o.marker("forenkling:ingen_loen")
 
             # 1. private udbetalinger
             brutto: dict[str, tuple[str, float]] = {}
@@ -295,6 +322,18 @@ def beregn(
                 if atp_aar * andel > 0:
                     brutto["atp"] = ("atp", atp_aar * andel)
 
+            # Løn (017): AM-bidrag af hele lønnen; pensionsindbetaling til rate og livsvarig fradrages
+            # i den personlige indkomst (regnet som arbejdsgiverordning).
+            loen_aar = loen_i_aar(alder) * o.reguleringsfaktor
+            am = lmf = bidrag = 0.0
+            if loen_aar > 0:
+                am = loen_aar * o.v("skat.am_bidrag")
+                bidrag = min(fradragsberettiget.get(alder, 0.0), loen_aar - am)
+                if bidrag > 0:
+                    o.marker("forenkling:pensionsindbetaling_som_arbejdsgiverordning")
+                lmf = ligningsmaessige_fradrag(loen_aar, alder, fp_alder, o)
+                brutto["loen"] = ("loen", loen_aar - am - bidrag)
+
             # 2.–4. folkepension og tillægsstyrede ydelser
             if profil.partner is not None and profil.partner.pensionist_fra_aar is not None:
                 partner_er_pensionist = kalenderaar >= profil.partner.pensionist_fra_aar
@@ -315,7 +354,10 @@ def beregn(
                 tillaeg = pensionstillaeg(grundlag, tillaegsregel(gift, partner_er_pensionist), o) * vente * andel
                 if tillaeg > 0:
                     brutto["pensionstillaeg"] = ("pensionstillaeg", tillaeg)
-                tp = tillaegsprocent(grundlag, gift, o)
+                # Egen løn indgår ikke i pensionstillægget (L 117), men over bundfradraget i den
+                # personlige tillægsprocent (017).
+                arbejde = max(0.0, loen_aar - o.v("tp.arbejdsindkomst.bundfradrag")) if loen_aar > 0 else 0.0
+                tp = tillaegsprocent(grundlag + arbejde, gift, o)
                 if alder > fp_start:
                     for navn, beloeb in (("aeldrecheck", aeldrecheck(tp, husstandens_formue(alder, kalenderaar, formue), o)),
                                          ("mediecheck", mediecheck(tp, o))):
@@ -334,11 +376,15 @@ def beregn(
                     ekstra_bundfradrag = max(0.0, o.v("skat.kapitalindkomst.bundfradrag")
                                              - profil.partner.kapitalindkomst_pr_aar[kalenderaar])
             skat = beregn_skat(pi, kommuneskat, kirkeskat, o, kapitalindkomst=buffer_ki,
-                               overfoert_personfradrag=overfoert, ekstra_ki_bundfradrag=ekstra_bundfradrag)
+                               overfoert_personfradrag=overfoert, ekstra_ki_bundfradrag=ekstra_bundfradrag,
+                               ligningsmaessige_fradrag=lmf)
             skat_pi = skat.total - skat.skat_kapitalindkomst
             andele = fordel(skat_pi, pi_pr_kilde)
             kilder = tuple(
-                Indkomstkilde(k, type_, b, andele[k], b - andele[k]) for k, (type_, b) in brutto.items()
+                # Løn: brutto er lønnen efter pensionsindbetaling, skatten omfatter AM-bidraget.
+                Indkomstkilde(k, type_, b + am, andele[k] + am, b - andele[k]) if k == "loen"
+                else Indkomstkilde(k, type_, b, andele[k], b - andele[k])
+                for k, (type_, b) in brutto.items()
             )
             netto = pi - skat_pi
             aar_frem = kalenderaar - beregningsdato.year
@@ -350,7 +396,7 @@ def beregn(
 
             aar.append(Aarsresultat(
                 alder=alder, kalenderaar=kalenderaar, kilder=kilder, personlig_indkomst=pi,
-                skat_i_alt=skat_pi, indtaegtsgrundlag=grundlag, tillaegsprocent=tp,
+                skat_i_alt=skat_pi + am, indtaegtsgrundlag=grundlag, tillaegsprocent=tp,
                 netto_i_alt=netto, netto_real=netto_real, realfaktor=realfaktor, engangsbeloeb_netto=engangs,
                 sporing=tuple(o.brugt), flag=tuple(o.flag),
                 kapitalindkomst=buffer_ki, skat_kapitalindkomst=skat.skat_kapitalindkomst,
@@ -370,6 +416,26 @@ def beregn(
                 engangs_i_buffer[alder] = engangs_i_buffer.get(alder, 0.0) + beloeb
     if i_plan_indskud:
         engangs_i_buffer[tabel_start] = engangs_i_buffer.get(tabel_start, 0.0) + i_plan_indskud
+
+    def udjaevn(aar: list[Aarsresultat]) -> JaevnUdbetaling | None:
+        """Udjævning fra `jaevn_fra` (017). Årene før (arbejdsår) udjævnes ikke: det faste beløb er
+        årets nettoindkomst, og opsparing i planen og engangsbeløb samles i bufferen, vokser med
+        renten og indsættes ved stopalderen."""
+        foer = [a for a in aar if a.alder < jaevn_fra]
+        if not foer:
+            return beregn_jaevn(tuple(aar), engangs_i_buffer, rente_buffer, antagelser.inflation, beregningsdato.year)
+        engangs = dict(engangs_i_buffer)
+        b = 0.0
+        foer_aar = []
+        for a in foer:
+            normal = a.netto_i_alt - a.skat_kapitalindkomst
+            b = (b + engangs.pop(a.alder, 0.0)) * (1 + rente_buffer)
+            foer_aar.append(JaevnAar(alder=a.alder, jaevn=normal, normal=normal, fra_buffer=0.0, til_buffer=0.0,
+                                     buffer_rest=b))
+        engangs[jaevn_fra] = engangs.get(jaevn_fra, 0.0) + b
+        j = beregn_jaevn(tuple(a for a in aar if a.alder >= jaevn_fra), engangs, rente_buffer,
+                         antagelser.inflation, beregningsdato.year)
+        return JaevnUdbetaling(j.niveau_foerste_aar, j.niveau_real, tuple(foer_aar) + j.aar)
     # Stopkriterium: den jævne udbetaling ændrer sig i intet år mere end BUFFER_TOLERANCE_KR om
     # måneden fra én iteration til den næste (hovedtallet vises afrundet til 100 kr.).
     ki, formue = _buffer_ki_og_formue(buffer_start.jaevn, rente_buffer) if buffer_start else ({}, {})
@@ -379,7 +445,7 @@ def beregn(
     while True:
         iteration += 1
         aar, mellemskat_aldre, atp_skoennet = aar_for_aar(ki, formue)
-        jaevn = beregn_jaevn(tuple(aar), engangs_i_buffer, rente_buffer, antagelser.inflation, beregningsdato.year)
+        jaevn = udjaevn(aar)
         niveauer = [j.jaevn for j in jaevn.aar] if jaevn else []
         nye_ki, nye_formue = _buffer_ki_og_formue(jaevn, rente_buffer)
         if (nye_ki == ki and nye_formue == formue) or _samme_buffer(ki, nye_ki, formue, nye_formue) or (
@@ -445,6 +511,15 @@ def beregn(
             "ikke regnet med.",
             registerposter=("pal.sats",),
         ))
+    if har_loen and jaevn is not None:
+        hul = [j.alder for j in jaevn.aar if j.alder >= jaevn_fra and j.jaevn < BUFFER_TOLERANCE_KR * 12]
+        for fra, til in _intervaller(hul):
+            advarsler.append(Advarsel(
+                "INDKOMSTHUL",
+                f"Fra du stopper med at arbejde, har du ingen indkomst som {fra}–{til}-årig. Du kan "
+                "bruge opsparing uden for pension, begynde en udbetaling tidligere eller stoppe senere.",
+                aldre=(fra, til),
+            ))
     if not konvergeret:
         advarsler.append(Advarsel(
             "BUFFER_IKKE_KONVERGERET",
@@ -465,6 +540,7 @@ def beregn(
         formue=_formue(alder_nu, tabel_start, aar, jaevn, rente_buffer, i_plan_start, uroert_primo,
                        1 + antagelser.inflation),
         formue_start=i_plan_start + uroert_start,
+        jaevn_fra_alder=jaevn_fra,
     )
 
 

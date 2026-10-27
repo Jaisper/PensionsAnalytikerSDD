@@ -94,7 +94,67 @@ status = "verificeret"
 id = "skat.am_bidrag"
 vaerdi = 0.08
 enhed = "brok"
-kilde = "Arbejdsmarkedsbidragsloven § 1. Betales ved INDbetaling til arbejdsgiverordninger, aldrig ved udbetaling fra pensionsinstitutter (SKAT, B.3; domænegrundlag A1). Bruges ikke i udbetalingsberegningen."
+kilde = "Arbejdsmarkedsbidragsloven § 1. Betales af løn og ved INDbetaling til arbejdsgiverordninger, aldrig ved udbetaling fra pensionsinstitutter (SKAT, B.3; domænegrundlag A1). Bruges til løn (feature 017)."
+status = "verificeret"
+
+[[post]]
+id = "skat.beskaeftigelsesfradrag.sats"
+vaerdi = 0.1275
+enhed = "brok"
+kilde = "Ligningsloven § 9 J, stk. 1; Den juridiske vejledning C.A.4.3.7 (2026): 12,75 pct. af grundlaget for arbejdsmarkedsbidrag"
+status = "verificeret"
+
+[[post]]
+id = "skat.beskaeftigelsesfradrag.maks"
+vaerdi = 63300
+enhed = "kr_aar"
+kilde = "Ligningsloven § 9 J, stk. 1 (grundbeløb 46.100 kr., 2010-niveau, reguleret efter PSL § 20); Den juridiske vejledning C.A.4.3.7: 63.300 kr. i 2026"
+status = "verificeret"
+reguleres = true
+
+[[post]]
+id = "skat.jobfradrag.sats"
+vaerdi = 0.045
+enhed = "brok"
+kilde = "Ligningsloven § 9 K, stk. 1; Den juridiske vejledning C.A.4.3.8 (2026-2)"
+status = "verificeret"
+
+[[post]]
+id = "skat.jobfradrag.graense"
+vaerdi = 235200
+enhed = "kr_aar"
+kilde = "Ligningsloven § 9 K, stk. 1, reguleret efter PSL § 20; Den juridiske vejledning C.A.4.3.8: 235.200 kr. i 2026"
+status = "verificeret"
+reguleres = true
+
+[[post]]
+id = "skat.jobfradrag.maks"
+vaerdi = 3100
+enhed = "kr_aar"
+kilde = "Ligningsloven § 9 K, stk. 1, reguleret efter PSL § 20; Den juridiske vejledning C.A.4.3.8: 3.100 kr. i 2026"
+status = "verificeret"
+reguleres = true
+
+[[post]]
+id = "skat.seniorfradrag.sats"
+vaerdi = 0.014
+enhed = "brok"
+kilde = "Ligningsloven § 9 J, stk. 5 og 6 (gældende lov, indkomstår 2026–2028); Den juridiske vejledning C.A.4.3.7, version 3.16. Finanslovsaftalen for 2026 vil hæve satsen til 8,5 pct.; lovforslaget er ikke vedtaget (26.10.2026)"
+status = "verificeret"
+
+[[post]]
+id = "skat.seniorfradrag.maks"
+vaerdi = 6100
+enhed = "kr_aar"
+kilde = "Ligningsloven § 9 J, stk. 5 og 6 (grundbeløb 4.400 kr., 2010-niveau, reguleret efter PSL § 20); Den juridiske vejledning C.A.4.3.7: 6.100 kr. i 2026"
+status = "verificeret"
+reguleres = true
+
+[[post]]
+id = "skat.seniorfradrag.aar_foer_fp"
+vaerdi = 2
+enhed = "aar"
+kilde = "Ligningsloven § 9 J, stk. 5: de to seneste indkomstår før folkepensionsalderen; bortfalder i det indkomstår, hvor folkepensionsalderen nås (Den juridiske vejledning C.A.4.3.7)"
 status = "verificeret"
 
 [[post]]
@@ -232,6 +292,14 @@ kilde = "Lov om social pension (LBK nr. 1123 af 21/10/2024) § 29, stk. 6: den o
 status = "verificeret"
 
 # ── Personlig tillægsprocent og afledte ydelser ──────────────────────────────
+
+[[post]]
+id = "tp.arbejdsindkomst.bundfradrag"
+vaerdi = 122004
+enhed = "kr_aar"
+kilde = "Lov om social pension (personlig tillægsprocent); borger.dk, \"Din personlige tillægsprocent\": for folkepensionister indgår de første 122.004 kr. (2026) af egen arbejdsindkomst ikke. Egen arbejdsindkomst indgår ikke i pensionstillæggets indtægtsgrundlag (L 117, 2022-23)"
+status = "verificeret"
+reguleres = true
 
 [[post]]
 id = "tp.enlig.bund"

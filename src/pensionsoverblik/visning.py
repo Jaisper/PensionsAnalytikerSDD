@@ -29,11 +29,14 @@ def _hovedtal(res: Fremskrivning) -> dict:
     if res.jaevn:
         # Hovedtallet er det faste beløb hele perioden: det laveste jævne beløb (feature 008) — det
         # samme, som "Find bedste plan" bruger. Niveauet stiger kun, når et engangsbeløb lander
-        # (det lånes ikke på forhånd); et senere spring oplyses som "senere".
-        real = [j.jaevn * a.realfaktor / MAANEDER for j, a in zip(res.jaevn.aar, res.aar)]
+        # (det lånes ikke på forhånd); et senere spring oplyses som "senere". Med løn tæller kun
+        # årene fra stopalderen (017).
+        fra = res.jaevn_fra_alder or res.aar[0].alder
+        par = [(j, a) for j, a in zip(res.jaevn.aar, res.aar) if a.alder >= fra]
+        real = [j.jaevn * a.realfaktor / MAANEDER for j, a in par]
         ref = max([0] + [i for i in range(1, len(real)) if real[i] > real[i - 1] + 1])
-        senere = {"maaned": round(real[ref], -2), "fra_alder": res.aar[ref].alder} if ref else None
-        return {"type": "jaevn", "maaned": round(min(real), -2), "fra_alder": res.aar[0].alder, "senere": senere}
+        senere = {"maaned": round(real[ref], -2), "fra_alder": par[ref][1].alder} if ref else None
+        return {"type": "jaevn", "maaned": round(min(real), -2), "fra_alder": fra, "senere": senere}
     foerste_hele = next((a for a in res.aar if a.alder > res.folkepensionsalder), res.aar[-1])
     return {"type": "foerste_fp_aar", "maaned": round(foerste_hele.netto_real / MAANEDER, -2),
             "fra_alder": foerste_hele.alder, "senere": None}
@@ -131,7 +134,8 @@ def byg_visning(res: Fremskrivning) -> dict:
 
     jaevn = buffer = None
     if res.jaevn:
-        jaevn = [j.jaevn * a.realfaktor / MAANEDER for j, a in zip(res.jaevn.aar, res.aar)]
+        fra = res.jaevn_fra_alder or res.aar[0].alder  # arbejdsår (017) har ingen jævn linje
+        jaevn = [j.jaevn * a.realfaktor / MAANEDER if a.alder >= fra else None for j, a in zip(res.jaevn.aar, res.aar)]
         # Bufferen i dagens kroner. Den ender i 0; under 1 kr. er regnestøj (007 R002).
         buffer = [0.0 if abs(b := j.buffer_rest * a.realfaktor) < BUFFER_NUL_KR else b
                   for j, a in zip(res.jaevn.aar, res.aar)]

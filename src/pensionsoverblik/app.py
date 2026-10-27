@@ -64,6 +64,9 @@ PARTNER_FELTER = {
     "foedselsdato": "person.partner.foedselsdato",
     "atp_aarlig": "person.partner.profil.atp_aarlig",
     "antagelser.folkepension_opsaettelse_aar": "person.partner.profil.folkepension_opsaettelse_aar",
+    "loen.aarlig": "person.partner.profil.loen.aarlig",
+    "loen.deltid_aarlig": "person.partner.profil.loen.deltid_aarlig",
+    "loen.deltid_til_alder": "person.partner.profil.loen.deltid_til_alder",
 }
 
 
@@ -89,7 +92,9 @@ def _samlet(h, profil_a, profil_b, v_a: dict, v_b: dict) -> dict:
     netto pr. person og den samlede jævne udbetaling (kr./md., dagens kroner)."""
     def pr_aar(res):
         aar = {a.kalenderaar: a.netto_real / 12 for a in res.aar}
-        jaevn = {a.kalenderaar: j.jaevn * a.realfaktor / 12 for j, a in zip(res.jaevn.aar, res.aar)} if res.jaevn else {}
+        fra = res.jaevn_fra_alder or res.aar[0].alder  # arbejdsår (017) er ikke et fast beløb
+        jaevn = {a.kalenderaar: j.jaevn * a.realfaktor / 12 for j, a in zip(res.jaevn.aar, res.aar)
+                 if a.alder >= fra} if res.jaevn else {}
         return aar, jaevn
 
     def formue(res, profil):
@@ -146,6 +151,35 @@ def beregn(guide_json: str, idag: str) -> dict:
         partner["graenser"] = graenser(profil_b, _satsaar())
         visning["husstand"] = {"partner": partner, "samlet": _samlet(h, profil, profil_b, visning, partner)}
     return _ok(visning)
+
+
+def stopalder(guide_json: str, idag: str, maaned: float) -> dict:
+    """"Hvornår kan jeg stoppe?" (feature 017, US3): afprøver hver stopalder fra i dag til
+    folkepensionsalderen med den nuværende plan og giver den tidligste, hvor det faste beløb
+    (hovedtallet) når ønsket — ellers den bedste. Alle aldre afprøves (Princip V)."""
+    from pensionskerne.register.opslag import Regelopslag
+    from pensionskerne.regler.folkepension import folkepensionsalder
+
+    try:
+        data, dato = _data(guide_json, idag)
+        profil, _ = til_kerne(data)
+        if profil.loen is None or profil.loen.aarlig <= 0:
+            raise UgyldigtInput("loen.aarlig", "Skriv din løn, så vi kan finde ud af, hvornår du kan stoppe")
+        fra = dato.year - profil.foedselsdato.year
+        til = folkepensionsalder(profil.foedselsdato, Regelopslag(_satsaar(), dato.year, 0.0))
+        resultater = []
+        for alder in range(fra, til + 1):
+            data["person"]["loen"] = {**data["person"]["loen"], "stop_alder": alder}
+            r = beregn(json.dumps(data), idag)
+            if not r["ok"]:
+                return r
+            resultater.append({"alder": alder, "maaned": r["data"]["hovedtal"]["maaned"]})
+    except UgyldigtInput as e:
+        return _fejl("ugyldigt_input", e.besked, e.felt)
+    tidligste = next((x for x in resultater if x["maaned"] >= maaned), None)
+    bedste = max(resultater, key=lambda x: (x["maaned"], -x["alder"]))
+    return _ok({"kunne": tidligste is not None, **(tidligste or {"alder": None, "maaned": None}),
+                "bedste": bedste, "fra": fra, "til": til, "afproevet": len(resultater), "alle": resultater})
 
 
 # Usikkerhed (feature 018): afkast og inflation afprøves hver for sig og sammen omkring borgerens

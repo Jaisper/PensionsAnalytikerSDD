@@ -104,6 +104,13 @@ def valider(profil: Pensionsprofil, antagelser: Antagelser, satsaar: int, beregn
                     f"Sidste rate må senest udbetales som {sidste_tilladte}-årig",
                 )
 
+    if profil.loen is not None:
+        _ikke_negativ("loen.aarlig", profil.loen.aarlig)
+        _ikke_negativ("loen.deltid_aarlig", profil.loen.deltid_aarlig)
+        if profil.loen.deltid_aarlig > 0 and profil.loen.deltid_til_alder is not None and \
+                profil.loen.deltid_til_alder <= (profil.loen.stop_alder or fp_alder):
+            raise UgyldigtInput("loen.deltid_til_alder", "Deltidslønnen skal stoppe efter, at du stopper med fuld løn")
+
     aktiv_ids: set[str] = set()
     for aktiv in profil.opsparing:
         felt = f"opsparing[{aktiv.id}]"
