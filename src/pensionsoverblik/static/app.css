@@ -146,6 +146,7 @@ input[type="date"], input:not([type]), input[inputmode], select { font: inherit;
 .hero__forklaring { font-size: 1.05rem; max-width: 440px; opacity: .92; }
 .hero__aendring { font-weight: 700; color: var(--sand-300); min-height: 1.5em; }
 .hero__spaend { max-width: 440px; opacity: .92; margin-top: 4px; }
+.hero__loen { max-width: 440px; opacity: .92; margin-top: 4px; }
 .hero__spaend a { color: var(--hvid); }
 .hero__graf { padding: 48px max(24px, calc((100vw - var(--maks)) / 2 + 24px)) 40px 32px; display: flex; flex-direction: column; justify-content: center; min-width: 0; }
 .hero__graf-titel { font-size: 1.1rem; font-weight: 700; color: var(--petrol-900); }

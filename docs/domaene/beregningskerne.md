@@ -123,7 +123,8 @@ nævne og brugeren skal kunne se:
 2. **Satsregulering af skattegrænser, folkepension og ATP i fremtidige år** — legacy bruger
    inflationsantagelsen som proxy. Reelt følger satsreguleringen lønudviklingen (2027: 2,6 %).
    Forslag: separat parameter "satsreguleringsprocent" med inflation som default.
-3. **Fremskrivning af saldo**: FV med evt. voksende indbetalinger (lønvækst) frem til start.
+3. **Fremskrivning af saldo**: FV med indbetalinger, der følger satsreguleringen (017b) plus evt.
+   realvækst (`loenvaekst`), frem til start.
 4. **Udbetaling som annuitet** over perioden med samme afkast.
 5. **Proportional fordeling af progressiv skat og personfradrag** på indkomststrømme
    (for at kunne vise netto pr. ordning). Summen er korrekt; fordelingen er en konvention.
@@ -349,6 +350,11 @@ beløb vises i dagens kroner (inflationskorrigeret med antagelsens inflation, so
 
 **Modelvalg:**
 - Lønnen er i dagens kroner og reguleres med satsreguleringen, ikke med `loenvaekst`.
+- Pensionsindbetalingen er også i dagens kroner og reguleres med satsreguleringen (017b), så den
+  følger lønnen. `loenvaekst` er realvækst oven i (standard 0). Afkastet er det samme som for
+  ordningen. Legacy holdt indbetalingen fast i kroner, så den tabte købekraft hvert år.
+- Visningen viser lønnen efter skat og pensionsindbetaling pr. måned i dagens kroner (gennemsnit
+  af årene før stopalderen) ved hovedtallet, og hvor mange procent det faste beløb er af den.
 - Med løn begynder tabellen i dag. Udjævningen begynder ved stopalderen
   (`Fremskrivning.jaevn_fra_alder`). Årene før udjævnes ikke.
 - Opsparing i planen og engangsbeløb før stopalderen samles i bufferen og indsættes ved

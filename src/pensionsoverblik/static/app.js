@@ -1902,6 +1902,14 @@ function tegnPerson(v, foersteGang) {
         + (h.senere ? ` Fra du er ${h.senere.fra_alder}, stiger det til ca. ${kr(h.senere.maaned)} kr., når flere af dine udbetalinger er begyndt.` : "")
         + ` Din folkepensionsalder er ${v.folkepensionsalder} år.`)
     : `Efter skat og i dagens kroner, i dit første hele år med folkepension (${h.fra_alder} år).`;
+  // Nettolønnen til sammenligning (017b).
+  const nl = v.loen;
+  $("#hovedtal-loen").hidden = !nl;
+  if (nl) {
+    $("#hovedtal-loen").textContent = `Til sammenligning: ${partner ? "din partners" : "din"} løn giver ca. ${kr(nl.maaned)} kr. om måneden `
+      + `efter skat og pensionsindbetaling frem til ${nl.til_alder} år (i dagens kroner).`
+      + (nl.andel_pct !== null ? ` Det faste beløb er ${nl.andel_pct} % af det.` : "");
+  }
   const foer = tilstand.forrigeHovedtal;
   $("#hovedtal-aendring").textContent = foer !== null && foer !== h.maaned
     ? `${h.maaned > foer ? "↑" : "↓"} ${kr(Math.abs(h.maaned - foer))} kr. i forhold til før` : "";
@@ -1938,6 +1946,7 @@ function tegnSamlet() {
   $("#hovedtal-forklaring").textContent = `Dig ${kr(s.dig.maaned)} kr. og din partner ${kr(s.partner.maaned)} kr. om måneden – `
     + "jeres faste beløb, hvis I hver især udjævner. I dagens kroner. Jeres pensionstillæg og ældrecheck er regnet sammen, som loven siger.";
   $("#hovedtal-aendring").textContent = "";
+  $("#hovedtal-loen").hidden = true;
   const advarsler = [...vDig.hovedtal_advarsler, ...vP.hovedtal_advarsler].filter((a, i, l) => l.findIndex((b) => b.kode === a.kode) === i);
   $("#hovedtal-advarsler").replaceChildren(...advarsler.map((a) => advarselEl(a, "chip")));
   $("#hovedtal-forudsaetninger").hidden = !advarsler.length;

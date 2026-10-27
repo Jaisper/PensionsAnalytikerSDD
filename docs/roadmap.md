@@ -11,6 +11,7 @@ Numrene følger, hvornår en spec blev oprettet, ikke rækkefølgen herunder.
 | 018 | Usikkerhed om afkast (±1 procentpoint) og inflation (±0,5 procentpoint), som legacy | I luften (2026-10-26) | 007 |
 | 019 | Levetid som scenarie (planen til 85 og 95 år) | I luften (2026-10-26) | 018 |
 | 017 | Arbejdsår og løn før pension | I luften (2026-10-27) | 013 |
+| [017b](../specs/017b-nettoloen/spec.md) | Nettoløn ved hovedtallet; indbetalinger følger satsreguleringen | Færdig, ikke merget | 017 |
 | 020 | Forklaring i tre niveauer (020a–d), forenklingsregistret | I luften (2026-10-27); SC-004 brugertest udestår | 017 |
 | [024](../specs/024-gem-lokalt/spec.md) | Gem og genindlæs lokalt | Færdig, ikke merget | – |
 | [013b](../specs/013b-frit-depot-ask/spec.md) | Frit depot og aktiesparekonto | Spec (modnes) | 013, 017 |

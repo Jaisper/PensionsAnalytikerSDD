@@ -57,3 +57,21 @@ def test_hvornaar_kan_jeg_stoppe():
 def test_hvornaar_kan_jeg_stoppe_kraever_loen():
     r = app.stopalder(json.dumps(GUIDE), IDAG, 10000)
     assert not r["ok"] and r["fejl"]["felt"] == "loen.aarlig"
+
+
+def test_nettoloennen_pr_maaned_til_sammenligning():
+    """017b: løn efter skat og pensionsindbetaling pr. måned i dagens kroner, og hvor stor en del
+    af den det faste beløb udgør."""
+    v = app.beregn(json.dumps(med_loen(GUIDE)), IDAG)["data"]
+    nl = v["loen"]
+    assert nl["til_alder"] == 65
+    # Gennemsnittet af lønkildens netto i årene før stopalderen (ren omformatering).
+    netto = [k["netto"] * a["realfaktor"] for a in v["aar"] if a["alder"] < 65
+             for k in a["kilder"] if k["type"] == "loen"]
+    assert nl["maaned"] == round(sum(netto) / len(netto) / 12, -2)
+    assert 0 < nl["maaned"] < 450000 / 12
+    assert nl["andel_pct"] == round(100 * v["hovedtal"]["maaned"] / nl["maaned"])
+
+
+def test_ingen_nettoloen_uden_loen():
+    assert app.beregn(json.dumps(GUIDE), IDAG)["data"]["loen"] is None
