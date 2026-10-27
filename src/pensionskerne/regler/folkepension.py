@@ -72,6 +72,7 @@ def indtaegtsgrundlag(
     partner: PartnerIndkomst | None,
     partner_er_pensionist: bool,
     o: Regelopslag,
+    aktieindkomst: float = 0.0,
 ) -> float:
     """Indtægtsgrundlaget for pensionstillæg og personlig tillægsprocent.
 
@@ -80,7 +81,9 @@ def indtaegtsgrundlag(
     ikke ses bort fra (§ 29, stk. 5). Den opgjorte indtægt afrundes nedad til hele
     hundreder (§ 29, stk. 6).
     """
-    grundlag = privat_pensionsindkomst + atp + kapitalindkomst
+    # Aktieindkomst indgår (§ 29), undtagen aktieudbytte op til et grundbeløb; kernen regner ikke
+    # med udbytte (013b), så hele aktieindkomsten er gevinst ved salg og indgår.
+    grundlag = privat_pensionsindkomst + atp + kapitalindkomst + max(0.0, aktieindkomst)
     if partner is not None:
         andel = 1.0 if partner_er_pensionist else o.v("fp.partner_ikke_pensionist.medregnet_andel")
         grundlag += partner.oevrig_indkomst * andel

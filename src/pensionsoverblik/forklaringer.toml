@@ -21,6 +21,7 @@ inventar = [
   "Kapitalindkomst og bundfradrag",
   "Udjævning, fast beløb og buffer uden lån",
   "Opsparing uden for pension",
+  "Frit depot og aktiesparekonto",
   "Løn, stopalder og fradrag",
   "Usikkerhed og levetid",
   "Optimering",
@@ -221,9 +222,19 @@ titel = "Opsparing uden for pension"
 inventar = ["Opsparing uden for pension"]
 registerposter = []
 advarsler = ["OPSPARING_FOER_UDBETALING"]
-niveau1 = "Din opsparing i banken kan bruges i det faste beløb. Den kan også stå urørt og vokse. Den tæller med i formuegrænsen for ældrechecken."
+niveau1 = "Din opsparing kan bruges i det faste beløb. Den kan også stå urørt og vokse. Den tæller med i formuegrænsen for ældrechecken."
 niveau2 = "Opsparing, du bruger, lægges i bufferen fra din første udbetaling eller fra du stopper med at arbejde. Urørt opsparing vokser med afkastet, og skatten af afkastet betales af det faste beløb. Det, der står tilbage ved planens slutning, er din restformue."
 niveau3 = "Afkastet er positiv kapitalindkomst (PSL § 4) og indgår i indtægtsgrundlaget (lov om social pension § 29). Saldoen pr. 1. januar indgår i den likvide formue (§ 72 d, stk. 2)."
+
+[[emne]]
+id = "aktier"
+titel = "Frit depot og aktiesparekonto"
+inventar = ["Frit depot og aktiesparekonto"]
+registerposter = ["skat.aktieindkomst.*", "ask.*"]
+advarsler = ["AKTIEINDKOMST_OVER_GRAENSE", "ASK_OVER_LOFT"]
+niveau1 = "Aktier i et frit depot giver skat, når du sælger. En aktiesparekonto giver skat hvert år. Vi bruger først banken, så depotet og til sidst kontoen."
+niveau2 = "Når du sælger aktier, er gevinsten aktieindkomst. Den har sin egen skat med en lav og en høj sats. Gevinsten tæller med i dit pensionstillæg. Afkastet på en aktiesparekonto giver skat hvert år, men tæller ikke med i pensionstillægget. Begge dele tæller med i formuegrænsen for ældrechecken. Sælger du meget på et år, siger vi det."
+niveau3 = "Personskatteloven § 8 a om aktieindkomst og progressionsgrænsen. Ægtefæller kan overføre en uudnyttet grænse (stk. 4). Aktiesparekontoloven om lagerskat og indskudsloft. Lov om social pension § 29 om aktieindkomst i indtægtsgrundlaget og § 72 d, stk. 2, om likvid formue. Hele afkastet i depotet er regnet som kursgevinst. Udbytte er ikke med. Alle typer har samme afkast."
 
 [[emne]]
 id = "loen"

@@ -438,10 +438,19 @@ function loenSvar(pre = "") {
   };
 }
 
-/* Opsparing uden for pension (feature 013): ét bankaktiv pr. person. */
+/* Opsparing uden for pension (feature 013 og 013b): bank, frit depot og aktiesparekonto pr. person. */
 function opsparingSvar(pre = "") {
-  const saldo = beloeb($(`#${pre}bank`).value);
-  return saldo ? [{ id: `${pre}bank`, type: "bank", saldo, i_plan: $(`#${pre}bank-i-plan`).checked }] : [];
+  const svar = [];
+  const iPlan = (type) => $(`#${pre}${type}-i-plan`).checked;
+  const bank = beloeb($(`#${pre}bank`).value);
+  if (bank) svar.push({ id: `${pre}bank`, type: "bank", saldo: bank, i_plan: iPlan("bank") });
+  const depot = beloeb($(`#${pre}depot`).value);
+  if (depot) svar.push({ id: `${pre}depot`, type: "depot", saldo: depot, i_plan: iPlan("depot"),
+    urealiseret_gevinst: beloeb($(`#${pre}depot-gevinst`).value) });
+  const ask = beloeb($(`#${pre}ask`).value);
+  const indskud = pre ? null : beloeb($("#ask-indskud").value);
+  if (ask || indskud) svar.push({ id: `${pre}ask`, type: "ask", saldo: ask || 0, i_plan: iPlan("ask"), aarligt_indskud: indskud || 0 });
+  return svar;
 }
 
 function guideSvar() {
@@ -621,7 +630,7 @@ function tegnGraf(v) {
   const hoved = el("tr", {}, el("th", { scope: "col", tekst: "Alder" }), ...serier.map((s) => el("th", { scope: "col", tekst: s.titel })),
     el("th", { scope: "col", tekst: "I alt" }), jaevn ? el("th", { scope: "col", tekst: JAEVN_NAVN }) : null,
     el("th", { scope: "col", tekst: "Engangsbeløb" }), v.graf.buffer ? el("th", { scope: "col", tekst: "Buffer" }) : null,
-    v.graf.skat_buffer ? el("th", { scope: "col", tekst: "Skat af buffer pr. md." }) : null);
+    v.graf.skat_buffer ? el("th", { scope: "col", tekst: "Skat af opsparing pr. md." }) : null);
   const engangsPrAlder = new Map();
   for (const e of v.graf.engangs) engangsPrAlder.set(e.alder, (engangsPrAlder.get(e.alder) || 0) + e.netto_real);
   const raekker = v.graf.aldre.map((alder, i) => el("tr", {}, el("th", { scope: "row", tekst: `${alder} år` }),
@@ -1312,6 +1321,9 @@ function tegnAar(alder) {
           : check ? `Din tillægsprocent er ${a.tillaegsprocent} %, og du får ældrecheck.` : `Din tillægsprocent er ${a.tillaegsprocent} %, så du får ingen ældrecheck.`));
     }
     if (a.skat_kapitalindkomst > 0) linjer.push(`Afkastet af din opsparing er ${aar(a.kapitalindkomst)}. Skatten af det, ${aar(a.skat_kapitalindkomst)}, betales af opsparingen.`);
+    if (a.aktieindkomst > 0) linjer.push(`Du sælger aktier med en gevinst på ${aar(a.aktieindkomst)}. Skatten af gevinsten er ${aar(a.skat_aktieindkomst)}.`);
+    if (a.skat_aktiesparekonto > 0) linjer.push(`Skat af afkastet på aktiesparekontoen: ${aar(a.skat_aktiesparekonto)}.`);
+    if (a.indskud_opsparing > 0) linjer.push(`Du indskyder ${aar(a.indskud_opsparing)} på aktiesparekontoen.`);
     indhold.push(...afsnit(...linjer));
   }
   if (n === "niveau3" && d) {
@@ -1322,7 +1334,9 @@ function tegnAar(alder) {
       ["Nedsættelse fra ægtefælle", -s.aegtefaelle_nedsaettelse], ["AM-bidrag", d.am_bidrag]].filter(([, x]) => Math.abs(x) >= 0.5);
     indhold.push(tabel("Årets skat pr. type", ["Skattetype", "Beløb"], [
       ...typer.map(([t, x]) => [t, aar(x)]),
-      ["I alt (inkl. skat af kapitalindkomst)", aar(a.skat + a.skat_kapitalindkomst)],
+      ...[["Skat af aktieindkomst", a.skat_aktieindkomst], ["Skat af aktiesparekonto", a.skat_aktiesparekonto]]
+        .filter(([, x]) => x >= 0.5).map(([t, x]) => [t, aar(x)]),
+      ["I alt (inkl. skat af opsparing)", aar(a.skat + a.skat_kapitalindkomst + a.skat_aktieindkomst + a.skat_aktiesparekonto)],
     ]));
     indhold.push(...afsnit(
       d.ligningsmaessige_fradrag > 0 ? `Ligningsmæssige fradrag (kun kommune- og kirkeskat): ${aar(d.ligningsmaessige_fradrag)}.` : "",

@@ -9,7 +9,8 @@ Personerne kobles kun dér, hvor loven kobler dem:
 - Ældrechecks formuegrænse gælder husstandens samlede likvide formue (§ 72 d, stk. 2), også
   begges buffer og opsparing uden for pension (013).
 - Kun ægtefæller: uudnyttet skatteværdi af personfradrag nedsætter den andens skatter (PSL § 10,
-  stk. 3), og et uudnyttet bundfradrag for kapitalindkomst forhøjer den andens (PSL § 7, stk. 5).
+  stk. 3), et uudnyttet bundfradrag for kapitalindkomst forhøjer den andens (PSL § 7, stk. 5), og
+  en uudnyttet progressionsgrænse for aktieindkomst forhøjer den andens (PSL § 8 a, stk. 4; 013b).
 
 Hver persons tal afhænger af den andens (fx via bufferens kapitalindkomst), så husstanden løses
 ved deterministisk fastpunkt-iteration: B regnes uden kendt partner, så A med B, så B med A, …
@@ -47,7 +48,7 @@ def partner_fra(res: Fremskrivning, profil: Pensionsprofil, antagelser: Antagels
     foedselsaar = profil.foedselsdato.year
 
     def privat(a) -> float:
-        return sum(k.brutto for k in a.kilder if k.type in PRIVAT_INDKOMST) + a.kapitalindkomst
+        return sum(k.brutto for k in a.kilder if k.type in PRIVAT_INDKOMST) + a.kapitalindkomst + a.aktieindkomst
 
     return Partner(
         foedselsdato=profil.foedselsdato,
@@ -58,6 +59,7 @@ def partner_fra(res: Fremskrivning, profil: Pensionsprofil, antagelser: Antagels
         formue_pr_aar={foedselsaar + alder: v for alder, v in res.formue_primo().items() if v > 0},
         kapitalindkomst_pr_aar={k: pr_aar[k].kapitalindkomst if k in pr_aar else 0.0 for k in aar},
         uudnyttet_personfradrag_pr_aar={k: a.uudnyttet_personfradrag for k, a in pr_aar.items()},
+        aktieindkomst_pr_aar={k: pr_aar[k].aktieindkomst if k in pr_aar else 0.0 for k in aar},
         pensionist_fra_aar=foedselsaar + res.folkepensionsalder + antagelser.folkepension_opsaettelse_aar,
     )
 

@@ -65,7 +65,9 @@ CSV_KOLONNER = (  # (overskrift, nøgle i visningens år) — år for år, belø
     ("Skat", "skat"), ("Efter skat", "netto"), ("Efter skat i dagens kroner", "netto_real"),
     ("Indtægtsgrundlag", "indtaegtsgrundlag"), ("Tillægsprocent", "tillaegsprocent"),
     ("Engangsbeløb", "engangsbeloeb"), ("Kapitalindkomst", "kapitalindkomst"),
-    ("Skat af kapitalindkomst", "skat_kapitalindkomst"),
+    ("Skat af kapitalindkomst", "skat_kapitalindkomst"), ("Aktieindkomst", "aktieindkomst"),
+    ("Skat af aktieindkomst", "skat_aktieindkomst"), ("Skat af aktiesparekonto", "skat_aktiesparekonto"),
+    ("Indskud på aktiesparekonto", "indskud_opsparing"),
 )
 
 

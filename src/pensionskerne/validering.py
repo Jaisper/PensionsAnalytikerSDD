@@ -12,7 +12,7 @@ from .register.opslag import Regelopslag
 
 ORDNINGSTYPER = ("ratepension", "livsvarig", "aldersopsparing", "kapitalpension")
 UDBETALINGSFORMER = ("engangs", "portioner", "ratepension", "livsvarig")
-AKTIVTYPER = ("bank",)  # feature 013; frit depot og aktiesparekonto kommer i 013b
+AKTIVTYPER = ("bank", "depot", "ask")  # feature 013 og 013b
 
 
 def _ikke_negativ(felt: str, vaerdi: float | None) -> None:
@@ -120,6 +120,17 @@ def valider(profil: Pensionsprofil, antagelser: Antagelser, satsaar: int, beregn
         if aktiv.type not in AKTIVTYPER:
             raise UgyldigtInput(f"{felt}.type", f"Ukendt opsparingstype: {aktiv.type}")
         _ikke_negativ(f"{felt}.saldo", aktiv.saldo)
+        if aktiv.urealiseret_gevinst is not None:
+            if aktiv.type != "depot":
+                raise UgyldigtInput(f"{felt}.urealiseret_gevinst", "Kun et frit depot har en urealiseret gevinst")
+            if not 0 <= aktiv.urealiseret_gevinst <= aktiv.saldo:
+                raise UgyldigtInput(f"{felt}.urealiseret_gevinst", "Gevinsten skal være mellem 0 og depotets værdi")
+        if aktiv.aarligt_indskud:
+            _ikke_negativ(f"{felt}.aarligt_indskud", aktiv.aarligt_indskud)
+            if aktiv.type != "ask":
+                raise UgyldigtInput(f"{felt}.aarligt_indskud", "Løbende indskud gælder kun aktiesparekontoen")
+            if profil.loen is None or (profil.loen.aarlig <= 0 and profil.loen.deltid_aarlig <= 0):
+                raise UgyldigtInput(f"{felt}.aarligt_indskud", "Løbende indskud kræver, at du har en løn")
 
     if not 0 <= antagelser.folkepension_opsaettelse_aar <= o.v("opsat.maks_aar"):
         raise UgyldigtInput(
@@ -129,6 +140,11 @@ def valider(profil: Pensionsprofil, antagelser: Antagelser, satsaar: int, beregn
     for navn in ("afkast_efter_pal", "inflation", "loenvaekst"):
         if getattr(antagelser, navn) <= -1:
             raise UgyldigtInput(f"antagelser.{navn}", "Satsen skal være større end -100 %")
+    if not 0 <= antagelser.depot_urealiseret_andel <= 1:
+        raise UgyldigtInput("antagelser.depot_urealiseret_andel", "Andelen skal være mellem 0 og 100 %")
+    if not set(antagelser.traekraekkefoelge) <= set(AKTIVTYPER) or \
+            len(set(antagelser.traekraekkefoelge)) != len(antagelser.traekraekkefoelge):
+        raise UgyldigtInput("antagelser.traekraekkefoelge", "Rækkefølgen skal bestå af bank, depot og ask")
     if antagelser.satsregulering is not None and antagelser.satsregulering <= -1:
         raise UgyldigtInput("antagelser.satsregulering", "Satsen skal være større end -100 %")
     if antagelser.plan_slut_alder is not None and antagelser.plan_slut_alder <= beregningsdato.year - profil.foedselsdato.year:
