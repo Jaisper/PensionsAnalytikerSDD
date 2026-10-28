@@ -72,3 +72,17 @@ def test_bufferen_goer_ikke_en_plan_daarligere_end_at_skubbe_engangsbeloeb_sent(
     from pensionskerne.optimering import slutniveau
     p3, a3 = anvend(p, a, r.bedste)
     assert r.bedste_maaned >= 0.95 * slutniveau(beregn(p3, a3, 2026, BEREGNINGSDATO))
+
+
+def test_ved_uafgjort_vinder_det_flade_forloeb():
+    """Valgt 2026-10-28: kan det laveste beløb ikke blive højere, foretrækkes det mindste spring
+    op, ikke det højeste senere niveau. Den livsvarige kan tidligst udbetales som 75, så et
+    spring er uundgåeligt; at starte den senere gør kun springet større."""
+    p = enlig_profil(foedselsdato=date(1971, 3, 1), atp_aarlig=20_000, loen=Loen(600_000, stop_alder=63),
+                     ordninger=(Ordning("rate", "ratepension", 600_000, 66, oprettet=date(2012, 1, 1), udbetaling_aar=10,
+                                        tidligste_udbetalingsalder=63),
+                                Ordning("liv", "livsvarig", 3_000_000, 80, oprettet=date(2012, 1, 1),
+                                        tidligste_udbetalingsalder=75)))
+    a = Antagelser(afkast_efter_pal=0.04, inflation=0.02)
+    r = optimer(p, a, 2026, BEREGNINGSDATO)
+    assert r.bedste is not None and r.bedste.starter["liv"] == 75
