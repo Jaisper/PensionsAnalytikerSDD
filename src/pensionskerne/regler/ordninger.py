@@ -10,6 +10,8 @@
 """
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from ..register.opslag import Regelopslag
 
 
@@ -23,13 +25,14 @@ def indbetalingsloft(type: str, alder: int, folkepensionsalder: int, o: Regelops
     return None
 
 
-def rateplan(saldo: float, aar: int, afkast: float) -> list[float]:
-    """Årlige rater efter PBL § 11 A: værdien primo divideret med de resterende år."""
+def rateplan(saldo: float, aar: int, afkast: float | Sequence[float]) -> list[float]:
+    """Årlige rater efter PBL § 11 A: værdien primo divideret med de resterende år. `afkast` er
+    fast eller pr. år fra første rate (023a); et dårligt år giver lavere rater bagefter."""
     rater = []
     for i in range(aar):
         rate = saldo / (aar - i)
         rater.append(rate)
-        saldo = (saldo - rate) * (1 + afkast)
+        saldo = (saldo - rate) * (1 + (afkast[i] if isinstance(afkast, Sequence) else afkast))
     return rater
 
 
@@ -49,7 +52,7 @@ def engangs_netto(type: str, beloeb: float, o: Regelopslag, afgift_betalt: bool 
     return beloeb  # aldersopsparing og afgiftsberigtiget kapitalpension: skattefri
 
 
-def portioner(saldo: float, aar: int, afkast: float) -> list[float]:
+def portioner(saldo: float, aar: int, afkast: float | Sequence[float]) -> list[float]:
     """Delvis udbetaling af kapitalpension (PBL § 26) i `aar` portioner: restværdien divideret
     med resterende portioner, som ratepensionens rater. Restværdien forrentes i ordningen."""
     return rateplan(saldo, aar, afkast)

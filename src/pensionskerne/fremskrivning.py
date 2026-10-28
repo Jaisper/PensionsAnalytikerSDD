@@ -10,6 +10,7 @@ Pr. kalenderår:
 """
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 from datetime import date
 
@@ -153,6 +154,10 @@ def beregn(
     def opslag(alder: int) -> Regelopslag:
         return Regelopslag(satsaar, foedselsaar + alder, satsregulering, streng)
 
+    def afkast_i(alder: int) -> float:
+        """Årets afkast efter PAL-skat (023a): forløbet, ellers det faste afkast."""
+        return antagelser.afkast_i_aar(foedselsaar + alder)
+
     samlet = opslag(alder_nu)
     fp_alder = folkepensionsalder(profil.foedselsdato, samlet)
     advarsler: list[Advarsel] = []
@@ -232,9 +237,9 @@ def beregn(
 
         for ordning in ordninger:
             if alder < start[ordning.id]:
-                saldo[ordning.id] = saldo[ordning.id] * (1 + afkast) + indbetaling.get(ordning.id, 0.0)
+                saldo[ordning.id] = saldo[ordning.id] * (1 + afkast_i(alder)) + indbetaling.get(ordning.id, 0.0)
         if alder < overskud_start:
-            overskud_saldo = overskud_saldo * (1 + afkast) + overskud
+            overskud_saldo = overskud_saldo * (1 + afkast_i(alder)) + overskud
         o.antagelse("afkast_efter_pal", afkast)
         samlet.overtag(o)
 
@@ -264,13 +269,15 @@ def beregn(
         if beregnet_type == "ratepension":
             aar = ordning.udbetaling_aar or o.v("ordning.ratepension.min_aar")
             resterende = aar - (alder_nu - ordning.udbetaling_start_alder) if ordning.udbetaling_start_alder < alder_nu else aar
-            for i, rate in enumerate(rateplan(saldo[ordning.id], max(0, resterende), afkast)):
+            rate_aar = max(0, resterende)
+            for i, rate in enumerate(rateplan(saldo[ordning.id], rate_aar, [afkast_i(s + j) for j in range(rate_aar)])):
                 plan.rater[s + i] = rate
         elif beregnet_type == "livsvarig":
             horisont = max(antagelser.livsvarig_min_aar, antagelser.livsvarig_horisont_alder - s)
             plan.livsvarig = livsvarig_ydelse(saldo[ordning.id], horisont, afkast)
         elif form == "portioner":
-            for i, brutto_portion in enumerate(portioner(saldo[ordning.id], ordning.udbetaling_aar, afkast)):
+            portion_afkast = [afkast_i(s + j) for j in range(ordning.udbetaling_aar)]
+            for i, brutto_portion in enumerate(portioner(saldo[ordning.id], ordning.udbetaling_aar, portion_afkast)):
                 plan.engangs[s + i] = engangs_netto(ordning.type, brutto_portion, o, ordning.afgift_betalt)
             o.v("ordning.kapitalpension.seneste_aar_efter_udbetalingsalder")
         else:
@@ -322,11 +329,22 @@ def beregn(
     # forenkling), depotet uden skat (der sælges ikke) og aktiesparekontoen efter lagerskat (banken
     # trækker den på kontoen). Opsparing i planen indsættes i bufferen primo første udbetalingsår i
     # sit eget lag; urørt opsparing vokser videre, og skatten af dens afkast betales af udbetalingen.
-    rente_buffer = afkast / (1 - samlet.v("pal.sats"))
+    pal = samlet.v("pal.sats")
+    rente_buffer = afkast / (1 - pal)
     samlet.antagelse("buffer_afkast_som_pension", rente_buffer)
+
+    def rente_i(alder: int) -> float:
+        """Bufferens og opsparingens afkast før skat i året (023a)."""
+        return afkast_i(alder) / (1 - pal)
+
     ask_sats = samlet.v("ask.sats") if any(a.type == "ask" for a in profil.opsparing) else 0.0
-    vaekst_foer = (1 + rente_buffer, 1 + rente_buffer, 1 + rente_buffer * (1 - ask_sats))
-    vaekst_efter = (1 + rente_buffer,) * len(AKTIVLAG)
+
+    def vaekst_foer(alder: int) -> tuple[float, ...]:
+        r = rente_i(alder)
+        return 1 + r, 1 + r, 1 + r - max(0.0, r) * ask_sats  # ASK: lagerskat kun af gevinst
+
+    def vaekst_efter(alder: int) -> tuple[float, ...]:
+        return (1 + rente_i(alder),) * len(AKTIVLAG)
 
     def lag_i_dag(i_plan: bool) -> _Lag:
         lag = _Lag()
@@ -380,7 +398,7 @@ def beregn(
     i_plan_start = plan_lag.total
     plan_foer_ultimo: dict[int, float] = {}
     for alder in range(alder_nu, tabel_start):
-        plan_lag.vaekst(*vaekst_foer)
+        plan_lag.vaekst(*vaekst_foer(alder))
         plan_foer_ultimo[alder] = plan_lag.total
     i_plan_indskud = plan_lag.total
     if i_plan_indskud:
@@ -399,11 +417,11 @@ def beregn(
             if alder in indskud_uroert:
                 uroert.tilfoej(indskud_uroert[alder])
             if alder >= tabel_start:
-                uroert_ki[alder] = uroert.bank * rente_buffer
-                uroert_ask[alder] = uroert.ask * rente_buffer
-                uroert.vaekst(*vaekst_efter)
+                uroert_ki[alder] = uroert.bank * rente_i(alder)
+                uroert_ask[alder] = uroert.ask * rente_i(alder)
+                uroert.vaekst(*vaekst_efter(alder))
             else:
-                uroert.vaekst(*vaekst_foer)
+                uroert.vaekst(*vaekst_foer(alder))
             uroert_ultimo[alder] = uroert.total
 
     def husstandens_formue(alder: int, kalenderaar: int, egen_buffer: dict[int, float]) -> float:
@@ -470,6 +488,8 @@ def beregn(
                 elif plan.livsvarig and alder >= plan.start:
                     brutto[plan.id] = ("livsvarig", plan.livsvarig)
                     o.antagelse("afkast_efter_pal", afkast)
+                    if antagelser.afkast_forloeb:  # livrenten følger det forventede afkast (023a)
+                        o.marker("forenkling:livsvarig_uden_aarets_afkast")
                     o.antagelse("livsvarig_horisont_alder", antagelser.livsvarig_horisont_alder)
                 elif alder in plan.engangs:
                     engangs += plan.engangs[alder]
@@ -616,7 +636,7 @@ def beregn(
         engangs_i_buffer[alder] = engangs_i_buffer.get(alder, 0.0) + lag.total
 
     def opsparingsskat(jaevn: JaevnUdbetaling | None) -> _Opsparingsskat:
-        return _lag_forloeb(jaevn, engangs_bank, indskud_plan, rente_buffer, antagelser.traekraekkefoelge)
+        return _lag_forloeb(jaevn, engangs_bank, indskud_plan, rente_i, rente_buffer > 0, antagelser.traekraekkefoelge)
 
     def udjaevn(aar: list[Aarsresultat]) -> JaevnUdbetaling | None:
         """Udjævning fra `jaevn_fra` (017). Årene før (arbejdsår) udjævnes ikke: det faste beløb er
@@ -624,18 +644,19 @@ def beregn(
         renten og indsættes ved stopalderen."""
         foer = [a for a in aar if a.alder < jaevn_fra]
         if not foer:
-            return beregn_jaevn(tuple(aar), engangs_i_buffer, rente_buffer, antagelser.inflation, beregningsdato.year)
+            return beregn_jaevn(tuple(aar), engangs_i_buffer, [rente_i(a.alder) for a in aar], antagelser.inflation,
+                                beregningsdato.year)
         engangs = dict(engangs_i_buffer)
         b = 0.0
         foer_aar = []
         for a in foer:
             normal = a.disponibel
-            b = (b + engangs.pop(a.alder, 0.0)) * (1 + rente_buffer)
+            b = (b + engangs.pop(a.alder, 0.0)) * (1 + rente_i(a.alder))
             foer_aar.append(JaevnAar(alder=a.alder, jaevn=normal, normal=normal, fra_buffer=0.0, til_buffer=0.0,
                                      buffer_rest=b))
         engangs[jaevn_fra] = engangs.get(jaevn_fra, 0.0) + b
-        j = beregn_jaevn(tuple(a for a in aar if a.alder >= jaevn_fra), engangs, rente_buffer,
-                         antagelser.inflation, beregningsdato.year)
+        efter = tuple(a for a in aar if a.alder >= jaevn_fra)
+        j = beregn_jaevn(efter, engangs, [rente_i(a.alder) for a in efter], antagelser.inflation, beregningsdato.year)
         return JaevnUdbetaling(j.niveau_foerste_aar, j.niveau_real, tuple(foer_aar) + j.aar)
     # Stopkriterium: den jævne udbetaling ændrer sig i intet år mere end BUFFER_TOLERANCE_KR om
     # måneden fra én iteration til den næste (hovedtallet vises afrundet til 100 kr.).
@@ -787,7 +808,7 @@ def _formue(alder_nu, tabel_start, aar, jaevn, plan_foer_ultimo, uroert_ultimo, 
 
 
 def _lag_forloeb(jaevn: JaevnUdbetaling | None, engangs_bank: dict[int, float], indskud: dict[int, "_Lag"],
-                 rente: float, raekkefoelge: tuple[str, ...]) -> _Opsparingsskat:
+                 rente_i: Callable[[int], float], med_formue: bool, raekkefoelge: tuple[str, ...]) -> _Opsparingsskat:
     """Bufferen fordelt på lag (013b) ud fra udjævningens indsættelser og træk. Hvert år:
     engangsbeløb og overskud går i banken og opsparing i sit eget lag; trækket tages i
     rækkefølgen (depotet realiserer gevinsten forholdsmæssigt); derefter afkastet. Bankens afkast er
@@ -808,12 +829,13 @@ def _lag_forloeb(jaevn: JaevnUdbetaling | None, engangs_bank: dict[int, float], 
         gevinst = lag.traek(j.fra_buffer, raekkefoelge)
         if gevinst > 0:
             aktieindkomst[j.alder] = gevinst
+        rente = rente_i(j.alder)
         if lag.bank * rente > 0:
             ki[j.alder] = lag.bank * rente
         if lag.ask * rente > 0:
             ask_afkast[j.alder] = lag.ask * rente
         lag.vaekst(1 + rente, 1 + rente, 1 + rente)
-        if lag.total > 0 and rente > 0:  # som 009: uden afkast tæller bufferen ikke i formuen
+        if lag.total > 0 and med_formue:  # som 009: uden afkast tæller bufferen ikke i formuen
             formue[j.alder + 1] = lag.total
     slut = jaevn.aar[-1].alder + 1
     formue.pop(slut, None)

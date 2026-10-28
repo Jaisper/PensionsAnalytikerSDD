@@ -14,7 +14,7 @@ def med_antagelser(guide, afkast, inflation):
 
 def test_seks_scenarier_om_borgerens_valg():
     s = {x["noegle"]: (x["afkast"], x["inflation"]) for x in app.scenarier(json.dumps(GUIDE))
-         if not x["noegle"].startswith("levetid")}
+         if not x["noegle"].startswith("levetid") and not x.get("stress")}
     assert s == {
         "lavere_afkast": (pytest.approx(0.02), 0.02), "hoejere_afkast": (pytest.approx(0.04), 0.02),
         "hoejere_inflation": (0.03, pytest.approx(0.025)), "lavere_inflation": (0.03, pytest.approx(0.015)),

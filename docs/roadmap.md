@@ -12,12 +12,13 @@ Numrene følger, hvornår en spec blev oprettet, ikke rækkefølgen herunder.
 | 019 | Levetid som scenarie (planen til 85 og 95 år) | I luften (2026-10-26) | 018 |
 | 017 | Arbejdsår og løn før pension | I luften (2026-10-27) | 013 |
 | [017b](../specs/017b-nettoloen/spec.md) | Nettoløn ved hovedtallet; indbetalinger følger satsreguleringen | I luften (2026-10-27) | 017 |
-| [017c](../specs/017c-loenseddel/spec.md) | Løn som på lønsedlen: månedsløn og pensionsprocenter | Færdig, ikke merget | 017b |
+| [017c](../specs/017c-loenseddel/spec.md) | Løn som på lønsedlen: månedsløn og pensionsprocenter | I luften (2026-10-28) | 017b |
 | 020 | Forklaring i tre niveauer (020a–d), forenklingsregistret | I luften (2026-10-27); SC-004 brugertest udestår | 017 |
 | [024](../specs/024-gem-lokalt/spec.md) | Gem og genindlæs lokalt | I luften (2026-10-27) | – |
 | [013b](../specs/013b-frit-depot-ask/spec.md) | Frit depot og aktiesparekonto | I luften (2026-10-28) | 013, 017 |
 | [021](../specs/021-naeste-krone/spec.md) | "Hvor skal næste krone hen?" | I luften (2026-10-28) | 017, 013b (014 for afdrag) |
-| [023](../specs/023-afkast-pr-aar/spec.md) | Afkast pr. år og "dårlige år først" | Spec (modnes) | – |
+| [023a](../specs/023-afkast-pr-aar/spec.md) | Afkast pr. år og "dårlige år først" | Færdig, ikke merget | – |
+| [023b](../specs/023-afkast-pr-aar/spec.md) | Afkast pr. aktivtype (bank, depot, ASK, pension) | Spec (modnes) | 023a, 013b |
 | [022](../specs/022-efterladte/spec.md) | "Hvad hvis min partner dør?" | Spec (modnes) | 012, 018, 019 |
 | – | Optimér trækrækkefølge (013 US3) | Idé | 017, 013b |
 | [014](../specs/014-bolig/spec.md) | Bolig og friværdi (014a–d) | Spec (modnes) | 013, 013b |

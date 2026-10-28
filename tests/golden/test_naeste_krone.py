@@ -46,7 +46,10 @@ def test_loebende_indskud_i_banken():
         assert med.aar_ved(alder).indskud_opsparing == pytest.approx(20_000)
     assert med.aar_ved(64).indskud_opsparing == 0
     assert med.formue_primo()[64] > 4 * 20_000                        # med afkast
-    assert min(j.jaevn for j in med.jaevn.aar if j.alder >= 68) > min(j.jaevn for j in uden.jaevn.aar if j.alder >= 68)
+    # Pengene bruges i indkomsthullet 64–67; fra 68 er niveauet det samme (før 023a testede vi
+    # "større fra 68", som kun holdt på afrundingsstøj).
+    assert min(j.jaevn for j in med.jaevn.aar if 64 <= j.alder < 68) > 20_000
+    assert max(j.jaevn for j in uden.jaevn.aar if 64 <= j.alder < 68) == 0
     assert not any(a.kode == "ASK_OVER_LOFT" for a in med.advarsler)
 
 

@@ -466,3 +466,18 @@ PDF-import fra PensionsInfo · AI-forklaring/chat · Optimering af udbetalingsr�
 - [lex.dk — folkepension og pensionsalder](https://lex.dk/folkepension_og_pensionsalder)
 - [dinero.dk — personfradrag](https://dinero.dk/ordbog/personfradrag/) · [bundskat](https://dinero.dk/ordbog/bundskat)
 - [Nordnet — hvornår kan jeg få udbetalt min pension](https://www.nordnet.dk/dk/kundskab/academy/pension/hvornar-kan-jeg-fa-udbetalt-min-pension)
+
+## 7l. Afkast pr. år og "dårlige år først" (feature 023a)
+
+- `Antagelser.afkast_forloeb`: afkast efter PAL-skat pr. kalenderår. Mangler et år, bruges
+  `afkast_efter_pal`. Uden forløb er alt som før (ingen golden case ændret).
+- Opsparingen i ordningerne frem til start, ratepensionens rater (restværdi / resterende år, PBL
+  § 11 A), kapitalpensionens portioner, bufferen, opsparingen uden for pension og den urørte
+  opsparing følger årets afkast. `beregn_jaevn` tager en rente pr. række og diskonterer år for år.
+- Livsvarig pension følger det forventede afkast (forenkling `livsvarig_uden_aarets_afkast`).
+- Negativ kapitalindkomst og tab på aktiesparekontoen fremføres ikke (som før: kun positivt afkast
+  beskattes).
+- "Dårlige år først" og "Gode år først" (appen): de to første år fra hovedtallets startalder får
+  afkastet ∓ 2σ × (1 − PAL), σ ≈ 8,33 % for 50/50 globale aktier og stats- og
+  realkreditobligationer (Rådet for Afkastforventninger, 2. halvår 2026).
+

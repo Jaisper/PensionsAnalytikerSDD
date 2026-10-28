@@ -23,6 +23,7 @@ Betalinger sker primo året. Beløb er kr. pr. år (månedligt = / 12 i præsent
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 
 from .model import Aarsresultat, JaevnAar, JaevnUdbetaling
 
@@ -37,15 +38,16 @@ BUFFER_MAKS_ITERATIONER = 12
 def beregn_jaevn(
     raekker: tuple[Aarsresultat, ...],
     engangs_i_buffer: dict[int, float],
-    rente: float,
+    rente: float | Sequence[float],
     inflation: float,
     beregningsaar: int,
 ) -> JaevnUdbetaling | None:
     if not raekker:
         return None
     vaekst = 1 + inflation
-    diskont = 1 / (1 + rente)
     n = len(raekker)
+    # Bufferens rente pr. række (023a); fast rente er det samme hvert år.
+    renter = list(rente) if isinstance(rente, Sequence) else [rente] * n
     normal = [r.disponibel for r in raekker]
     indbetaling = [normal[t] + engangs_i_buffer.get(r.alder, 0.0) for t, r in enumerate(raekker)]
 
@@ -55,8 +57,10 @@ def beregn_jaevn(
     while i < n:
         bedste_c, bedste_k = math.inf, i
         nv_ind, nv_vaekst = buffer, 0.0
+        faktor = 1.0
         for k in range(i, n):
-            faktor = diskont ** (k - i)
+            if k > i:
+                faktor /= 1 + renter[k - 1]
             nv_ind += indbetaling[k] * faktor
             nv_vaekst += vaekst ** (k - i) * faktor
             c = nv_ind / nv_vaekst
@@ -64,14 +68,14 @@ def beregn_jaevn(
                 bedste_c, bedste_k = min(c, bedste_c), k
         for t in range(i, bedste_k + 1):
             niveau[t] = bedste_c * vaekst ** (t - i)
-            buffer = (buffer + indbetaling[t] - niveau[t]) * (1 + rente)
+            buffer = (buffer + indbetaling[t] - niveau[t]) * (1 + renter[t])
         i = bedste_k + 1
 
     buffer = 0.0
     aar: list[JaevnAar] = []
     for t, r in enumerate(raekker):
         forskel = niveau[t] - normal[t]
-        buffer = (buffer + engangs_i_buffer.get(r.alder, 0.0) - forskel) * (1 + rente)
+        buffer = (buffer + engangs_i_buffer.get(r.alder, 0.0) - forskel) * (1 + renter[t])
         aar.append(JaevnAar(
             alder=r.alder, jaevn=niveau[t], normal=normal[t],
             fra_buffer=max(0.0, forskel), til_buffer=max(0.0, -forskel), buffer_rest=buffer,
