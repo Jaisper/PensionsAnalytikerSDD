@@ -18,8 +18,10 @@ er ens i alle kandidater, så de holdes ude af sammenligningen.
 
 1. GULV: det faste beløb må ikke være under GULV_ANDEL af udgangspunktets.
 2. DYBDE: laveste rå udbetaling må ikke være under DYBDE_TOLERANCE af udgangspunktets laveste.
-3. VARIGHED: antallet af år med rå udbetaling under HARDSHIP_ANDEL af kandidatens eget faste
-   beløb må ikke overstige udgangspunktets antal.
+3. VARIGHED: antallet af år med rå udbetaling under HARDSHIP_ANDEL af udgangspunktets faste
+   beløb må ikke overstige udgangspunktets antal. (Indtil 2026-10-28 af kandidatens eget faste
+   beløb: så gjorde et højere fast beløb fra bufferen flere år "lave", og planer, der skubbede
+   engangsbeløb sent, vandt.)
 4. BUFFERDÆKNING: den dybeste negative buffer må højst være én måneds fast beløb dybere end
    udgangspunktets.
 5. BUFFER-VARIGHED: antallet af år med negativ buffer må ikke overstige udgangspunktets.
@@ -292,7 +294,7 @@ def _gennemfoerlig(res: Fremskrivning, ref: _Reference) -> float | None:
     raa = _raa(res, ref.vindue)
     if min(raa.values()) < DYBDE_TOLERANCE * ref.laveste_raa:
         return None
-    if sum(1 for v in raa.values() if v < HARDSHIP_ANDEL * m * MAANEDER) > ref.hardship_aar:
+    if sum(1 for v in raa.values() if v < HARDSHIP_ANDEL * ref.maaned * MAANEDER) > ref.hardship_aar:
         return None
     buffer = _buffer_real(res)
     if min(buffer, default=0.0) < ref.laveste_buffer - BUFFER_TOLERANCE_MAANEDER * m:

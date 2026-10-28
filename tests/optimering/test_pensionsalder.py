@@ -44,3 +44,31 @@ def test_den_bedste_plan_maales_fra_pensionsalderen():
     assert r.bedste is not None
     assert min(r.bedste.starter.values()) >= 68
     assert r.bedste_maaned > r.udgangspunkt_maaned
+
+
+def test_bufferen_goer_ikke_en_plan_daarligere_end_at_skubbe_engangsbeloeb_sent():
+    """Fejl fundet 2026-10-28: ordningerne starter efter stopalderen, så egen plan har år uden
+    indkomst (fast beløb 0). Værnet VARIGHED målte "lave år" mod kandidatens eget faste beløb, så
+    planer, der bruger engangsbeløbene i bufferen, blev afvist, og engangsbeløb og folkepension
+    blev skubbet sent. Nu måles mod udgangspunktets faste beløb."""
+    from pensionskerne import Loen
+    from pensionskerne.optimering import anvend, fast_niveau, maalvindue, Plan
+    from pensionskerne import beregn
+
+    t = dict(tidligste_udbetalingsalder=60)
+    p = enlig_profil(foedselsdato=date(1971, 3, 1), atp_aarlig=20_000, loen=Loen(850_000, stop_alder=63),
+                     ordninger=(Ordning("rate", "ratepension", 2_000_000, 66, oprettet=date(2012, 1, 1), udbetaling_aar=10, **t),
+                                Ordning("liv", "livsvarig", 3_000_000, 70, oprettet=date(2012, 1, 1), **t),
+                                Ordning("kap", "kapitalpension", 1_500_000, 66, oprettet=date(2005, 1, 1), **t),
+                                Ordning("ald", "aldersopsparing", 450_000, 66, oprettet=date(2012, 1, 1), **t)))
+    a = Antagelser(afkast_efter_pal=0.04, inflation=0.02)
+    r = optimer(p, a, 2026, BEREGNINGSDATO)
+    alt_ved_stop = Plan(starter={"rate": 63, "liv": 63, "kap": 63, "ald": 63}, varighed={"rate": 10},
+                        opsaettelse=0, form={"kap": ("engangs", None)})
+    p2, a2 = anvend(p, a, alt_ved_stop)
+    res = beregn(p2, a2, 2026, BEREGNINGSDATO)
+    assert r.bedste_maaned >= fast_niveau(res, maalvindue(res, p2)) - 1
+    # Ingen trappe: før rettelsen 22.065 → 27.360 → 32.933 kr./md.; nu fladt.
+    from pensionskerne.optimering import slutniveau
+    p3, a3 = anvend(p, a, r.bedste)
+    assert r.bedste_maaned >= 0.95 * slutniveau(beregn(p3, a3, 2026, BEREGNINGSDATO))
