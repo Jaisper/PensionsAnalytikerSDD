@@ -82,6 +82,9 @@ def til_kerne(data: dict) -> tuple[Pensionsprofil, Antagelser]:
         plan_slut_alder=_heltal(a.get("plan_slut_alder"), "antagelser.plan_slut_alder"),
         # 013b: rækkefølgen, opsparingen bruges i (grænseflade til en senere optimering).
         traekraekkefoelge=tuple(a.get("traekraekkefoelge") or standard.traekraekkefoelge),
+        # 023a: afkast efter PAL-skat pr. kalenderår (JSON-nøgler er tekst).
+        afkast_forloeb={_heltal(aar, "antagelser.afkast_forloeb"): _tal(v, "antagelser.afkast_forloeb")
+                        for aar, v in (a.get("afkast_forloeb") or {}).items()},
     )
     return profil, antagelser
 

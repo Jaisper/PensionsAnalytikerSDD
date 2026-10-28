@@ -1920,13 +1920,21 @@ async function regnUsikkerhed() {
     const raekker = [];
     for (const s of liste) {
       if (nr !== usikkerhedNr) return;
-      const r = await kald("scenarie", svar, idag(), s.afkast, s.inflation, s.plan_slut_alder);
+      const r = await kald("scenarie", svar, idag(), s.afkast, s.inflation, s.plan_slut_alder, s.stress ?? 0);
       raekker.push({ ...s, beloeb: r.ok ? r.data : null });
     }
     if (nr !== usikkerhedNr) return;
     tilstand.usikkerhed = raekker;
     tegnUsikkerhed();
   } catch { /* spændet er en ekstra oplysning; resultatet står stadig */ }
+}
+
+/* Afkastet i tabellen; med gode eller dårlige år først (023a): årenes afkast og så det normale. */
+function afkastTekst(r) {
+  const f = r.beloeb?.forloeb;
+  if (!f) return procent(r.afkast);
+  const aar = Object.keys(f);
+  return `${procent(f[aar[0]])} i ${aar[0]}–${aar.at(-1)}, derefter ${procent(r.afkast)}`;
 }
 
 function tegnUsikkerhed() {
@@ -1943,8 +1951,9 @@ function tegnUsikkerhed() {
   const normalSlut = tilstand.vDig.antagelser.livsvarig_horisont_alder;
   const raekker = [{ titel: "Dit valg", afkast: a.afkast_efter_pal, inflation: a.inflation, plan_slut_alder: null, vaerdi: eget },
     ...u.map((r) => ({ ...r, vaerdi: r.beloeb ? r.beloeb[hvem] : null }))];
-  // Spændet gælder afkast og inflation (018). Levetid (019) er et andet spørgsmål og står kun i tabellen.
-  const tal = raekker.filter((r) => r.plan_slut_alder === null).map((r) => r.vaerdi).filter((x) => x !== null && x !== undefined);
+  // Spændet gælder afkast og inflation (018). Levetid (019) og rækkefølgen af gode og dårlige år
+  // (023a) er andre spørgsmål og står kun i tabellen.
+  const tal = raekker.filter((r) => r.plan_slut_alder === null && !r.stress).map((r) => r.vaerdi).filter((x) => x !== null && x !== undefined);
   const min = Math.min(...tal);
   const max = Math.max(...tal);
   linje.replaceChildren(`Hvis afkast og inflation bliver anderledes: mellem ${kr(min)} og ${kr(max)} kr. `,
@@ -1954,7 +1963,7 @@ function tegnUsikkerhed() {
     el("caption", { class: "sr-only", tekst: "Det faste beløb om måneden efter skat i dagens kroner ved andet afkast og anden inflation" }),
     el("thead", {}, el("tr", {}, ...["Scenarie", "Afkast", "Inflation", "Planen rækker til", "Fast beløb om måneden"].map((x) => el("th", { scope: "col", tekst: x })))),
     el("tbody", {}, raekker.map((r) => el("tr", {}, el("th", { scope: "row", tekst: r.titel }),
-      el("td", { tekst: procent(r.afkast) }), el("td", { tekst: procent(r.inflation) }),
+      el("td", { tekst: afkastTekst(r) }), el("td", { tekst: procent(r.inflation) }),
       el("td", { tekst: `${r.plan_slut_alder ?? normalSlut} år` }),
       el("td", { tekst: r.vaerdi === null || r.vaerdi === undefined ? "–" : `${kr(r.vaerdi)} kr.` }))))));
   // Lever du længere end planen (019): kun for én person, ikke under "Samlet".

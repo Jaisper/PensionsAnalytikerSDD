@@ -4,7 +4,8 @@
 
 **Created**: 2026-10-27
 
-**Status**: Draft – besluttet 2026-10-27 (som foreslået); clarify med primærkilder før plan
+**Status**: 023a implementeret 2026-10-28 (afkast pr. år og "dårlige år først"). 023b (afkast pr.
+aktivtype, flyttet hertil fra 013b) mangler.
 
 **Input**: Besluttet 2026-10-26 som trin før Monte Carlo (016): "Et fast stress-forløb, fx −15 % de
 første to år efter pensionsstart og derefter normalt afkast. Viser sekvensrisikoen uden statistik.
@@ -44,12 +45,24 @@ bliver lavere, end gennemsnittet lover (sekvensrisiko). Det kan værktøjet ikke
 - **Besluttet 2026-10-27 (som foreslået):** Kommer "gode år først" også? → ja, symmetrisk, så spændet ikke ser
   ensidigt ud.
 
+- **Afklaret 2026-10-28 (primærkilde):** Rådet for Afkastforventninger, "Afkastforventninger for 2.
+  halvår 2026" (afkastforventninger.dk), standardafvigelser for år 1–10: stats- og
+  realkreditobligationer 3,9 %, globale aktier (developed markets) 16,2 %, korrelation 0,0. Med 50/50
+  er σ = ½·√(16,2² + 3,9²) ≈ 8,33 %. To standardafvigelser efter PAL-skat (15,3 %): ≈ 14,1
+  procentpoint. Med 4 % efter PAL er et dårligt år ≈ −10,1 % og et godt ≈ +18,1 %.
+- **Afklaret 2026-10-28:** "Gode år først" kan ikke hæve hovedtallet, når det laveste år er det
+  første (udjævningen låner aldrig, 010). Det hæver de senere år.
+- **Afklaret 2026-10-28:** Stress-scenarierne indgår ikke i spændet ved hovedtallet (som levetid,
+  019). De står kun i tabellen.
+- **023b (åben):** Afkast pr. aktivtype (bank, depot, aktiesparekonto og pension hver for sig).
+  Kræver en kilde pr. type (Rådets tabeller) og et valg af blanding.
+
 ## Lovgrundlag
 
 | Kobling | Kilde | Status |
 |---|---|---|
 | Rate = restværdi / resterende år | PBL § 11 A | verificeret (kernen) |
-| Afkastforventninger og standardafvigelser pr. aktivklasse | Rådet for Afkastforventninger (2. halvår 2026) | sekundær (Nordnet gengiver); hentes fra afkastforventninger.dk |
+| Afkastforventninger og standardafvigelser pr. aktivklasse | Rådet for Afkastforventninger (2. halvår 2026) | primær (afkastforventninger.dk, hentet 2026-10-28) |
 
 ## Requirements (udvalg)
 

@@ -373,6 +373,27 @@ SCENARIER = (  # nøgle, titel, retning for afkast, retning for inflation
 )
 # Levetid (feature 019): planen rækker kortere eller længere end livrentens horisont (90 år).
 LEVETIDER = (85, 95)
+# "Dårlige år først" (feature 023a): de to første år fra første udbetaling (stopalderen med løn) får
+# det forventede afkast minus to standardafvigelser; "gode år først" plus. Standardafvigelsen er for
+# en blandet portefølje med halvt globale aktier og halvt danske stats- og realkreditobligationer:
+# Rådet for Afkastforventninger, 2. halvår 2026, år 1–10 (σ 16,2 % og 3,9 %, korrelation 0,0).
+# Det er en antagelse, ikke lov, og en illustration af rækkefølgen, ikke en prognose.
+STRESS_AKTIEANDEL = 0.5
+STRESS_SIGMA_AKTIER = 0.162
+STRESS_SIGMA_OBLIGATIONER = 0.039
+STRESS_KORRELATION = 0.0
+STRESS_STANDARDAFVIGELSER = 2
+STRESS_AAR = 2
+STRESS = (("daarlige_aar_foerst", "Dårlige år først", -1), ("gode_aar_foerst", "Gode år først", 1))
+
+
+def stress_afvigelse() -> float:
+    """Afvigelsen i afkastet efter PAL-skat i et dårligt eller godt år (brøk)."""
+    from pensionskerne.register.opslag import Regelopslag
+
+    a, sa, so = STRESS_AKTIEANDEL, STRESS_SIGMA_AKTIER, STRESS_SIGMA_OBLIGATIONER
+    sigma = (a * a * sa * sa + (1 - a) ** 2 * so * so + 2 * a * (1 - a) * STRESS_KORRELATION * sa * so) ** 0.5
+    return STRESS_STANDARDAFVIGELSER * sigma * (1 - Regelopslag(_satsaar(), _satsaar(), 0.0).v("pal.sats"))
 
 
 def scenarier(guide_json: str) -> list[dict]:
@@ -389,18 +410,33 @@ def scenarier(guide_json: str) -> list[dict]:
             for noegle, titel, ra, ri in SCENARIER] + [
         {"noegle": f"levetid_{alder}", "titel": f"Planen rækker til {alder} år", "afkast": afkast,
          "inflation": inflation, "plan_slut_alder": alder}
-        for alder in LEVETIDER]
+        for alder in LEVETIDER] + [
+        {"noegle": noegle, "titel": titel, "afkast": afkast, "inflation": inflation, "plan_slut_alder": None,
+         "stress": retning}
+        for noegle, titel, retning in STRESS]
 
 
-def scenarie(guide_json: str, idag: str, afkast: float, inflation: float, plan_slut_alder: int | None = None) -> dict:
+def scenarie(guide_json: str, idag: str, afkast: float, inflation: float, plan_slut_alder: int | None = None,
+             stress: int = 0) -> dict:
     """Hovedtallet med ændret afkast og inflation — præcis som `beregn` (feature 018). For et par
     også partnerens og jeres samlede. Med en planhorisont længere end den normale (019) også
-    indkomsten i året efter den normale plans slutning (`efter_plan`, kr./md., dagens kroner)."""
+    indkomsten i året efter den normale plans slutning (`efter_plan`, kr./md., dagens kroner).
+    Med `stress` (−1 eller 1, feature 023a) får de første år fra hovedtallets startalder et dårligt
+    eller godt afkast (`forloeb`: kalenderår → afkast)."""
     from pensionskerne import Antagelser
 
     data = json.loads(guide_json)
     data["antagelser"] = {**(data.get("antagelser") or {}), "afkast_efter_pal": afkast, "inflation": inflation,
                           "plan_slut_alder": plan_slut_alder}
+    forloeb = None
+    if stress:
+        r = beregn(json.dumps(data), idag)
+        if not r["ok"]:
+            return r
+        start = int(data["person"]["foedselsdato"][:4]) + r["data"]["hovedtal"]["fra_alder"]
+        aar_afkast = afkast + stress * stress_afvigelse()
+        forloeb = {str(start + i): aar_afkast for i in range(STRESS_AAR)}
+        data["antagelser"]["afkast_forloeb"] = forloeb
     r = beregn(json.dumps(data), idag)
     if not r["ok"]:
         return r
@@ -415,6 +451,8 @@ def scenarie(guide_json: str, idag: str, afkast: float, inflation: float, plan_s
             raekke = next((a for a in visning["aar"] if a["alder"] == normal_slut + 1), None)
             return round(raekke["netto_real"] / 12, -2) if raekke else None
         svar["efter_plan"] = {"dig": efter(v), "partner": efter(h["partner"]) if h else None}
+    if forloeb:
+        svar["forloeb"] = {aar: round(x, 6) for aar, x in forloeb.items()}
     return _ok(svar)
 
 

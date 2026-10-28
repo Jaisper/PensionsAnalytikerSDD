@@ -265,9 +265,9 @@ titel = "Usikkerhed og levetid"
 inventar = ["Usikkerhed og levetid"]
 registerposter = []
 advarsler = []
-niveau1 = "Ingen kender fremtiden. Vi viser, hvad dit beløb bliver, hvis afkastet eller prisstigningerne bliver anderledes. Vi viser også, hvad der sker, hvis du lever kortere eller længere."
-niveau2 = "Hvert scenarie er en hel ny beregning med et andet afkast, en anden inflation eller en anden slutning på planen. Din livrente ændres ikke af levetiden, fordi selskabet betaler den, så længe du lever."
-niveau3 = "Afkast ± et procentpoint og inflation ± et halvt procentpoint omkring dit valg, hver for sig og sammen; ingen sats under nul. Planens slutning ændres uden at ændre livrentens beregningshorisont. Udsving fra år til år er ikke modelleret."
+niveau1 = "Ingen kender fremtiden. Vi viser, hvad dit beløb bliver, hvis afkastet eller prisstigningerne bliver anderledes. Vi viser også, hvad der sker, hvis du lever kortere eller længere, og hvis de første år som pensionist bliver dårlige."
+niveau2 = "Hvert scenarie er en hel ny beregning med et andet afkast, en anden inflation eller en anden slutning på planen. Din livrente ændres ikke af levetiden, fordi selskabet betaler den, så længe du lever. Kommer de dårlige år først, tager du penge ud, mens opsparingen er faldet. Så bliver beløbet lavere, selv om afkastet i snit er det samme."
+niveau3 = "Afkast ± et procentpoint og inflation ± et halvt procentpoint omkring dit valg, hver for sig og sammen; ingen sats under nul. Planens slutning ændres uden at ændre livrentens beregningshorisont. Dårlige år først (023a): de to første år fra første udbetaling (stopalderen med løn) får dit afkast minus to standardafvigelser efter PAL-skat, Gode år først plus. Standardafvigelsen er godt otte procent for halvt globale aktier og halvt stats- og realkreditobligationer (Rådet for Afkastforventninger, 2. halvår 2026, et til ti år, ingen korrelation). Efter PAL-skat ligger de dårlige år cirka fjorten procentpoint under dit valg. Ratepension, opsparing og buffer følger årets afkast; livrenten gør ikke (forenkling)."
 
 [[emne]]
 id = "optimering"

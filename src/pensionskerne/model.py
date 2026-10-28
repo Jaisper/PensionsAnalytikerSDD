@@ -131,6 +131,11 @@ class Antagelser:
     folkepension_opsaettelse_aar: int = 0
     depot_urealiseret_andel: float = 0.5  # depotets gevinstandel, når den ikke er oplyst (013b)
     traekraekkefoelge: tuple[str, ...] = AKTIVLAG  # rækkefølgen, opsparingen bruges i (013b)
+    # Afkast efter PAL-skat pr. kalenderår (023a); mangler et år, bruges `afkast_efter_pal`.
+    afkast_forloeb: Mapping[int, float] = field(default_factory=dict)
+
+    def afkast_i_aar(self, kalenderaar: int) -> float:
+        return self.afkast_forloeb.get(kalenderaar, self.afkast_efter_pal)
 
     @property
     def effektiv_satsregulering(self) -> float:
