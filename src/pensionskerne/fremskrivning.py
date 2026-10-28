@@ -10,7 +10,7 @@ Pr. kalenderår:
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date
 
 from .model import (
@@ -20,7 +20,7 @@ from .model import (
 )
 from .register.opslag import Regelopslag
 from .regler.aktier import aktieindkomst_skat, ask_skat
-from .regler.loen import ligningsmaessige_fradrag
+from .regler.loen import ligningsmaessige_fradrag, pension_af_loen
 from .regler.folkepension import (
     folkepensionsalder, foerste_aar_andel, indtaegtsgrundlag, pensionstillaeg, tillaegsregel,
 )
@@ -161,6 +161,16 @@ def beregn(
     # Med løn begynder tabellen i dag, og udjævningen begynder ved stopalderen. Lønnen er i dagens
     # kroner og reguleres som satserne. Uden løn er alt som før.
     loen = profil.loen
+    # Lønsedlen (017c): bruttoløn og procenter bliver til lønnen inkl. firmaets pension og en
+    # indbetaling, der fordeles på ordningerne med `fra_loen` efter deres egne beløb (ligeligt, hvis 0).
+    loenseddel = loen is not None and loen.pension_eget + loen.pension_firma > 0
+    if loenseddel:
+        aarlig, i_alt = pension_af_loen(loen.aarlig, loen.pension_eget, loen.pension_firma, samlet)
+        modtagere = [x for x in ordninger if x.fra_loen and x.udbetaling_start_alder > alder_nu]
+        noegle = sum(x.aarlig_indbetaling for x in modtagere)
+        ordninger = [replace(x, aarlig_indbetaling=i_alt * (x.aarlig_indbetaling / noegle if noegle else 1 / max(len(modtagere), 1)))
+                     if x in modtagere else x for x in ordninger]
+        loen = replace(loen, aarlig=aarlig, pension_eget=0.0, pension_firma=0.0)
     har_loen = loen is not None and (loen.aarlig > 0 or loen.deltid_aarlig > 0)
     stop = (loen.stop_alder or fp_alder) if loen is not None else fp_alder
     deltid_til = (loen.deltid_til_alder or stop) if loen is not None else stop
@@ -487,6 +497,8 @@ def beregn(
                 bidrag = min(fradragsberettiget.get(alder, 0.0), loen_aar - am)
                 if bidrag > 0:
                     o.marker("forenkling:pensionsindbetaling_som_arbejdsgiverordning")
+                if loenseddel:
+                    o.marker("forenkling:pensionsprocent_af_bruttoloen")
                 lmf = ligningsmaessige_fradrag(loen_aar, alder, fp_alder, o)
                 brutto["loen"] = ("loen", loen_aar - am - bidrag)
 

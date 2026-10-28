@@ -365,6 +365,21 @@ beløb vises i dagens kroner (inflationskorrigeret med antagelsens inflation, so
 - "Hvornår kan jeg stoppe?" afprøver alle stopaldre fra i dag til folkepensionsalderen med den
   nuværende plan.
 
+**Lønsedlen (017c):** Borgeren kan skrive bruttoløn pr. måned og egen og firmaets pension i
+procent. Kernen regner så med lønnen inkl. firmaets pension, `brutto × (1 + firma)`, og en samlet
+indbetaling efter AM-bidrag, `brutto × (eget + firma) × (1 − AM-sats)`
+(`regler/loen.pension_af_loen`). Det giver:
+- AM-bidrag af løn og hele pensionsbidraget (AMBL § 2, stk. 1, nr. 1 og 4),
+- personlig indkomst = (brutto − egen andel) efter AM-bidrag, fordi bidraget til rate og livsvarig
+  ikke medregnes (PSL § 19, stk. 1),
+- aldersopsparing beskattes som løn og betales af lønnen efter skat (PSL § 19, stk. 1, 3. pkt.),
+- grundlaget for beskæftigelses- og jobfradrag inkl. pensionsbidraget (LL § 9 J, stk. 1).
+
+Indbetalingen fordeles på ordningerne med `fra_loen` efter deres egne beløb (ligeligt, hvis de er
+0). Andre ordninger beholder deres beløb. Procenterne regnes af hele bruttolønnen (forenkling
+`pensionsprocent_af_bruttoloen`). PDF-indlæsningen giver rapportens samlede indbetaling pr. måned
+før AM-bidrag, som guiden viser ved procenterne.
+
 ## 7j. Frit depot og aktiesparekonto (feature 013b)
 
 **Koblinger efter loven:**

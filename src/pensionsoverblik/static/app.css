@@ -358,7 +358,9 @@ thead th { background: var(--graa-50); position: sticky; top: 0; }
 .gem-form { margin: 8px 0 16px; max-width: 520px; }
 
 /* Feature 017: aldersfelter og "Hvornår kan jeg stoppe?" */
-.felt input.alder { max-width: 8rem; }
+.felt input.alder, .felt input.procent { max-width: 8rem; }
+.felt-par { display: flex; flex-wrap: wrap; gap: 0 24px; }
+.felt-par .felt { margin-bottom: 4px; }
 .stop-soeg { margin-top: 24px; max-width: 640px; }
 .stop-soeg h3 { margin: 0 0 8px; }
 #stop-svar p { margin: 8px 0; }

@@ -255,7 +255,7 @@ inventar = ["Løn, stopalder og fradrag"]
 registerposter = ["skat.beskaeftigelsesfradrag.*", "skat.jobfradrag.*", "skat.seniorfradrag.*"]
 advarsler = ["INDKOMSTHUL"]
 niveau1 = "Skriver du din løn, regner vi årene, til du stopper. Det faste beløb begynder, når du stopper. Du kan se, hvornår du kan stoppe. Ved det faste beløb står din løn efter skat, så du kan sammenligne."
-niveau2 = "Af lønnen trækkes AM-bidrag og din pensionsindbetaling. Beskæftigelsesfradrag, jobfradrag og seniorfradrag gør skatten lidt mindre. Din løn nedsætter ikke dit pensionstillæg, men over et bundfradrag kan den nedsætte ældrechecken. Har du ingen indkomst, fra du stopper, til din første udbetaling, siger vi det."
+niveau2 = "Af lønnen trækkes AM-bidrag og din pensionsindbetaling. Skriver du din løn som på lønsedlen, regner vi selv indbetalingen ud fra procenterne. Firmaets del er ikke en del af din løn. Beskæftigelsesfradrag, jobfradrag og seniorfradrag gør skatten lidt mindre. Din løn nedsætter ikke dit pensionstillæg, men over et bundfradrag kan den nedsætte ældrechecken. Har du ingen indkomst, fra du stopper, til din første udbetaling, siger vi det."
 niveau3 = "Ligningsloven § 9 J (beskæftigelsesfradrag og ekstra fradrag til seniorer de to sidste år før folkepensionsalderen, gældende lov) og § 9 K (jobfradrag). Fradragene nedsætter den skattepligtige indkomst. Lønnen og pensionsindbetalingen reguleres med satsreguleringen. L 117 (2023) om arbejdsindkomst og pensionstillæg."
 
 [[emne]]

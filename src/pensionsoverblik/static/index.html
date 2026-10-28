@@ -147,10 +147,22 @@
 
             <!-- Løn (feature 017) -->
             <div class="felt" data-felt="loen.aarlig person.loen.aarlig">
-              <label for="loen">Din årsløn før skat <span class="valgfri">(valgfri)</span></label>
-              <input id="loen" inputmode="numeric" class="beloeb" aria-describedby="loen-hjaelp" placeholder="0">
-              <p class="felt__hjaelp" id="loen-hjaelp">Med din egen del af pensionsindbetalingen. Så regner vi også årene, til du stopper, og du kan se, hvornår du kan stoppe.</p>
+              <label for="loen-maaned">Din bruttoløn pr. måned <span class="valgfri">(valgfri)</span></label>
+              <input id="loen-maaned" inputmode="numeric" class="beloeb" aria-describedby="loen-hjaelp" placeholder="0">
+              <p class="felt__hjaelp" id="loen-hjaelp">Som på lønsedlen: før skat og før din egen pension. Så regner vi også årene, til du stopper, og du kan se, hvornår du kan stoppe.</p>
             </div>
+            <!-- Lønsedlens pension (feature 017c) -->
+            <div class="felt-par">
+              <div class="felt" data-felt="loen.pension_eget person.loen.pension_eget">
+                <label for="pension-eget">Din egen pension <span class="valgfri">(%)</span></label>
+                <input id="pension-eget" inputmode="decimal" class="procent" aria-describedby="pension-hjaelp" placeholder="0">
+              </div>
+              <div class="felt" data-felt="loen.pension_firma person.loen.pension_firma">
+                <label for="pension-firma">Firmaets pension <span class="valgfri">(%)</span></label>
+                <input id="pension-firma" inputmode="decimal" class="procent" aria-describedby="pension-hjaelp" placeholder="0">
+              </div>
+            </div>
+            <p class="felt__hjaelp" id="pension-hjaelp">Står på lønsedlen. Pengene går til de ordninger i næste trin, der er markeret "Indbetales via din løn".<span id="pension-rapport" hidden></span></p>
             <div class="felt" data-felt="loen.stop_alder">
               <label for="stop-alder">Jeg stopper med at arbejde som <span class="valgfri">(valgfri)</span></label>
               <input id="stop-alder" inputmode="numeric" class="alder" aria-describedby="stop-alder-hjaelp" placeholder="år">
@@ -229,9 +241,20 @@
               <label class="valg"><input type="checkbox" id="p-folkekirke"> Min partner er medlem af folkekirken</label>
             </div>
             <div class="felt" data-felt="person.partner.profil.loen.aarlig">
-              <label for="p-loen">Din partners årsløn før skat <span class="valgfri">(valgfri)</span></label>
-              <input id="p-loen" inputmode="numeric" class="beloeb" placeholder="0">
+              <label for="p-loen-maaned">Din partners bruttoløn pr. måned <span class="valgfri">(valgfri)</span></label>
+              <input id="p-loen-maaned" inputmode="numeric" class="beloeb" placeholder="0">
             </div>
+            <div class="felt-par">
+              <div class="felt" data-felt="person.partner.profil.loen.pension_eget">
+                <label for="p-pension-eget">Din partners egen pension <span class="valgfri">(%)</span></label>
+                <input id="p-pension-eget" inputmode="decimal" class="procent" aria-describedby="p-pension-hjaelp" placeholder="0">
+              </div>
+              <div class="felt" data-felt="person.partner.profil.loen.pension_firma">
+                <label for="p-pension-firma">Firmaets pension <span class="valgfri">(%)</span></label>
+                <input id="p-pension-firma" inputmode="decimal" class="procent" aria-describedby="p-pension-hjaelp" placeholder="0">
+              </div>
+            </div>
+            <p class="felt__hjaelp" id="p-pension-hjaelp">Står på lønsedlen.<span id="p-pension-rapport" hidden></span></p>
             <div class="felt">
               <label for="p-stop-alder">Din partner stopper med at arbejde som <span class="valgfri">(valgfri)</span></label>
               <input id="p-stop-alder" inputmode="numeric" class="alder" placeholder="år">

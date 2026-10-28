@@ -121,3 +121,12 @@ beskrivelse = "Vi regner med, at du hidtil har indskudt det, der står på konto
 begrundelse = "Hvad du har indskudt, står ikke i dine svar."
 betydning = "Har kontoen givet gevinst, kan du indskyde lidt mere, end vi regner med."
 kilde = "Feature 013b"
+
+[[forenkling]]
+id = "pensionsprocent_af_bruttoloen"
+omfang = "markeret"
+titel = "Pensionsprocenten regnes af hele bruttolønnen"
+beskrivelse = "Din egen og firmaets pension regnes som procent af hele bruttolønnen. Pengene fordeles på de ordninger, du har valgt, i samme forhold som i din rapport."
+begrundelse = "På lønsedlen er procenten ofte af den pensionsgivende løn, og den kender vi ikke."
+betydning = "Får du tillæg uden pension, bliver indbetalingen lidt for høj. Skriv da en lidt lavere procent."
+kilde = "Feature 017c; PSL § 19, stk. 1; AMBL § 2, stk. 1, nr. 4"

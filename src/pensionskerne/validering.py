@@ -110,6 +110,11 @@ def valider(profil: Pensionsprofil, antagelser: Antagelser, satsaar: int, beregn
         if profil.loen.deltid_aarlig > 0 and profil.loen.deltid_til_alder is not None and \
                 profil.loen.deltid_til_alder <= (profil.loen.stop_alder or fp_alder):
             raise UgyldigtInput("loen.deltid_til_alder", "Deltidslønnen skal stoppe efter, at du stopper med fuld løn")
+        for navn in ("pension_eget", "pension_firma"):
+            if not 0 <= getattr(profil.loen, navn) < 1:
+                raise UgyldigtInput(f"loen.{navn}", "Procenten skal være mellem 0 og 100")
+        if profil.loen.pension_eget + profil.loen.pension_firma > 0 and not any(x.fra_loen for x in profil.ordninger):
+            raise UgyldigtInput("loen.pension_firma", "Vælg den ordning, din løn indbetaler pension til")
 
     aktiv_ids: set[str] = set()
     for aktiv in profil.opsparing:
