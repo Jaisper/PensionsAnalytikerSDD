@@ -1903,6 +1903,97 @@ function visResultat(v, foersteGang = true) {
   $("#person-faner").hidden = !tilstand.husstand;
   visHvem(foersteGang);
   regnUsikkerhed();
+  if (foersteGang) findBedstePlanAutomatisk(); else tegnPlanLinje();
+}
+
+/* ── Feature 007b: den bedste plan med det samme ──────────────────────── */
+// Efter den første beregning finder kernen den bedste plan for dine udbetalinger (og din partners)
+// og viser den som hovedtallet. Uden stopalder starter ingen ordning før folkepensionsalderen.
+// Din egen plan står under hovedtallet, og du kan skifte tilbage.
+let autoNr = 0;
+
+function anvendPlan(svar, hvem, plan) {
+  const pp = svar.person?.partner?.profil;
+  const ordninger = hvem === "partner" ? pp.ordninger : svar.ordninger;
+  for (const [id, felter] of Object.entries(plan.ordninger)) Object.assign(ordninger.find((o) => o.id === id), felter);
+  if (hvem === "partner") pp.folkepension_opsaettelse_aar = plan.folkepension_opsaettelse_aar;
+  else svar.antagelser.folkepension_opsaettelse_aar = plan.folkepension_opsaettelse_aar;
+}
+
+async function findBedstePlanAutomatisk() {
+  const nr = ++autoNr;
+  tilstand.planer = null;
+  document.body.dataset.plan = "";  // "klar", når den bedste plan er fundet og vist
+  const linje = $("#hovedtal-plan");
+  const fremdrift = el("progress", { max: 1, value: 0, "aria-label": "Finder den bedste plan" });
+  linje.replaceChildren(el("span", { tekst: "Finder den bedste plan for dine udbetalinger … " }), fremdrift);
+  linje.hidden = false;
+  const egen = structuredClone(tilstand.aktuelleSvar);
+  const egenMaaned = +$("#hovedtal").dataset.vaerdi;
+  const bedste = structuredClone(egen);
+  const aendringer = [];
+  try {
+    const hvem = tilstand.husstand ? ["dig", "partner"] : ["dig"];
+    for (const [i, h] of hvem.entries()) {
+      const r = await kaldMedFremdrift("optimer", [JSON.stringify(bedste), idag(), h],
+        (andel) => { fremdrift.value = (i + andel) / hvem.length; });
+      if (nr !== autoNr) return;
+      if (r.ok && r.data.forbedret) {
+        anvendPlan(bedste, h, r.data.plan);
+        aendringer.push(...r.data.aendringer.map((a) => ({ ...a, hvem: h })));
+      }
+    }
+  } catch {
+    if (nr === autoNr) { linje.hidden = true; document.body.dataset.plan = "klar"; }
+    return;
+  }
+  if (nr !== autoNr || svarNoegle() !== JSON.stringify(egen)) return;  // planen er ændret imens
+  if (!aendringer.length) {
+    linje.replaceChildren(el("p", { tekst: "Din plan er allerede den bedste, vi kan finde." }));
+    document.body.dataset.plan = "klar";
+    return;
+  }
+  tilstand.planer = { egen, bedste, egenMaaned, aendringer, vist: "bedste" };
+  skiftPlan("bedste");
+}
+
+function skiftPlan(hvilken) {
+  const p = tilstand.planer;
+  p.vist = hvilken;
+  tilstand.aktuelleSvar = structuredClone(p[hvilken]);
+  synkroniserFormular();
+  tegnTidslinje(tilstand.v);
+  genberegn();
+}
+
+function tegnPlanLinje() {
+  const p = tilstand.planer;
+  const linje = $("#hovedtal-plan");
+  const noegle = svarNoegle();
+  if (!p || (noegle !== JSON.stringify(p.egen) && noegle !== JSON.stringify(p.bedste))) {
+    if (p) { tilstand.planer = null; linje.hidden = true; }  // borgeren har ændret planen
+    return;
+  }
+  if (tilstand.hvem !== "dig") { linje.hidden = true; return; }  // beløbene er dine
+  const maaned = +$("#hovedtal").dataset.vaerdi;
+  if (p.vist === "bedste") p.bedsteMaaned = maaned;
+  const liste = el("ul", { class: "forslag__liste" }, p.aendringer.map((a) => {
+    const o = (a.hvem === "partner" ? tilstand.aktuelleSvar.person.partner.profil.ordninger : tilstand.aktuelleSvar.ordninger)
+      .find((x) => x.id === a.id);
+    const titel = (o ? ordningstitel(o) : "Folkepension") + (a.hvem === "partner" ? " (din partner)" : "");
+    return el("li", {}, el("strong", { tekst: `${titel}: ` }), aendringTekst(a, o && ENGANGSTYPER.has(o.type)));
+  }));
+  const knap = el("button", { type: "button", class: "knap knap--tekst",
+    tekst: p.vist === "bedste" ? "Brug min egen plan" : "Brug den bedste plan" });
+  knap.addEventListener("click", () => skiftPlan(p.vist === "bedste" ? "egen" : "bedste"));
+  linje.replaceChildren(
+    el("p", { tekst: p.vist === "bedste"
+      ? `Det er den bedste plan, vi har fundet. Med din egen plan får du ${kr(p.egenMaaned)} kr. om måneden.`
+      : `Det er din egen plan. Den bedste plan, vi har fundet, giver ${kr(p.bedsteMaaned)} kr. om måneden.` }),
+    el("details", {}, el("summary", { tekst: "Det har vi ændret" }), liste),
+    knap);
+  linje.hidden = false;
+  document.body.dataset.plan = "klar";
 }
 
 /* ── Usikkerhed om afkast og inflation (feature 018) ──────────────────── */
