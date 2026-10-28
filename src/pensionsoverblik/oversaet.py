@@ -111,7 +111,7 @@ def til_husstand(data: dict) -> tuple[Pensionsprofil, Antagelser, Pensionsprofil
 
 
 def _loen(l: dict | None) -> Loen | None:
-    """Løn (feature 017). Uden årsløn og deltidsløn: ingen løn."""
+    """Løn (feature 017 og 017c). Uden årsløn og deltidsløn: ingen løn."""
     if not l:
         return None
     aarlig = _tal(l.get("aarlig"), "loen.aarlig")
@@ -119,7 +119,10 @@ def _loen(l: dict | None) -> Loen | None:
     if not aarlig and not deltid:
         return None
     return Loen(aarlig=aarlig, stop_alder=_heltal(l.get("stop_alder"), "loen.stop_alder"),
-                deltid_aarlig=deltid, deltid_til_alder=_heltal(l.get("deltid_til_alder"), "loen.deltid_til_alder"))
+                deltid_aarlig=deltid, deltid_til_alder=_heltal(l.get("deltid_til_alder"), "loen.deltid_til_alder"),
+                # Lønsedlen (017c): andele af bruttolønnen.
+                pension_eget=_tal(l.get("pension_eget"), "loen.pension_eget"),
+                pension_firma=_tal(l.get("pension_firma"), "loen.pension_firma"))
 
 
 def _opsparing(liste: list) -> tuple[Aktiv, ...]:
@@ -155,5 +158,6 @@ def _ordninger(liste: list) -> tuple[Ordning, ...]:
             afgift_betalt=bool(o.get("afgift_betalt", False)),
             udbetalingsform=str(o.get("udbetalingsform") or "engangs"),
             tidligste_udbetalingsalder=_tal(o.get("tidligste_udbetalingsalder"), f"{felt}.tidligste_udbetalingsalder", None),
+            fra_loen=bool(o.get("fra_loen", False)),
         ))
     return tuple(ordninger)

@@ -11,7 +11,9 @@ from pensionskerne import UgyldigtInput
 from pensionskerne.register.opslag import Regelopslag
 from pensionskerne.regler.folkepension import folkepensionsalder
 
+from ..visning import MAANEDER
 from .aflaeser import AflaestOrdning, Aflaesning
+
 
 SPRINGES_OVER = {"folkepension", "forsikring", "atp"}
 PERIODE_INTERVAL = re.compile(r"^\s*(\d+)\s*-\s*(\d+)\s*år", re.IGNORECASE)
@@ -81,6 +83,7 @@ def _ordning(o: AflaestOrdning, fp_alder: int | None, regler: Regelopslag) -> di
         "tidligste_udbetalingsalder": o.tidligste_udbetalingsalder,
         "afgift_betalt": bool(o.afgift_betalt) if type_ == "kapitalpension" else False,
         "kilde": kilde, "produkttype": o.produkttype, "usikkerheder": usikkerheder,
+        "fra_loen": bool(o.aarlig_indbetaling) and type_ != "kapitalpension",  # 017c
     }
 
 
@@ -104,9 +107,13 @@ def til_guide(aflaesning: Aflaesning, foedselsdato: date | None, satsaar: int) -
     ordninger = [_ordning(o, fp_alder, regler) for o in aflaesning.ordninger if o.kategori not in SPRINGES_OVER]
     if not ordninger:
         bemaerkninger.append("Vi fandt ingen pensionsordninger ud over ATP og folkepension.")
+    # Rapportens samlede indbetaling pr. måned før AM-bidrag (017c): et tjek af lønsedlens procenter.
+    efter_am = sum(o["aarlig_indbetaling"] or 0 for o in ordninger)
+    indbetaling_maaned = round(efter_am / (1 - regler.v("skat.am_bidrag")) / MAANEDER) if efter_am else None
     return {
         "person": {"foedselsdato": foedselsdato.isoformat() if foedselsdato else None},
         "atp_aarlig": atp,
+        "indbetaling_maaned": indbetaling_maaned,
         "ordninger": ordninger,
         "bemaerkninger": bemaerkninger,
     }

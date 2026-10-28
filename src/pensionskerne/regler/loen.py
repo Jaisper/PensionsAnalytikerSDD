@@ -30,3 +30,11 @@ def seniorfradrag(grundlag: float, alder: int, folkepensionsalder: int, o: Regel
 def ligningsmaessige_fradrag(grundlag: float, alder: int, folkepensionsalder: int, o: Regelopslag) -> float:
     return (beskaeftigelsesfradrag(grundlag, o) + jobfradrag(grundlag, o)
             + seniorfradrag(grundlag, alder, folkepensionsalder, o))
+
+
+def pension_af_loen(brutto: float, eget: float, firma: float, o: Regelopslag) -> tuple[float, float]:
+    """Lønsedlen (017c): bruttoløn og pensionsprocenter → (lønnen inkl. firmaets pension, indbetalingen
+    efter AM-bidrag). AM-bidraget betales af hele pensionsbidraget (AMBL § 2, stk. 1, nr. 4), og
+    bidraget medregnes ikke i indkomsten (PSL § 19, stk. 1). Med lønnen inkl. firmaets pension giver
+    fremskrivningen derfor den rigtige personlige indkomst, (brutto − egen andel) efter AM-bidrag."""
+    return brutto * (1 + firma), brutto * (eget + firma) * (1 - o.v("skat.am_bidrag"))

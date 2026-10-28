@@ -57,6 +57,7 @@ class Ordning:
     tidligste_udbetalingsalder: float | None = None  # oplyst af pensionsselskabet (PensionsInfo); overstyrer reglen
     afgift_betalt: bool = False         # kapitalpension, hvor afgiften er betalt (fx omlagt 2013–2014): skattefri (009)
     udbetalingsform: str = "engangs"    # kapitalpension: engangs | portioner | ratepension | livsvarig (009)
+    fra_loen: bool = False              # får pensionen fra lønsedlen (017c); indbetalingen er så en fordelingsnøgle
 
 
 @dataclass(frozen=True)
@@ -76,6 +77,10 @@ class Aktiv:
 class Loen:
     """Løn (feature 017) i dagens kroner; reguleres med satsreguleringen (konstant købekraft)."""
     aarlig: float                           # årsløn før skat, inkl. egen pensionsindbetaling
+    # Lønsedlen (017c): andele af bruttolønnen. Er en af dem over 0, er `aarlig` bruttolønnen før
+    # pension, og indbetalingen går til ordningerne med `fra_loen`.
+    pension_eget: float = 0.0
+    pension_firma: float = 0.0
     stop_alder: int | None = None           # første år uden løn; None = folkepensionsalderen
     deltid_aarlig: float = 0.0              # løn efter stop (fx ved siden af pensionen)
     deltid_til_alder: int | None = None     # første år uden deltidsløn

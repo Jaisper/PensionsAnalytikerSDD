@@ -10,11 +10,11 @@ pytestmark = pytest.mark.browser
 IDAG = "2026-10-25"
 
 
-def til_resultat(side, loen="500000", stop="64", bank=None):
+def til_resultat(side, loen="40000", stop="64", bank=None):
     side.fill("#foedselsdato", "1966-03-01")
     side.fill("#kommune", "Aarhus")
     if loen:
-        side.fill("#loen", loen)
+        side.fill("#loen-maaned", loen)  # pr. måned (017c)
     if stop:
         side.fill("#stop-alder", stop)
     side.click("#naeste")                       # trin 2: ordninger
@@ -33,7 +33,8 @@ def test_loen_giver_loenkort_og_fast_beloeb_fra_stopalderen(side):
     assert any(k["noegle"] == "loen" for k in v["kort"])
     assert "Løn" in side.inner_text("#kort")
     assert side.evaluate("tilstand.aktuelleSvar.person.loen") == {
-        "aarlig": 500000, "stop_alder": 64, "deltid_aarlig": 0, "deltid_til_alder": None}
+        "aarlig": 480000, "stop_alder": 64, "deltid_aarlig": 0, "deltid_til_alder": None,
+        "pension_eget": 0, "pension_firma": 0}
     assert side.fejl == []
 
 

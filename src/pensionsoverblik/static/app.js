@@ -301,7 +301,7 @@ function tegnOrdningsliste(rod, liste, saetListe, nyType) {
     const oprettet = el("select", {}, ...Object.entries(OPRETTET).map(([k, v]) => el("option", { value: k, selected: o.oprettet === k, tekst: v.tekst })));
     const felter = [
       ordningsFelt(o, "saldo", "Opsparing i dag (kr.)", null, tal("saldo")),
-      ordningsFelt(o, "aarlig_indbetaling", "Indbetaling pr. år (kr.)", "Efter arbejdsmarkedsbidrag. 0 hvis du ikke indbetaler mere.", tal("aarlig_indbetaling")),
+      ordningsFelt(o, "aarlig_indbetaling", "Indbetaling pr. år (kr.)", "Efter arbejdsmarkedsbidrag. 0 hvis du ikke indbetaler mere. Har du skrevet pensionsprocenter ved lønnen, bruger vi beløbet til at fordele pengene.", tal("aarlig_indbetaling")),
       ordningsFelt(o, "udbetaling_start_alder", o.type === "aldersopsparing" || o.type === "kapitalpension" ? "Udbetales (alder)" : "Udbetalingen starter (alder)",
         o.tidligste_udbetalingsalder ? `Tidligst udbetaling: ${decimal(o.tidligste_udbetalingsalder)} år (oplyst af selskabet).` : null,
         el("input", { inputmode: "numeric", value: o.udbetaling_start_alder })),
@@ -323,11 +323,22 @@ function tegnOrdningsliste(rod, liste, saetListe, nyType) {
       o.usikkerheder?.length ? el("ul", { class: "usikkerheder", "aria-label": "Tjek disse oplysninger" }, o.usikkerheder.map((u) => el("li", { tekst: u }))) : null,
       el("div", { class: "ordning__felter" }, felter),
       o.type === "kapitalpension" ? el("div", { class: "ordning__felter" }, kapitalFelter(o)) : null,
+      LOENTYPER.has(o.type) ? loenFelt(o) : null,
       ENGANGSTYPER.has(o.type) ? bufferFelt(o) : null);
   }));
 }
 
-const OMLAEGNING = new Set(["ratepension", "livsvarig"]);  // kapitalpension omlagt: ingen buffer
+const OMLAEGNING = new Set(["ratepension", "livsvarig"]);
+const LOENTYPER = new Set(["ratepension", "livsvarig", "aldersopsparing"]);  // kan få pension fra lønnen (017c)
+
+function loenFelt(o) {
+  const id = `${o.id}-fra-loen`;
+  const boks = el("input", { type: "checkbox", id, checked: o.fra_loen !== false, "aria-describedby": `${id}-hjaelp` });
+  boks.addEventListener("change", () => { o.fra_loen = boks.checked; });
+  return el("div", { class: "felt", "data-felt": `ordninger[${o.id}].fra_loen` },
+    el("label", { class: "valg", for: id }, boks, " Indbetales via din løn"),
+    el("p", { class: "felt__hjaelp", id: `${id}-hjaelp`, tekst: "Bruges, hvis du har skrevet pensionsprocenter ved lønnen. Så fordeler vi pengene efter indbetalingerne ovenfor." }));
+}  // kapitalpension omlagt: ingen buffer
 const UDBETALINGSFORMER = {
   engangs: "Som ét beløb",
   portioner: "I portioner over flere år",
@@ -410,6 +421,7 @@ function ordningSvar(o) {
     oprettet: OPRETTET[o.oprettet].dato,
     tidligste_udbetalingsalder: o.tidligste_udbetalingsalder ?? null,
     i_buffer: o.i_buffer !== false,
+    fra_loen: LOENTYPER.has(o.type) && o.fra_loen !== false,
   };
 }
 
@@ -427,15 +439,34 @@ function partnerSvar() {
   } };
 }
 
-/* Løn (feature 017): uden årsløn og deltidsløn sendes ingen løn. */
+/* Procent som andel: "4,5" og "4.5 %" → 0,045 (feature 017c). */
+function andel(tekst) {
+  const renset = String(tekst ?? "").replace(/\s|%/g, "").replace(",", ".");
+  return renset === "" ? 0 : Number(renset) / 100;
+}
+
+/* Løn (feature 017 og 017c): bruttoløn pr. måned og pensionsprocenter som på lønsedlen. Uden løn og
+   deltidsløn sendes ingen løn. */
 function loenSvar(pre = "") {
-  const aarlig = beloeb($(`#${pre}loen`).value) ?? 0;
+  const maaned = beloeb($(`#${pre}loen-maaned`).value) ?? 0;
   const deltid = pre ? 0 : beloeb($("#deltid-loen").value) ?? 0;
-  if (!aarlig && !deltid) return null;
+  if (!maaned && !deltid) return null;
   return {
-    aarlig, stop_alder: beloeb($(`#${pre}stop-alder`).value) || null,
+    aarlig: maaned * 12, stop_alder: beloeb($(`#${pre}stop-alder`).value) || null,
     deltid_aarlig: deltid, deltid_til_alder: pre ? null : beloeb($("#deltid-til").value) || null,
+    pension_eget: andel($(`#${pre}pension-eget`).value), pension_firma: andel($(`#${pre}pension-firma`).value),
   };
+}
+
+/* Rapportens indbetaling ved lønsedlens procenter (017c): et tjek, ikke et svar. */
+function tegnPensionsRapport(pre = "") {
+  const m = tilstand.rapportIndbetaling?.[pre];
+  const tekst = $(`#${pre}pension-rapport`);
+  tekst.hidden = !m;
+  if (!m) return;
+  const loen = beloeb($(`#${pre}loen-maaned`).value);
+  tekst.textContent = ` Din PensionsInfo-rapport viser ca. ${kr(m)} kr. om måneden i alt`
+    + (loen ? ` (ca. ${decimal(+(m / loen * 100).toFixed(1))} % af lønnen).` : ".");
 }
 
 /* Opsparing uden for pension (feature 013 og 013b): bank, frit depot og aktiesparekonto pr. person. */
@@ -513,10 +544,12 @@ function udfyldFraRapport(d, hvem = "dig") {
     udbetaling_start_alder: o.udbetaling_start_alder ?? "", udbetaling_aar: o.udbetaling_aar ?? 10,
     oprettet: o.oprettet, kilde: o.kilde, usikkerheder: o.usikkerheder,
     tidligste_udbetalingsalder: o.tidligste_udbetalingsalder,
-    afgift_betalt: !!o.afgift_betalt,
+    afgift_betalt: !!o.afgift_betalt, fra_loen: o.fra_loen,
   }));
   if (partner) tilstand.partnerOrdninger = liste; else tilstand.ordninger = liste;
   tegnOrdninger();
+  tilstand.rapportIndbetaling = { ...tilstand.rapportIndbetaling, [partner ? "p-" : ""]: d.indbetaling_maaned };
+  tegnPensionsRapport(partner ? "p-" : "");
   const n = d.ordninger.length;
   const usikre = d.ordninger.filter((o) => o.usikkerheder.length).length;
   const hvor = partner ? "nedenfor" : "i trin 2";
@@ -1107,7 +1140,7 @@ async function gemTilSenere() {
   const data = {
     skema: GEM.skema, gemt: idag(), felter: guideFelter(),
     ordninger: tilstand.ordninger, partnerOrdninger: tilstand.partnerOrdninger,
-    naesteId: tilstand.naesteId, naestePid: tilstand.naestePid,
+    naesteId: tilstand.naesteId, naestePid: tilstand.naestePid, rapportIndbetaling: tilstand.rapportIndbetaling ?? null,
     valg: { niveau: tilstand.niveau ?? null, kroner: tilstand.kroner ?? null },
   };
   const fil = await krypter(data, kode);
@@ -1136,11 +1169,17 @@ async function aabnGemt() {
     return;
   }
   if (data.skema !== GEM.skema) { status.textContent = ""; visFejl("gemt", "Filen er fra en version, vi ikke kan læse."); return; }
+  for (const pre of ["", "p-"]) {  // gemt før 017c: årsløn → månedsløn
+    const aarlig = beloeb(data.felter[`${pre}loen`]);
+    if (aarlig && !data.felter[`${pre}loen-maaned`]) data.felter[`${pre}loen-maaned`] = kr(aarlig / 12);
+  }
   saetGuideFelter(data.felter);
   tilstand.ordninger = data.ordninger || [];
   tilstand.partnerOrdninger = data.partnerOrdninger || [];
   tilstand.naesteId = data.naesteId || tilstand.naesteId;
   tilstand.naestePid = data.naestePid || tilstand.naestePid;
+  tilstand.rapportIndbetaling = data.rapportIndbetaling || {};
+  tegnPensionsRapport(); tegnPensionsRapport("p-");
   if (data.valg?.niveau) saetNiveau(data.valg.niveau);
   if (data.valg?.kroner) { tilstand.kroner = data.valg.kroner; $$("input[name=kroner]").forEach((r) => (r.checked = r.value === tilstand.kroner)); }
   opdaterPartnerFelter();
@@ -2132,6 +2171,7 @@ function forbind() {
     $(`#${id}`).addEventListener("input", (e) => { $(`#${id}-v`).textContent = fmt(e.target.value); });
   }
   $("#tilfoej-ordning").addEventListener("click", () => tilfoejOrdning($("#ny-type").value));
+  for (const pre of ["", "p-"]) $(`#${pre}loen-maaned`).addEventListener("input", () => tegnPensionsRapport(pre));
 
   $("#guide-form").addEventListener("submit", (e) => {
     e.preventDefault();
