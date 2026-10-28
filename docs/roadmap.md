@@ -17,6 +17,7 @@ Numrene følger, hvornår en spec blev oprettet, ikke rækkefølgen herunder.
 | [024](../specs/024-gem-lokalt/spec.md) | Gem og genindlæs lokalt | I luften (2026-10-27) | – |
 | [013b](../specs/013b-frit-depot-ask/spec.md) | Frit depot og aktiesparekonto | I luften (2026-10-28) | 013, 017 |
 | [021](../specs/021-naeste-krone/spec.md) | "Hvor skal næste krone hen?" | I luften (2026-10-28) | 017, 013b (014 for afdrag) |
+| [007b](../specs/007b-auto-optimering/spec.md) | Den bedste plan med det samme som hovedtal; tidligst fra pensionsalderen | Færdig, ikke merget | 007, 017 |
 | [023a](../specs/023-afkast-pr-aar/spec.md) | Afkast pr. år og "dårlige år først" | Færdig, ikke merget | – |
 | [023b](../specs/023-afkast-pr-aar/spec.md) | Afkast pr. aktivtype (bank, depot, ASK, pension) | Spec (modnes) | 023a, 013b |
 | [022](../specs/022-efterladte/spec.md) | "Hvad hvis min partner dør?" | Spec (modnes) | 012, 018, 019 |

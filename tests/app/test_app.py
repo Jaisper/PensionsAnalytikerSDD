@@ -162,7 +162,7 @@ def test_optimer_format_og_anvendt_plan_giver_efter():
     from datetime import date
 
     from pensionskerne import beregn as kerne_beregn
-    from pensionskerne.optimering import fast_niveau, vindue
+    from pensionskerne.optimering import fast_niveau, maalvindue
     from pensionsoverblik.oversaet import til_kerne
 
     fremdrift = []
@@ -179,7 +179,9 @@ def test_optimer_format_og_anvendt_plan_giver_efter():
 
     def niveau(guide):
         p, a = til_kerne(guide)
-        return fast_niveau(kerne_beregn(p, a, 2026, date.fromisoformat(IDAG)), vindue(kerne_beregn(*til_kerne(DAARLIG_PLAN), 2026, date.fromisoformat(IDAG))))
+        basis_p, basis_a = til_kerne(DAARLIG_PLAN)
+        v = maalvindue(kerne_beregn(basis_p, basis_a, 2026, date.fromisoformat(IDAG)), basis_p)  # 007b
+        return fast_niveau(kerne_beregn(p, a, 2026, date.fromisoformat(IDAG)), v)
 
     assert round(niveau(anvend_plan(DAARLIG_PLAN, d["plan"])), -2) == d["efter"]
     assert round(niveau(DAARLIG_PLAN), -2) == d["foer"]

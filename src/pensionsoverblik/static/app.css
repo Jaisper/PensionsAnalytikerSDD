@@ -148,6 +148,11 @@ input[type="date"], input:not([type]), input[inputmode], select { font: inherit;
 .hero__spaend { max-width: 440px; opacity: .92; margin-top: 4px; }
 .hero__loen { max-width: 440px; opacity: .92; margin-top: 4px; }
 .hero__spaend a { color: var(--hvid); }
+.hero__plan { max-width: 440px; margin-top: 8px; }
+.hero__plan p { margin: 4px 0; }
+.hero__plan summary { cursor: pointer; }
+.hero__plan .knap--tekst, .hero__plan strong { color: var(--hvid); }
+.hero__plan .forslag__liste { margin: 4px 0; }
 .hero__graf { padding: 48px max(24px, calc((100vw - var(--maks)) / 2 + 24px)) 40px 32px; display: flex; flex-direction: column; justify-content: center; min-width: 0; }
 .hero__graf-titel { font-size: 1.1rem; font-weight: 700; color: var(--petrol-900); }
 .graf-ramme { position: relative; height: 320px; }

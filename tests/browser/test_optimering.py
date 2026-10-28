@@ -7,7 +7,7 @@ from datetime import date
 import pytest
 
 from pensionskerne import beregn
-from pensionskerne.optimering import fast_niveau, vindue
+from pensionskerne.optimering import fast_niveau, maalvindue
 from pensionsoverblik import app
 from pensionsoverblik.oversaet import til_kerne
 
@@ -51,7 +51,7 @@ def test_find_bedste_plan_og_anvend(resultat):
         assert all(o[k] == v for k, v in felter.items())
     # SC-004: det faste beløb hele perioden er forslagets beløb.
     p0, a0 = til_kerne(json.loads(foer_svar))
-    v = vindue(beregn(p0, a0, 2026, date.today()))
+    v = maalvindue(beregn(p0, a0, 2026, date.today()), p0)  # 007b
     p, a = til_kerne(efter_svar)
     assert round(fast_niveau(beregn(p, a, 2026, date.today()), v), -2) == forventet["efter"]
     resultat.click("#data-panel-knap")

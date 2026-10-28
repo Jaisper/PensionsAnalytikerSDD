@@ -481,3 +481,11 @@ PDF-import fra PensionsInfo · AI-forklaring/chat · Optimering af udbetalingsr�
   afkastet ∓ 2σ × (1 − PAL), σ ≈ 8,33 % for 50/50 globale aktier og stats- og
   realkreditobligationer (Rådet for Afkastforventninger, 2. halvår 2026).
 
+## 7m. Den bedste plan med det samme (feature 007b)
+
+- Pensionsalderen er stopalderen med løn, ellers folkepensionsalderen (`optimering.pensionsalder`).
+  Optimeringen starter ingen ordning før den, og målet regnes fra den (`maalvindue`). En ordning,
+  der allerede udbetaler, flyttes ikke.
+- Brugerfladen kører optimeringen efter første resultat og viser den bedste plan som hovedtallet med
+  borgerens egen plan til sammenligning.
+

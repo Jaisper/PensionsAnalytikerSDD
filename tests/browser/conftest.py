@@ -89,11 +89,28 @@ def koer_guide(page, pdf_sti=None):
 
 
 @pytest.fixture
-def resultat(side, tmp_path):
-    """Resultatsiden for den syntetiske rapport."""
+def bedste_plan(side, tmp_path):
+    """Resultatsiden for den syntetiske rapport med den bedste plan, som siden selv har fundet (007b)."""
     from tests.app.pensionsinfo_syntetisk import RAPPORT_PDF
 
     pdf = tmp_path / "rapport.pdf"
     pdf.write_bytes(RAPPORT_PDF)
     koer_guide(side, pdf)
+    vent_paa_planen(side)
     return side
+
+
+@pytest.fixture
+def resultat(bedste_plan):
+    """Resultatsiden for den syntetiske rapport med borgerens egen plan (som før 007b)."""
+    side = bedste_plan
+    if side.evaluate("tilstand.planer !== null"):
+        side.get_by_role("button", name="Brug min egen plan").click()
+        side.wait_for_function("() => tilstand.v.hovedtal.maaned === tilstand.planer.egenMaaned"
+                               " && document.querySelector('#hovedtal-plan button')?.textContent === 'Brug den bedste plan'")
+    return side
+
+
+def vent_paa_planen(page, timeout=60000):
+    """Feature 007b: den bedste plan findes og vises automatisk efter første resultat."""
+    page.wait_for_selector("body[data-plan=klar]", timeout=timeout)

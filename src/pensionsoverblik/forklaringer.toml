@@ -275,8 +275,8 @@ titel = "Find bedste plan"
 inventar = ["Optimering"]
 registerposter = []
 advarsler = []
-niveau1 = "Vi prøver mange måder at tage dine pensioner ud på. Vi foreslår den, der giver det højeste faste beløb. Du bestemmer selv, om du vil bruge forslaget."
-niveau2 = "Vi flytter, hvornår og hvor længe dine ordninger udbetales, og om folkepensionen skal udskydes. Et forslag må ikke give nye huller i din indkomst. Vi viser, hvor mange kombinationer vi har prøvet."
+niveau1 = "Vi prøver mange måder at tage dine pensioner ud på. Det højeste faste beløb viser vi med det samme som dit beløb. Du kan altid skifte tilbage til din egen plan."
+niveau2 = "Vi flytter, hvornår og hvor længe dine ordninger udbetales, og om folkepensionen skal udskydes. Et forslag må ikke give nye huller i din indkomst. Ingen ordning begynder, før du går på pension. Har du ikke skrevet, hvornår du stopper, regner vi med din folkepensionsalder. Vi viser, hvor mange kombinationer vi har prøvet."
 niveau3 = "Deterministisk koordinatsøgning over startalder, periode, udbetalingsform og opsættelse inden for lovens grænser og et fast budget af beregninger. Målet er det laveste faste beløb i perioden; uafgjort afgøres af det senere niveau."
 
 [[emne]]

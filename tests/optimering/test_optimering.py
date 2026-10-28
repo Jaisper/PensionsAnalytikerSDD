@@ -12,7 +12,7 @@ from hypothesis import HealthCheck, given, settings, strategies as st
 
 from pensionskerne import Antagelser, Ordning, beregn
 from pensionskerne import optimering as opt
-from pensionskerne.optimering import Plan, anvend, fast_niveau, optimer, slutniveau, vindue
+from pensionskerne.optimering import Plan, anvend, fast_niveau, maalvindue, optimer, slutniveau, vindue
 from pensionsoverblik.visning import byg_visning, graenser
 from tests.conftest import BEREGNINGSDATO, enlig_profil
 
@@ -54,7 +54,7 @@ def test_slutniveau_er_visningens_senere_niveau():
 def test_forslag_er_mindst_lige_saa_godt_og_kan_anvendes():
     p = profil()
     r = optimer(p, A, 2026, BEREGNINGSDATO, maks_evalueringer=400)
-    v = vindue(resultat(p))
+    v = maalvindue(resultat(p), p)  # fra pensionsalderen (007b)
     assert r.udgangspunkt_maaned == pytest.approx(fast_niveau(resultat(p), v))
     if r.bedste is not None:
         assert r.bedste_maaned > r.udgangspunkt_maaned
@@ -69,7 +69,8 @@ def test_skubber_ikke_engangsbeloeb_sent_for_at_hoeje_hovedtallet():
     if r.bedste is not None:
         p2, a2 = anvend(p, A, r.bedste)
         res = resultat(p2, a2)
-        assert fast_niveau(res, vindue(resultat(p))) >= fast_niveau(resultat(p), vindue(resultat(p)))
+        v = maalvindue(resultat(p), p)  # fra pensionsalderen (007b)
+        assert fast_niveau(res, v) >= fast_niveau(resultat(p), v)
         assert r.bedste.starter.get("ald", 0) <= r.udgangspunkt.starter["ald"] + 2
 
 

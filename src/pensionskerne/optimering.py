@@ -27,8 +27,8 @@ er ens i alle kandidater, så de holdes ude af sammenligningen.
 Konstanterne er modelvalg fra legacy (se dens docstring for hvorfor hvert værn er nødvendigt),
 ikke lovsatser — derfor står de her og ikke i registret.
 
-**Søgerum**: startalder pr. ordning (fra tidligste lovlige alder til folkepensionsalderen plus
-den maksimale opsættelse), ratepensionens varighed, folkepensionens opsættelse og — for
+**Søgerum**: startalder pr. ordning (fra pensionsalderen, dog tidligst den lovlige alder, til
+folkepensionsalderen plus den maksimale opsættelse; feature 007b), ratepensionens varighed, folkepensionens opsættelse og — for
 kapitalpension (feature 009) — udbetalingsformen: engangsbeløb, portioner over 2–20 år (PBL
 § 26) eller omlægning til ratepension (10–30 år) eller livrente (PBL § 41; ikke når afgiften er
 betalt). Alle grænser fra registret og kernens regler (Princip II); kombinationer, kernen
@@ -125,6 +125,20 @@ def slutniveau(res: Fremskrivning) -> float:
     return foerste_hele.netto_real / MAANEDER
 
 
+def pensionsalder(profil: Pensionsprofil, fp_alder: int) -> int:
+    """Alderen, borgeren går på pension (007b): stopalderen med løn, ellers folkepensionsalderen.
+    Den bedste plan starter ingen ordning før, og målet regnes fra den."""
+    if profil.loen is not None and profil.loen.stop_alder is not None:
+        return profil.loen.stop_alder
+    return fp_alder
+
+
+def maalvindue(res: Fremskrivning, profil: Pensionsprofil) -> range:
+    """Aldrene, målet regnes over (007b): fra pensionsalderen, hvis den er senere end vinduet."""
+    v = vindue(res)
+    return range(max(v.start, pensionsalder(profil, res.folkepensionsalder)), v.stop)
+
+
 # ── Plan ↔ profil ───────────────────────────────────────────────────────────────────────────────
 
 def _i_soegerum(o) -> bool:
@@ -163,11 +177,15 @@ def anvend(profil: Pensionsprofil, antagelser: Antagelser, plan: Plan) -> tuple[
 
 # ── Søgerum ─────────────────────────────────────────────────────────────────────────────────────
 
-def soegerum(profil: Pensionsprofil, antagelser: Antagelser, satsaar: int) -> tuple[Plan, list[list[tuple]]]:
+def soegerum(profil: Pensionsprofil, antagelser: Antagelser, satsaar: int,
+             beregningsdato: date | None = None) -> tuple[Plan, list[list[tuple]]]:
     """(udgangspunkt, dimensioner) — én dimension pr. beslutning: ("start", id, alder),
-    ("varighed", id, år), ("form", id, (udbetalingsform, år)) eller ("opsaet", None, år)."""
+    ("varighed", id, år), ("form", id, (udbetalingsform, år)) eller ("opsaet", None, år).
+    Ingen ordning starter før pensionsalderen (007b); en ordning, der allerede udbetaler, flyttes ikke."""
     o = Regelopslag(satsaar, satsaar, 0.0)
     fp_alder = folkepensionsalder(profil.foedselsdato, o)
+    pension = pensionsalder(profil, fp_alder)
+    alder_nu = beregningsdato.year - profil.foedselsdato.year if beregningsdato else None
     opsat_maks = int(o.v("opsat.maks_aar"))
     min_aar, maks_aar = int(o.v("ordning.ratepension.min_aar")), int(o.v("ordning.ratepension.maks_aar_efter_udbetalingsalder"))
     udgangspunkt = _udgangspunkt(profil, antagelser, satsaar)
@@ -180,10 +198,13 @@ def soegerum(profil: Pensionsprofil, antagelser: Antagelser, satsaar: int) -> tu
             tidligste = x.tidligste_udbetalingsalder
         else:
             tidligste, _ = tidligste_udbetalingsalder(profil.foedselsdato, x.oprettet, fp_alder, o)
-        lo, hi = math.ceil(tidligste), fp_alder + opsat_maks
-        aldre = set(range(lo, hi + 1))
-        if lo <= x.udbetaling_start_alder <= hi:
-            aldre.add(x.udbetaling_start_alder)
+        lo, hi = max(math.ceil(tidligste), pension), fp_alder + opsat_maks
+        if alder_nu is not None and x.udbetaling_start_alder < alder_nu:
+            aldre = {x.udbetaling_start_alder}  # udbetaler allerede
+        else:
+            aldre = set(range(lo, hi + 1))
+            if pension <= x.udbetaling_start_alder <= hi and x.udbetaling_start_alder >= math.ceil(tidligste):
+                aldre.add(x.udbetaling_start_alder)
         dimensioner.append([("start", x.id, a) for a in sorted(aldre)])
         if x.type == "ratepension":
             dimensioner.append([("varighed", x.id, n) for n in range(min_aar, maks_aar + 1)])
@@ -252,7 +273,7 @@ def _buffer_real(res: Fremskrivning) -> list[float]:
 
 
 def _reference(res: Fremskrivning, profil: Pensionsprofil) -> _Reference:
-    v = vindue(res)
+    v = maalvindue(res, profil)
     m = fast_niveau(res, v)
     raa = _raa(res, v)
     buffer = _buffer_real(res)
@@ -316,7 +337,7 @@ def optimer(
     maks_evalueringer: int = MAKS_EVALUERINGER,
     fremdrift: Callable[[int, int], None] | None = None,
 ) -> Optimering:
-    udgangspunkt, dimensioner = soegerum(profil, antagelser, satsaar)
+    udgangspunkt, dimensioner = soegerum(profil, antagelser, satsaar, beregningsdato)
     basis = beregn(profil, antagelser, satsaar, beregningsdato)
     ref = _reference(basis, profil)
     mulige = math.prod(len(d) for d in dimensioner)
