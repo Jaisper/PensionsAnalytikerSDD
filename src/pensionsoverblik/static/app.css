@@ -79,7 +79,7 @@ a { color: var(--petrol-700); }
 /* ── Guide ────────────────────────────────────────────────────────────── */
 .guide__hero { background: var(--petrol-900); color: var(--hvid); padding: 64px 0 120px; }
 .guide__intro { max-width: 620px; font-size: 1.15rem; opacity: .92; }
-.guide__kort { background: var(--hvid); border-radius: var(--radius); box-shadow: var(--skygge); padding: 32px; margin: -80px auto 64px; max-width: 760px; }
+.guide__kort { background: var(--hvid); border-radius: var(--radius); box-shadow: var(--skygge); padding: 32px; margin: -80px auto 64px; max-width: 880px; }
 .fremdrift { list-style: none; display: flex; gap: 8px; padding: 0; margin: 0 0 28px; counter-reset: trin; }
 .fremdrift li { flex: 1; display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--graa-600); border-top: 4px solid var(--graa-200); padding-top: 10px; font-size: .95rem; }
 .fremdrift li span { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--graa-200); color: var(--tekst); font-size: .85rem; }
@@ -127,6 +127,13 @@ input[type="date"], input:not([type]), input[inputmode], select { font: inherit;
 .ordning__top h3 { margin: 0; }
 .ordning__felter { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0 18px; }
 .ordning__felter .felt { margin-bottom: 14px; }
+/* Label, felt og hjælpetekst står på linje på tværs af kolonnerne, også når en label går over to
+   linjer (subgrid). Hjælpeteksten ligger i sin egen række under feltet. */
+@supports (grid-template-rows: subgrid) {
+  .ordning__felter { grid-auto-rows: auto; }
+  .ordning__felter > .felt { display: grid; grid-row: span 3; grid-template-rows: subgrid; align-content: start; }
+  .ordning__felter > .felt > label { align-self: end; }
+}
 .ordning__felter input, .ordning__felter select { max-width: none; }
 .tilfoej label { font-weight: 700; display: block; margin-bottom: 4px; }
 .tilfoej__raekke { display: flex; gap: 12px; flex-wrap: wrap; }
