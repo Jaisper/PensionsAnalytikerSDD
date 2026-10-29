@@ -1083,6 +1083,7 @@ function synkroniserFormular() {
   $("#inflation").value = s.antagelser.inflation * 100;
   $("#inflation-v").textContent = procent(s.antagelser.inflation);
   $("#stop-alder").value = s.person.loen?.stop_alder ?? "";
+  if (pp) $("#p-stop-alder").value = pp.loen?.stop_alder ?? "";
   tegnOrdninger();
 }
 
@@ -1553,7 +1554,7 @@ function aktivSvar() {
   const s = tilstand.aktuelleSvar;
   const pp = s?.person?.partner?.profil;
   if (tilstand.hvem !== "partner" || !pp) return s;
-  return { ordninger: pp.ordninger, antagelser: {
+  return { ordninger: pp.ordninger, person: { loen: pp.loen }, antagelser: {
     get afkast_efter_pal() { return s.antagelser.afkast_efter_pal; },
     get inflation() { return s.antagelser.inflation; },
     get folkepension_opsaettelse_aar() { return pp.folkepension_opsaettelse_aar || 0; },
@@ -1612,6 +1613,15 @@ function tidslinjeRaekker(v) {
       min: 0, maks: g.opsaettelse_maks,
       hent: () => s.antagelser.folkepension_opsaettelse_aar, saet: (n) => { s.antagelser.folkepension_opsaettelse_aar = n; },
       tekst: (n) => (n ? `${n} år (fra ${g.folkepensionsalder + n} år)` : `nej (fra ${g.folkepensionsalder} år)`) } } });
+  // Feature 025: stopalderen som et punkt øverst, når den viste person har en løn.
+  const loen = s.person?.loen;
+  if (loen) {
+    const fp = g.folkepensionsalder;
+    raekker.unshift({ id: "stopalder", type: "stopalder", titel: "Du stopper med at arbejde", farve: "--kilde-loen", engang: true,
+      kontroller: { start: { navn: "Stopper", label: "Du stopper med at arbejde", ned: "Stop 1 år tidligere", op: "Stop 1 år senere",
+        min: g.stopalder.min, maks: g.stopalder.maks,
+        hent: () => loen.stop_alder ?? fp, saet: (n) => { loen.stop_alder = n; }, tekst: (n) => `${n} år` } } });
+  }
   return raekker;
 }
 
@@ -1626,6 +1636,7 @@ function spaend(r, v) {
 
 function periodeTekst(r, v) {
   const [fra, til] = spaend(r, v);
+  if (r.id === "stopalder") return `som ${fra} år`;
   const hvor = r.direkte ? "udbetales direkte" : "til buffer";
   if (r.form === "portioner") return `${fra}–${til} år · ${r.kontroller.varighed.hent()} portioner · ${hvor}`;
   if (r.form === "ratepension") return `${fra}–${til} år · omlagt til ratepension`;

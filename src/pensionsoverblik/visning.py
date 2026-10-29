@@ -255,7 +255,7 @@ def graenser(profil, satsaar: int) -> dict:
     """Grænser til tidslinjens skydere — fra kernens regler og registret (Princip II).
 
     Tidligste lovlige alder pr. ordning (oplyst af selskabet eller udledt efter loven),
-    ratepensionens periode og maksimal opsættelse af folkepensionen.
+    ratepensionens periode, maksimal opsættelse af folkepensionen og stopalderen (025).
     """
     from pensionskerne.register.opslag import Regelopslag
     from pensionskerne.regler.folkepension import folkepensionsalder
@@ -277,10 +277,20 @@ def graenser(profil, satsaar: int) -> dict:
             ordninger[ordning.id]["seneste"] = math.ceil(ordninger[ordning.id]["tidligste"]) + \
                 o.v("ordning.kapitalpension.seneste_aar_efter_udbetalingsalder")
             ordninger[ordning.id]["kan_omlaegges"] = not ordning.afgift_betalt
+    # Feature 025: stopalderen fra den tidligste udbetaling til folkepensionsalderen. Uden ordninger
+    # gælder loven for en ordning uden oprettelsesdato. En stopalder fra guiden udvider grænserne.
+    tidligste = min((x["tidligste"] for x in ordninger.values()), default=None)
+    if tidligste is None:
+        tidligste, _ = tidligste_udbetalingsalder(profil.foedselsdato, None, fp_alder, o)
+    stop = profil.loen.stop_alder if profil.loen is not None else None
+    stopalder = {"min": math.ceil(tidligste), "maks": fp_alder}
+    if stop is not None:
+        stopalder = {"min": min(stopalder["min"], stop), "maks": max(stopalder["maks"], stop)}
     return {
         "folkepensionsalder": fp_alder,
         "ordninger": ordninger,
         "ratepension_aar": {"min": o.v("ordning.ratepension.min_aar"),
                             "maks": o.v("ordning.ratepension.maks_aar_efter_udbetalingsalder")},
         "opsaettelse_maks": o.v("opsat.maks_aar"),
+        "stopalder": stopalder,
     }
