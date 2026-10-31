@@ -25,6 +25,7 @@
   --kilde-checks: #b85a37;
   --kilde-engangs: #4a6b78;
   --kilde-loen: #8a6d3b;
+  --kilde-buffer: #b0457a;  /* feature 027: fra din buffer, i søjlerne og i buffergrafen */
   --jaevn-linje: #c98a1b;
 
   --radius: 14px;
@@ -172,6 +173,7 @@ input[type="date"], input:not([type]), input[inputmode], select { font: inherit;
 .forklaring-farver { list-style: none; display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 0; margin: 14px 0 0; font-size: .9rem; }
 .forklaring-farver li { display: flex; align-items: center; gap: 8px; }
 .forklaring-farver i { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+.forklaring-farver i.skraveret { background: repeating-linear-gradient(135deg, var(--graa-600) 0 2px, transparent 2px 5px); }
 .forklaring-farver i.linje { height: 0; border-top: 3px dashed var(--jaevn-linje); border-radius: 0; width: 22px; }
 .engangsliste { list-style: none; padding: 0; margin: 0; }
 .engangsliste li { font-size: 1.4rem; font-weight: 800; color: var(--petrol-900); }
