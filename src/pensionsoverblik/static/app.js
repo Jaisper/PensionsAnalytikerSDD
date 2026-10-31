@@ -632,7 +632,8 @@ function iValgteKroner(v) {
   const f = v.graf.realfaktor;
   const del = (arr) => arr && arr.map((x, i) => (x === null ? null : x / f[i]));
   const graf = { ...v.graf, serier: v.graf.serier.map((s) => ({ ...s, vaerdier: del(s.vaerdier) })), jaevn: del(v.graf.jaevn),
-    buffer: del(v.graf.buffer), skat_buffer: del(v.graf.skat_buffer), engangs: v.graf.engangs.map((e) => ({ ...e, netto_real: e.netto })) };
+    buffer: del(v.graf.buffer), skat_buffer: del(v.graf.skat_buffer), fra_buffer: del(v.graf.fra_buffer),
+    til_side: v.graf.til_side && v.graf.til_side.map((t, i) => t && { buffer: t.buffer / f[i], skat: t.skat / f[i], indskud: t.indskud / f[i] }), engangs: v.graf.engangs.map((e) => ({ ...e, netto_real: e.netto })) };
   const formue = v.formue && { ...v.formue, i_plan: v.formue.i_plan.map((x, i) => x / v.formue.realfaktor[i]),
     uden_for_plan: v.formue.uden_for_plan.map((x, i) => x / v.formue.realfaktor[i]) };
   if (formue) formue.rest = formue.i_plan.at(-1) + formue.uden_for_plan.at(-1);
@@ -645,13 +646,18 @@ function tegnGraf(v) {
   $$(".kroner-stort").forEach((s) => (s.textContent = kronerTekst(true)));
   const serier = v.graf.serier;
   $("#farveforklaring").replaceChildren(...serier.map((s) => el("li", {}, el("i", { style: `background: var(${s.farve})`, "aria-hidden": "true" }), s.titel)),
-    ...(v.graf.jaevn ? [el("li", {}, el("i", { class: "linje", "aria-hidden": "true" }), JAEVN_NAVN)] : []));
+    ...(v.graf.jaevn ? [el("li", {}, el("i", { style: "background: var(--kilde-buffer)", "aria-hidden": "true" }), BUFFER_NAVN),
+      el("li", {}, el("i", { class: "skraveret", "aria-hidden": "true" }), TIL_SIDE_NAVN),
+      el("li", {}, el("i", { class: "linje", "aria-hidden": "true" }), JAEVN_NAVN)] : []));
   const forklaring = $("#jaevn-forklaring");
   forklaring.hidden = !v.graf.jaevn;
-  forklaring.textContent = "Den stiplede linje er det beløb, du kan bruge hver måned, hvis du selv udjævner – uden "
-    + "nogensinde at låne. Når søjlen er over linjen, sparer du op. Når den er under, bruger du af opsparingen "
-    + "(også dine engangsbeløb). Den nederste graf viser opsparingen. Den går aldrig i minus: Når den er brugt op, "
-    + "kan beløbet først stige, når der kommer flere penge. Derfor kan linjen gå op i trin.";
+  // Feature 027: søjlen viser, hvor pengene kommer fra – også fra bufferen. Saldoen står i grafen nedenunder.
+  forklaring.textContent = "Den stiplede linje er det faste beløb, du kan bruge hver måned, hvis du selv udjævner – uden "
+    + "nogensinde at låne. Når dine indtægter ikke når op til linjen, tager du resten fra din buffer (opsparing uden for "
+    + "pension, fx dine engangsbeløb). Det skraverede over linjen sætter du til side i bufferen"
+    + (v.graf.skat_buffer ? " eller betaler i skat af opsparingen" : "") + ". Den nederste graf viser, hvor meget der står "
+    + "i bufferen. Den går aldrig i minus: Når den er brugt op, kan beløbet først stige, når der kommer flere penge. "
+    + "Derfor kan linjen gå op i trin.";
   const engangs = engangsMarkoerer(v);
   $("#graf-markeringer").replaceChildren(
     ...engangs.map((e) => el("li", {}, el("span", { class: "ikon ikon--engangs", "aria-hidden": "true", tekst: "◆" }), e.lang)),
@@ -661,7 +667,8 @@ function tegnGraf(v) {
   // Tabelalternativ (FR-023)
   const jaevn = v.graf.jaevn;
   const hoved = el("tr", {}, el("th", { scope: "col", tekst: "Alder" }), ...serier.map((s) => el("th", { scope: "col", tekst: s.titel })),
-    el("th", { scope: "col", tekst: "I alt" }), jaevn ? el("th", { scope: "col", tekst: JAEVN_NAVN }) : null,
+    el("th", { scope: "col", tekst: "I alt" }), jaevn ? el("th", { scope: "col", tekst: BUFFER_NAVN }) : null,
+    jaevn ? el("th", { scope: "col", tekst: TIL_SIDE_NAVN }) : null, jaevn ? el("th", { scope: "col", tekst: JAEVN_NAVN }) : null,
     el("th", { scope: "col", tekst: "Engangsbeløb" }), v.graf.buffer ? el("th", { scope: "col", tekst: "Buffer" }) : null,
     v.graf.skat_buffer ? el("th", { scope: "col", tekst: "Skat af opsparing pr. md." }) : null);
   const engangsPrAlder = new Map();
@@ -669,6 +676,8 @@ function tegnGraf(v) {
   const raekker = v.graf.aldre.map((alder, i) => el("tr", {}, el("th", { scope: "row", tekst: `${alder} år` }),
     ...serier.map((s) => el("td", { tekst: s.vaerdier[i] ? `${kr(s.vaerdier[i])} kr.` : "–" })),
     el("td", { tekst: `${kr(serier.reduce((sum, s) => sum + s.vaerdier[i], 0))} kr.` }),
+    jaevn ? el("td", { tekst: v.graf.fra_buffer[i] >= 1 ? `${kr(v.graf.fra_buffer[i])} kr.` : "–" }) : null,
+    jaevn ? el("td", { tekst: tilSide(v.graf.til_side[i]) >= 1 ? `${kr(tilSide(v.graf.til_side[i]))} kr.` : "–" }) : null,
     jaevn ? el("td", { tekst: jaevn[i] === null ? "–" : `${kr(jaevn[i])} kr.` }) : null,
     el("td", { tekst: engangsPrAlder.has(alder) ? `${kr(engangsPrAlder.get(alder))} kr.` : "–" }),
     v.graf.buffer ? el("td", { tekst: v.graf.buffer[i] === null ? "–" : `${kr(v.graf.buffer[i])} kr.` }) : null,
@@ -687,6 +696,8 @@ function tegnGraf(v) {
         borderDash: [6, 4], borderWidth: 3, pointRadius: 0, tension: 0, order: 0 }] : []),
       ...serier.map((s) => ({ label: s.titel, data: s.vaerdier.map((x) => Math.round(x)), backgroundColor: css(s.farve),
         borderWidth: 0, borderRadius: 2, stack: "netto", order: 1 })),
+      ...(jaevn ? [{ label: BUFFER_NAVN, data: v.graf.fra_buffer.map((x) => (x === null ? null : Math.round(x))),
+        backgroundColor: css("--kilde-buffer"), borderWidth: 0, borderRadius: 2, stack: "netto", order: 1 }] : []),
     ],
   };
   const valg = {
@@ -694,7 +705,13 @@ function tegnGraf(v) {
     plugins: {
       legend: { display: false },
       tooltip: { callbacks: { title: (t) => `${t[0].label} år`, label: (c) => ` ${c.dataset.label}: ${kr(c.raw)} kr.`,
-        footer: (t) => `I alt: ${kr(t.filter((x) => x.dataset.type !== "line").reduce((s, x) => s + x.raw, 0))} kr. om måneden` } },
+        footer: (t) => {
+          const linjer = [`I alt: ${kr(t.filter((x) => x.dataset.type !== "line").reduce((s, x) => s + (x.raw || 0), 0))} kr. om måneden`];
+          const side = tilstand.graf?.$tilSideData?.[t[0].dataIndex];  // valg er fra første tegning
+          if (tilSide(side) >= 1) linjer.push(`${TIL_SIDE_NAVN}: ${kr(tilSide(side))} kr.`);
+          if (side?.skat >= 1) linjer.push(`Skat af opsparing: ${kr(side.skat)} kr.`);
+          return linjer;
+        } } },
     },
     onResize: () => requestAnimationFrame(placerBjaelker),
     // Feature 020: klik på et år åbner "Dit år".
@@ -708,10 +725,11 @@ function tegnGraf(v) {
       y: { stacked: true, ticks: { callback: (x) => `${kr(x)} kr.` }, grid: { color: css("--graa-200") }, afterFit: fastYAkse },
     },
   };
-  if (tilstand.graf) { tilstand.graf.$engangs = engangs; tilstand.graf.data = data; tilstand.graf.update(); }
+  if (tilstand.graf) { tilstand.graf.$engangs = engangs; tilstand.graf.$tilSideData = v.graf.til_side; tilstand.graf.data = data; tilstand.graf.update(); }
   else {
-    tilstand.graf = new Chart($("#graf"), { type: "bar", data, options: valg, plugins: [ENGANGS_PLUGIN] });
+    tilstand.graf = new Chart($("#graf"), { type: "bar", data, options: valg, plugins: [TIL_SIDE_PLUGIN, ENGANGS_PLUGIN] });
     tilstand.graf.$engangs = engangs;
+    tilstand.graf.$tilSideData = v.graf.til_side;
     tilstand.graf.update();
   }
   tegnBuffergraf(v);
@@ -720,6 +738,9 @@ function tegnGraf(v) {
 
 /* ── Feature 008: engangsbeløb og buffer i grafen ────────────────────── */
 const JAEVN_NAVN = "Fast beløb, hvis du udjævner";
+const BUFFER_NAVN = "Fra din buffer";  // feature 027
+const TIL_SIDE_NAVN = "Sættes til side";
+const tilSide = (t) => (t ? t.buffer + t.indskud : 0);  // til bufferen og indskud på opsparingen (013b)
 const Y_AKSE_PX = 84;  // samme y-aksebredde i begge grafer, så aldrene flugter
 const fastYAkse = (skala) => { skala.width = Y_AKSE_PX; };
 
@@ -796,6 +817,47 @@ const ENGANGS_PLUGIN = {
   },
 };
 
+const TIL_SIDE_PLUGIN = {
+  // Feature 027: skraverer søjlen over den stiplede linje – det, der sættes til side (og skat af
+  // opsparingen, som udjævningen ikke fordeler). Kun tegning: toppen er søjlens sum, bunden linjen.
+  // Felterne gemmes i chart.$tilSide (tests).
+  id: "tilSide",
+  afterDatasetsDraw(chart) {
+    chart.$tilSide = [];
+    const linje = chart.data.datasets.find((d) => d.type === "line");
+    const stak = chart.data.datasets.map((d, n) => [d, n]).filter(([d]) => d.stack === "netto");
+    if (!linje || !stak.length) return;
+    const meta = chart.getDatasetMeta(stak.at(-1)[1]);
+    const { ctx, chartArea, scales } = chart;
+    ctx.save();
+    ctx.strokeStyle = "rgba(255, 255, 255, .8)";
+    ctx.lineWidth = 2;
+    linje.data.forEach((niveau, i) => {
+      if (niveau === null || !meta.data[i]) return;
+      const top = stak.reduce((sum, [d]) => sum + (d.data[i] || 0), 0);
+      const y0 = Math.max(chartArea.top, scales.y.getPixelForValue(top));
+      const y1 = scales.y.getPixelForValue(niveau);
+      if (top - niveau < 1 || y1 - y0 < 1) return;
+      const { x, width } = meta.data[i];
+      const x0 = x - width / 2;
+      const x1 = x + width / 2;
+      chart.$tilSide.push({ i, x0, x1, y0, y1 });
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(x0, y0, x1 - x0, y1 - y0);
+      ctx.clip();
+      ctx.beginPath();
+      for (let d = -(y1 - y0); d < x1 - x0; d += 6) {
+        ctx.moveTo(x0 + d, y1);
+        ctx.lineTo(x0 + d + (y1 - y0), y0);
+      }
+      ctx.stroke();
+      ctx.restore();
+    });
+    ctx.restore();
+  },
+};
+
 function tegnBuffergraf(v) {
   const ramme = $("#buffergraf-ramme");
   const buffer = v.graf.buffer;
@@ -804,7 +866,7 @@ function tegnBuffergraf(v) {
     return;
   }
   ramme.hidden = false;
-  const farve = css("--kilde-engangs");
+  const farve = css("--kilde-buffer");  // samme farve som "Fra din buffer" i søjlerne (027)
   const roed = css("--fejl");
   const data = {
     labels: v.graf.aldre.map((a) => `${a}`),
@@ -818,7 +880,7 @@ function tegnBuffergraf(v) {
     responsive: true, maintainAspectRatio: false, animation: { duration: 250 },
     plugins: {
       legend: { display: false },
-      title: { display: true, text: `Opsparing uden for pension, som bruges i din faste udbetaling, ${kronerTekst()}`, align: "start", color: css("--petrol-900") },
+      title: { display: true, text: `Din buffer: opsparing uden for pension, som bruges i din faste udbetaling, ${kronerTekst()}`, align: "start", color: css("--petrol-900") },
       tooltip: { callbacks: { title: (t) => `${t[0].label} år`, label: (c) => ` Opsparing: ${kr(c.raw)} kr.` } },
     },
     scales: {
@@ -1253,7 +1315,7 @@ function tegnLaesevejledninger() {
     $("summary", d).textContent = e.titel;
     const tekster = [e[n]];
     if (d.dataset.laes === "graf") {
-      const vist = [...v.graf.serier.map((s) => s.titel), ...(v.graf.jaevn ? [JAEVN_NAVN] : []),
+      const vist = [...v.graf.serier.map((s) => s.titel), ...(v.graf.jaevn ? [BUFFER_NAVN, `skravering for "${TIL_SIDE_NAVN.toLowerCase()}"`, JAEVN_NAVN] : []),
         ...(v.graf.engangs.length ? ["mærker for engangsbeløb"] : []), ...(v.graf.markeringer.length ? ["felter for år med en advarsel"] : [])];
       tekster.push(`I din graf: ${vist.join(", ")}.`);
     }

@@ -196,3 +196,26 @@ def test_engangsbeloeb_faar_eget_kort():
                                 "netto": pytest.approx(300_000), "netto_real": pytest.approx(300_000)}]
     assert kort["netto_maaned"] is None
     assert "engangsbeloeb" not in [s["noegle"] for s in v["graf"]["serier"]]
+
+
+def test_buffer_i_soejlen_gaar_op_med_linjen(res_og_visning):
+    """Feature 027: kernens fra_buffer og til_buffer pr. år i dagens kroner. Kilderne plus "fra din
+    buffer" er linjen plus det, der sættes til side, skatten af opsparingen og indskud (disponibel)."""
+    res, v = res_og_visning
+    g = v["graf"]
+    if not res.jaevn:
+        assert g["fra_buffer"] is None and g["til_side"] is None
+        return
+    foran = len(g["aldre"]) - len(res.aar)
+    for i, (j, a) in enumerate(zip(res.jaevn.aar, res.aar)):
+        k = foran + i
+        if g["jaevn"][k] is None:
+            assert g["fra_buffer"][k] is None and g["til_side"][k] is None
+            continue
+        assert g["fra_buffer"][k] == pytest.approx(j.fra_buffer * a.realfaktor / 12)
+        til = g["til_side"][k]
+        assert til["buffer"] == pytest.approx(j.til_buffer * a.realfaktor / 12)
+        assert til["skat"] == pytest.approx(a.skat_opsparing * a.realfaktor / 12)
+        assert til["indskud"] == pytest.approx(a.indskud_opsparing * a.realfaktor / 12)
+        kilder = sum(s["vaerdier"][k] for s in g["serier"])
+        assert kilder + g["fra_buffer"][k] == pytest.approx(g["jaevn"][k] + til["buffer"] + til["skat"] + til["indskud"])

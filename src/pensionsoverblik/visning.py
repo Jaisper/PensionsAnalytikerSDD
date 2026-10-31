@@ -161,13 +161,20 @@ def byg_visning(res: Fremskrivning) -> dict:
                      "fra_alder": engangs[0]["alder"], "til_alder": engangs[-1]["alder"],
                      "advarsler": [], "detaljer": [], "engangs": engangs, "pr_ordning": list(pr_ordning.values())})
 
-    jaevn = buffer = None
+    jaevn = buffer = fra_buffer = til_side = None
     if res.jaevn:
         fra = res.jaevn_fra_alder or res.aar[0].alder  # arbejdsår (017) har ingen jævn linje
         jaevn = [j.jaevn * a.realfaktor / MAANEDER if a.alder >= fra else None for j, a in zip(res.jaevn.aar, res.aar)]
         # Bufferen i dagens kroner. Den ender i 0; under 1 kr. er regnestøj (007 R002).
         buffer = [0.0 if abs(b := j.buffer_rest * a.realfaktor) < BUFFER_NUL_KR else b
                   for j, a in zip(res.jaevn.aar, res.aar)]
+        # Feature 027: bufferen i søjlerne, pr. måned i dagens kroner. Over linjen ligger det, der
+        # sættes til side, og det, udjævningen ikke fordeler (skat af opsparingen og indskud, 013b).
+        fra_buffer = [j.fra_buffer * a.realfaktor / MAANEDER if x is not None else None
+                      for j, a, x in zip(res.jaevn.aar, res.aar, jaevn)]
+        til_side = [{"buffer": j.til_buffer * a.realfaktor / MAANEDER, "skat": a.skat_opsparing * a.realfaktor / MAANEDER,
+                     "indskud": a.indskud_opsparing * a.realfaktor / MAANEDER} if x is not None else None
+                    for j, a, x in zip(res.jaevn.aar, res.aar, jaevn)]
 
     alder_nu = res.beregningsdato.year - (res.aar[0].kalenderaar - res.aar[0].alder)
     akse_start = min(aldre[0], max(AKSE_START_ALDER, alder_nu))
@@ -207,6 +214,8 @@ def byg_visning(res: Fremskrivning) -> dict:
             "markeringer": markeringer,
             "jaevn": None if jaevn is None else [None] * foran + jaevn,
             "buffer": None if buffer is None else [None] * foran + buffer,
+            "fra_buffer": None if fra_buffer is None else [None] * foran + fra_buffer,
+            "til_side": None if til_side is None else [None] * foran + til_side,
             # Skat af opsparing uden for pension (009, 013b): kapitalindkomst, aktieindkomst og ASK.
             "skat_buffer": [None] * foran + [a.skat_opsparing * a.realfaktor / MAANEDER for a in res.aar]
             if any(a.skat_opsparing for a in res.aar) else None,

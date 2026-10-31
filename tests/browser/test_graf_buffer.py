@@ -11,7 +11,7 @@ def test_linjen_hedder_fast_beloeb_og_forklares(resultat):
     forklaring = resultat.inner_text("#farveforklaring")
     assert "Fast beløb, hvis du udjævner" in forklaring and "Jævnt fordelt" not in forklaring
     tekst = resultat.inner_text("#jaevn-forklaring")
-    assert "bruger du af opsparingen" in tekst and "sparer du op" in tekst  # ordlyd fra 010
+    assert "fra din buffer" in tekst and "til side" in tekst  # ordlyd fra 027 (før: 010)
 
 
 def test_engangsbeloeb_vises_med_buffer_eller_udbetales(resultat):
