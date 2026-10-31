@@ -71,7 +71,10 @@ def test_skubber_ikke_engangsbeloeb_sent_for_at_hoeje_hovedtallet():
         res = resultat(p2, a2)
         v = maalvindue(resultat(p), p)  # fra pensionsalderen (007b)
         assert fast_niveau(res, v) >= fast_niveau(resultat(p), v)
-        assert r.bedste.starter.get("ald", 0) <= r.udgangspunkt.starter["ald"] + 2
+        # Aldersopsparingen må gerne vente i pensionen (ingen formue til ældrechecken, PAL i stedet
+        # for kapitalindkomstskat), men kun hvis det ikke sænker hovedtallet (målet ovenfor).
+        p_ald, a_ald = anvend(p, A, replace(r.bedste, starter={**r.bedste.starter, "ald": r.udgangspunkt.starter["ald"]}))
+        assert r.bedste_maaned >= fast_niveau(resultat(p_ald, a_ald), v) - 1
 
 
 def test_finder_en_forbedring_for_en_daarlig_plan():

@@ -489,3 +489,8 @@ PDF-import fra PensionsInfo · AI-forklaring/chat · Optimering af udbetalingsr�
 - Brugerfladen kører optimeringen efter første resultat og viser den bedste plan som hovedtallet med
   borgerens egen plan til sammenligning.
 
+- Værnet VARIGHED måler lave år mod udgangspunktets faste beløb, ikke kandidatens (rettet
+  2026-10-28: ellers tabte planer, der bruger engangsbeløbene i bufferen, og forløbet blev en trappe).
+- Ved samme laveste beløb vinder det fladeste forløb (`optimering.spring`), ikke det højeste senere
+  niveau (valgt af brugeren 2026-10-28). Et spring op er kun tilbage, når en ordning tidligst kan
+  udbetales sent; udjævningen låner ikke mod senere indkomst (010).

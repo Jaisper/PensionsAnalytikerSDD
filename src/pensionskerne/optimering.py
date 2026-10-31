@@ -8,7 +8,8 @@ tilfældighed — samme input giver altid samme forslag.
 af HELE perioden — det laveste jævne beløb fra udgangspunktets første udbetaling (år uden
 udbetaling tæller som 0). Ikke den samlede nutidsværdi, der belønner skæve, bagtunge forløb, og
 heller ikke hovedtallet alene: det er niveauet efter det sidste engangsbeløb og ville belønne
-at skubbe engangsbeløb sent, så de første år bliver lavere (opdaget i T003).
+at skubbe engangsbeløb sent, så de første år bliver lavere (opdaget i T003). Ved uafgjort vinder
+det fladeste forløb (mindst spring op), ikke det højeste senere niveau (valgt 2026-10-28).
 
 **Værn** i forhold til borgerens nuværende plan (legacy's fire tjek plus gulvet, tilpasset
 kernens jævne model, hvor tidlige år kan "låne" af senere udbetalinger via en negativ buffer).
@@ -18,8 +19,10 @@ er ens i alle kandidater, så de holdes ude af sammenligningen.
 
 1. GULV: det faste beløb må ikke være under GULV_ANDEL af udgangspunktets.
 2. DYBDE: laveste rå udbetaling må ikke være under DYBDE_TOLERANCE af udgangspunktets laveste.
-3. VARIGHED: antallet af år med rå udbetaling under HARDSHIP_ANDEL af kandidatens eget faste
-   beløb må ikke overstige udgangspunktets antal.
+3. VARIGHED: antallet af år med rå udbetaling under HARDSHIP_ANDEL af udgangspunktets faste
+   beløb må ikke overstige udgangspunktets antal. (Indtil 2026-10-28 af kandidatens eget faste
+   beløb: så gjorde et højere fast beløb fra bufferen flere år "lave", og planer, der skubbede
+   engangsbeløb sent, vandt.)
 4. BUFFERDÆKNING: den dybeste negative buffer må højst være én måneds fast beløb dybere end
    udgangspunktets.
 5. BUFFER-VARIGHED: antallet af år med negativ buffer må ikke overstige udgangspunktets.
@@ -115,7 +118,7 @@ def vindue(res: Fremskrivning) -> range:
 
 def slutniveau(res: Fremskrivning) -> float:
     """Det jævne niveau efter det sidste spring (kr./md., dagens kroner) — visningens "senere"
-    niveau. Bruges kun ved uafgjort; uden jævn udbetaling det første hele folkepensionsår."""
+    niveau; uden jævn udbetaling det første hele folkepensionsår."""
     if res.jaevn:
         fra = vindue(res).start  # arbejdsår (017) tæller ikke med
         real = [x for x, a in zip(_jaevn_real(res), res.aar) if a.alder >= fra]
@@ -123,6 +126,15 @@ def slutniveau(res: Fremskrivning) -> float:
         return real[ref] / MAANEDER
     foerste_hele = next((a for a in res.aar if a.alder > res.folkepensionsalder), res.aar[-1])
     return foerste_hele.netto_real / MAANEDER
+
+
+def spring(res: Fremskrivning, vindue: range) -> float:
+    """Forskellen mellem det højeste og det laveste jævne beløb i vinduet (kr./md., dagens kroner).
+    Bruges kun ved uafgjort: det flade forløb vinder over det med mest senere (valgt 2026-10-28)."""
+    if not res.jaevn:
+        return 0.0
+    real = [x for x, a in zip(_jaevn_real(res), res.aar) if a.alder in vindue]
+    return (max(real) - min(real)) / MAANEDER if real else 0.0
 
 
 def pensionsalder(profil: Pensionsprofil, fp_alder: int) -> int:
@@ -292,7 +304,7 @@ def _gennemfoerlig(res: Fremskrivning, ref: _Reference) -> float | None:
     raa = _raa(res, ref.vindue)
     if min(raa.values()) < DYBDE_TOLERANCE * ref.laveste_raa:
         return None
-    if sum(1 for v in raa.values() if v < HARDSHIP_ANDEL * m * MAANEDER) > ref.hardship_aar:
+    if sum(1 for v in raa.values() if v < HARDSHIP_ANDEL * ref.maaned * MAANEDER) > ref.hardship_aar:
         return None
     buffer = _buffer_real(res)
     if min(buffer, default=0.0) < ref.laveste_buffer - BUFFER_TOLERANCE_MAANEDER * m:
@@ -304,7 +316,7 @@ def _gennemfoerlig(res: Fremskrivning, ref: _Reference) -> float | None:
 
 def _evaluer_plan(plan: Plan, profil: Pensionsprofil, antagelser: Antagelser, satsaar: int,
                   beregningsdato: date, ref: _Reference, varm: dict | None = None) -> tuple[float, float] | None:
-    """(fast beløb, slutniveau, samlet real netto) for en gennemførlig kandidat, ellers None.
+    """(fast beløb, minus springet, samlet real netto) for en gennemførlig kandidat, ellers None.
     `varm` holder den forrige kandidats resultat som startgæt for bufferens fastpunkt."""
     p, a = anvend(profil, antagelser, plan)
     try:
@@ -316,7 +328,7 @@ def _evaluer_plan(plan: Plan, profil: Pensionsprofil, antagelser: Antagelser, sa
     m = _gennemfoerlig(res, ref)
     if m is None:
         return None
-    return m, slutniveau(res), sum(x.netto_real for x in res.aar)
+    return m, -spring(res, ref.vindue), sum(x.netto_real for x in res.aar)
 
 
 # ── Søgning ─────────────────────────────────────────────────────────────────────────────────────
@@ -353,7 +365,7 @@ def optimer(
     def evaluer(vektor: tuple) -> tuple | None:
         if vektor not in score:
             r = _evaluer_plan(_plan(vektor, udgangspunkt), profil, antagelser, satsaar, beregningsdato, ref, varm)
-            # Rangering: fast beløb hele perioden (= hovedtallet), så det senere niveau, så samlet real netto — i hele
+            # Rangering: fast beløb hele perioden (= hovedtallet), så det mindste spring, så samlet real netto — i hele
             # kroner. Uafrundede tal ville lade forskelle i sidste decimal mellem CPython og
             # WebAssembly (research R001) afgøre uafgjorte og sende søgningen ad en anden vej.
             score[vektor] = None if r is None else (round(r[0]), round(r[1]), round(r[2]))
