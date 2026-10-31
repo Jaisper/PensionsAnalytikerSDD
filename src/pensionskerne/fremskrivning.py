@@ -651,13 +651,16 @@ def beregn(
         foer_aar = []
         for a in foer:
             normal = a.disponibel
-            b = (b + engangs.pop(a.alder, 0.0)) * (1 + rente_i(a.alder))
+            ind = engangs.pop(a.alder, 0.0)
+            b = (b + ind) * (1 + rente_i(a.alder))
             foer_aar.append(JaevnAar(alder=a.alder, jaevn=normal, normal=normal, fra_buffer=0.0, til_buffer=0.0,
-                                     buffer_rest=b))
+                                     buffer_rest=b, ind_buffer=ind))
         engangs[jaevn_fra] = engangs.get(jaevn_fra, 0.0) + b
         efter = tuple(a for a in aar if a.alder >= jaevn_fra)
         j = beregn_jaevn(efter, engangs, [rente_i(a.alder) for a in efter], antagelser.inflation, beregningsdato.year)
-        return JaevnUdbetaling(j.niveau_foerste_aar, j.niveau_real, tuple(foer_aar) + j.aar)
+        # Saldoen fra arbejdsårene føres videre ved stopalderen; den er ikke nye penge i bufferen (029).
+        foerste = replace(j.aar[0], ind_buffer=j.aar[0].ind_buffer - b)
+        return JaevnUdbetaling(j.niveau_foerste_aar, j.niveau_real, tuple(foer_aar) + (foerste,) + j.aar[1:])
     # Stopkriterium: den jævne udbetaling ændrer sig i intet år mere end BUFFER_TOLERANCE_KR om
     # måneden fra én iteration til den næste (hovedtallet vises afrundet til 100 kr.).
     tilstand = opsparingsskat(buffer_start.jaevn) if buffer_start else _Opsparingsskat()

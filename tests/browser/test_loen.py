@@ -4,6 +4,7 @@ import json
 import pytest
 
 from pensionsoverblik import app
+from tests.browser.conftest import vent_paa_planen
 
 pytestmark = pytest.mark.browser
 
@@ -83,6 +84,7 @@ def test_axe_og_360(side):
 def test_nettoloennen_vises_ved_hovedtallet(side):
     """017b: nettolønnen pr. måned står ved hovedtallet til sammenligning."""
     til_resultat(side, bank="300000")
+    vent_paa_planen(side)  # 028: teksten er skjult, mens talrullen kører
     nl = side.evaluate("tilstand.v.loen")
     tekst = side.inner_text("#hovedtal-loen")
     assert f"{nl['maaned']:,.0f}".replace(",", ".") in tekst and "til 64 år" in tekst
