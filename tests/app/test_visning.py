@@ -219,3 +219,16 @@ def test_buffer_i_soejlen_gaar_op_med_linjen(res_og_visning):
         assert til["indskud"] == pytest.approx(a.indskud_opsparing * a.realfaktor / 12)
         kilder = sum(s["vaerdier"][k] for s in g["serier"])
         assert kilder + g["fra_buffer"][k] == pytest.approx(g["jaevn"][k] + til["buffer"] + til["skat"] + til["indskud"])
+
+
+def test_buffer_ind_pr_aar(res_og_visning):
+    """Feature 029: det, der kommer ind i bufferen hvert år, i dagens kroner (kernens ind_buffer)."""
+    res, v = res_og_visning
+    g = v["graf"]
+    if not res.jaevn:
+        assert g["buffer_ind"] is None
+        return
+    foran = len(g["aldre"]) - len(res.aar)
+    assert g["buffer_ind"][:foran] == [None] * foran
+    for i, (j, a) in enumerate(zip(res.jaevn.aar, res.aar)):
+        assert g["buffer_ind"][foran + i] == pytest.approx(j.ind_buffer * a.realfaktor)
