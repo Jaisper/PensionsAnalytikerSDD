@@ -12,7 +12,7 @@ from pensionskerne.register.opslag import Regelopslag
 from pensionskerne.regler.folkepension import folkepensionsalder
 
 from ..visning import MAANEDER
-from .aflaeser import AflaestOrdning, Aflaesning
+from .aflaeser import AflaestDaekning, AflaestOrdning, Aflaesning
 
 
 SPRINGES_OVER = {"folkepension", "forsikring", "atp"}
@@ -87,6 +87,13 @@ def _ordning(o: AflaestOrdning, fp_alder: int | None, regler: Regelopslag) -> di
     }
 
 
+def _forsikring(d: AflaestDaekning) -> dict:
+    """Feature 031: forsikringen, som den står i rapporten. Den indgår ikke i beregningen."""
+    return {"type": d.type, "selskab": d.selskab, "aftalenr": d.aftalenr, "skat": d.skat, "modtager": d.modtager,
+            "form": d.form, "beloeb": d.beloeb, "til_alder": d.til_alder, "praemiefritagelse": d.praemiefritagelse,
+            "noter": list(d.noter)}
+
+
 def til_guide(aflaesning: Aflaesning, foedselsdato: date | None, satsaar: int) -> dict:
     regler = Regelopslag(satsaar, satsaar, 0.0)
     bemaerkninger: list[str] = []
@@ -107,6 +114,7 @@ def til_guide(aflaesning: Aflaesning, foedselsdato: date | None, satsaar: int) -
     ordninger = [_ordning(o, fp_alder, regler) for o in aflaesning.ordninger if o.kategori not in SPRINGES_OVER]
     if not ordninger:
         bemaerkninger.append("Vi fandt ingen pensionsordninger ud over ATP og folkepension.")
+    bemaerkninger += aflaesning.bemaerkninger
     # Rapportens samlede indbetaling pr. måned før AM-bidrag (017c): et tjek af lønsedlens procenter.
     efter_am = sum(o["aarlig_indbetaling"] or 0 for o in ordninger)
     indbetaling_maaned = round(efter_am / (1 - regler.v("skat.am_bidrag")) / MAANEDER) if efter_am else None
@@ -115,5 +123,6 @@ def til_guide(aflaesning: Aflaesning, foedselsdato: date | None, satsaar: int) -
         "atp_aarlig": atp,
         "indbetaling_maaned": indbetaling_maaned,
         "ordninger": ordninger,
+        "forsikringer": [_forsikring(d) for d in aflaesning.daekninger],
         "bemaerkninger": bemaerkninger,
     }

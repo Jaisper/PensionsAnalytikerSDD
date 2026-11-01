@@ -95,3 +95,20 @@ def test_rateperiode_uden_for_lovens_rammer_bliver_10_og_markeres():
 def test_livsvarig_har_ingen_periode():
     assert guide(ordning(kategori="livsvarig"))["ordninger"][0]["udbetaling_aar"] is None
 
+
+
+def test_forsikringer_foelger_med_uden_at_blive_ordninger():
+    # Feature 031: forsikringerne vises, som de står i rapporten. Kernen regner ikke med dem.
+    from pensionsoverblik.pdfimport.aflaeser import AflaestDaekning
+
+    d = AflaestDaekning(type="doed", selskab="Testselskab", aftalenr="555", skat="F", modtager="Begunstiget oplyst",
+                        form="engang", beloeb=1_500_000, kolonner=[Periode("På én gang", 1_500_000)], til_alder=67,
+                        praemiefritagelse=True, noter=["Dækningsbeløbet nedtrappes."])
+    g = til_guide(Aflaesning(atp_aarlig=None, ordninger=[ordning()], daekninger=[d],
+                             bemaerkninger=["Afsnittet \"Sundhedsforsikring\" kunne ikke aflæses."]), FOEDT, 2026)
+    assert g["forsikringer"] == [{"type": "doed", "selskab": "Testselskab", "aftalenr": "555", "skat": "F",
+                                  "modtager": "Begunstiget oplyst", "form": "engang", "beloeb": 1_500_000,
+                                  "til_alder": 67, "praemiefritagelse": True, "noter": ["Dækningsbeløbet nedtrappes."]}]
+    assert len(g["ordninger"]) == 1
+    assert any("Sundhedsforsikring" in b for b in g["bemaerkninger"])
+    assert guide(ordning())["forsikringer"] == []

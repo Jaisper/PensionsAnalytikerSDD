@@ -125,3 +125,105 @@ FLERE = ([(60, 28, "Pension - flere oplysninger", 14), (65, 81, "Leverandør, af
 
 RAPPORT_PDF = lav_pdf_placeret([FORSIDE, INDHOLD, AFTALER, SCENARIE, FLERE, BILAG])
 RAPPORT_UDEN_INDHOLD_PDF = lav_pdf_placeret([FORSIDE, AFTALER, SCENARIE, FLERE])
+
+
+# ── Forsikringer (feature 031) ───────────────────────────────────────────────
+# Layout som PensionsInfos demorapport (2026): pr. afsnit en "Overblik"-side med tabellen og en
+# "Detaljer"-side med bemærkninger. Skattekoden står til venstre for selskabet; beløbene er
+# højrestillede under kolonneoverskrifterne.
+
+_BREDDE = {".": 0.278, " ": 0.278, ",": 0.278, "k": 0.5, "r": 0.333, "-": 0.333}
+
+
+def _hoejre(x1: float, top: float, tekst: str, str_: float = 7.0):
+    """Højrestillet tekst, der slutter ved x1 (Helvetica-bredder, kun tal og 'kr.')."""
+    return (x1 - sum(_BREDDE.get(c, 0.556) for c in tekst) * str_, top, tekst, str_)
+
+
+def _hoved(titel: str, under: str):
+    return [(58, 28, titel, 14), (58, 49, under, 9)]
+
+
+FORKLARING = [(60, 480, "A", 6), (67, 480, "Afgiftspligtig", 6), (136, 480, "F", 6),
+              (143, 480, "Skatte- og afgiftsfri", 6), (231, 480, "S", 6), (239, 480, "Skattepligtig", 6)]
+
+SUNDHED = (_hoved("Sundhedsforsikring (2 | 2)", "Detaljer")
+           + [(167, 85, "Leverandør, aftalenr.", 7), (306, 85, "Bemærkninger", 7), (734, 83, "Dækningsbeløb", 7),
+              (306, 109, "Dækningen ophører ved 67 år (01.03.2033).", 7), (82, 117, "På én gang", 7),
+              (167, 120, "Testselskab", 7), _hoejre(780, 123, "100.000 kr."), (167, 127, "7777777777", 7),
+              (306, 135, "Dækningen er ikke tegnet med ret til præmiefritagelse.", 7),
+              (63, 300, "I alt", 7), _hoejre(780, 300, "100.000 kr.")] + FORKLARING)
+
+DOED = (_hoved("Udbetaling ved død (2 | 3)", "Overblik")
+        + [(63, 93, "Modtager", 7), (600, 93, "Om året i en årrække", 7), (726, 93, "På én gang", 7),
+           # Ægtefælle: ATP (engangsbeløb) og Danica (ægtefællepension om året)
+           (84, 126, "Ægtefælle", 7),
+           (99, 143, "ATP", 7), (87, 145, "A", 7), (99, 152, "Dækningsbeløbet", 7), _hoejre(780, 154, "40.000 kr."),
+           (99, 158, "nedtrappes.", 7), (99, 166, "ATP Livslang Pension", 7),
+           (99, 180, "Danica", 7), (87, 182, "A", 7), _hoejre(690, 190, "60.000 kr."), (99, 189, "Dækker indtil 70 år", 7),
+           (99, 197, "1234567890", 7),
+           # Begunstiget: Testselskab, procent af lønnen
+           (84, 242, "Begunstiget oplyst", 7),
+           (99, 259, "Testselskab", 7), (87, 262, "F", 7), (99, 268, "Dækningen", 7),
+           (99, 274, "fastsættes som en", 7), (99, 280, "procentdel af din løn.", 7), _hoejre(780, 283, "1.500.000 kr."),
+           (99, 300, "Dækker indtil 67 år", 7), (99, 308, "5555555555", 7),
+           (63, 377, "I alt:", 7), _hoejre(690, 386, "60.000 kr."), _hoejre(779, 386, "1.540.000 kr.")] + FORKLARING)
+
+DOED_DETALJER = (_hoved("Udbetaling ved død (3 | 3)", "Detaljer")
+                 + [(63, 86, "Modtager, leverandør og aftalenr.", 7), (302, 86, "Bemærkninger", 7),
+                    (63, 113, "Ægtefælle", 7),
+                    (63, 122, "ATP", 7), (302, 122, "Dækningsbeløbet nedtrappes.", 7),
+                    (63, 130, "ATP Livslang Pension", 7), (302, 130, "Yderligere oplysninger hos ATP.", 7),
+                    (63, 150, "Danica", 7), (302, 150, "Dækningen ophører ved 70 år (01.03.2036).", 7),
+                    (63, 158, "1234567890", 7), (302, 158, "Dækningen er ikke tegnet med ret til præmiefritagelse.", 7),
+                    (63, 180, "Begunstiget oplyst", 7),
+                    (63, 189, "Testselskab", 7), (302, 189, "Dækningen fastsættes som en procentdel af din løn.", 7),
+                    (63, 197, "5555555555", 7), (302, 197, "Dækningen ophører ved 67 år (01.03.2033).", 7),
+                    (302, 205, "Dækningen er tegnet med ret til præmiefritagelse.", 7)])
+
+TAE = (_hoved("Udbetaling ved tab af arbejdsevne (2 | 3)", "Overblik")
+       + [(89, 83, "Pensioner", 7), (638, 83, "Mistet arbejdsevne", 7), (737, 83, "Indtil 67 år", 7),
+          (89, 105, "Om året i en årrække", 7), _hoejre(703, 105, "300.000 kr."), _hoejre(775, 105, "300.000 kr."),
+          (103, 114, "Testselskab", 7), (91, 116, "S", 7), _hoejre(703, 114, "300.000 kr."), _hoejre(775, 114, "300.000 kr."),
+          (103, 123, "5555555555", 7), (103, 133, "Ophørende udbetaling", 7),
+          (95, 154, "I alt:", 7), _hoejre(703, 154, "300.000 kr."), _hoejre(775, 154, "300.000 kr.")] + FORKLARING)
+
+TAE_DETALJER = (_hoved("Udbetaling ved tab af arbejdsevne (3 | 3)", "Detaljer")
+                + [(63, 86, "Modtager, leverandør og aftalenr.", 7), (302, 86, "Bemærkninger", 7),
+                   (63, 113, "Forsikringstager", 7),
+                   (63, 122, "Testselskab", 7), (302, 122, "Udbetaling af dækningen ophører senest ved 67 år (pr. 01.03.2033).", 7),
+                   (63, 130, "5555555555", 7), (302, 130, "Dækningen ophører ved 67 år (01.03.2033).", 7),
+                   (302, 138, "Dækningen er tegnet med ret til præmiefritagelse.", 7)])
+
+KS = (_hoved("Visse kritiske sygdomme (2 | 3)", "Overblik")
+      + [(89, 80, "På én gang", 7), _hoejre(775, 80, "150.000 kr."),
+         (103, 90, "Testselskab", 7), (91, 91, "F", 7), _hoejre(775, 90, "150.000 kr."),
+         (103, 98, "5555555555", 7), (103, 108, "Engangsudbetaling", 7),
+         (95, 130, "I alt:", 7), _hoejre(775, 130, "150.000 kr.")] + FORKLARING)
+
+KS_DETALJER = (_hoved("Visse kritiske sygdomme (3 | 3)", "Detaljer")
+               + [(63, 86, "Modtager, leverandør og aftalenr.", 7), (302, 86, "Bemærkninger", 7),
+                  (63, 113, "Forsikringstager", 7),
+                  (63, 122, "Testselskab", 7), (302, 122, "Der er ikke leveret oplysninger om indbetalingen på denne dækning.", 7),
+                  (63, 130, "5555555555", 7), (302, 130, "Dækningen ophører ved 67 år (01.03.2033).", 7),
+                  (302, 138, "Dækningen er tegnet med ret til præmiefritagelse.", 7)])
+
+KS_BOERN = ([(58, 28, "Visse kritiske sygdomme - børn (3 | 3)", 14), (58, 49, "Hvis du har børn under en vis alder", 9)]
+            + [(89, 80, "På én gang", 7), _hoejre(775, 80, "50.000 kr."),
+               (103, 90, "Testselskab", 7), (91, 91, "F", 7), _hoejre(775, 90, "50.000 kr."),
+               (103, 98, "5555555555", 7), (95, 130, "I alt:", 7), _hoejre(775, 130, "50.000 kr.")] + FORKLARING)
+
+INDHOLD_FORSIKRING = [(130, 120, "Information", 14), (450, 120, "Indhold", 14),
+                      (130, 150, "PensionsInfo er en forening af omkring 80", 8), (450, 150, "3 Dine aftaler", 8),
+                      (450, 162, "4 Sundhedsforsikring", 8), (450, 174, "5 Udbetalinger ved død", 8),
+                      (450, 186, "7 Udbetaling ved tabt arbejdsevne", 8), (450, 198, "9 Visse kritiske sygdomme", 8),
+                      (450, 210, "12 Hvis du går på pension som 62-årig får du", 8),
+                      (450, 222, "13 Pension - flere oplysninger", 8), (450, 234, "14 Bilag", 8)]
+
+RAPPORT_MED_FORSIKRINGER_PDF = lav_pdf_placeret([
+    FORSIDE, INDHOLD_FORSIKRING, AFTALER, SUNDHED, DOED, DOED_DETALJER, TAE, TAE_DETALJER, KS, KS_DETALJER, KS_BOERN,
+    SCENARIE, FLERE, BILAG])
+# Et forsikringsafsnit med ukendt layout: ingen skattekoder og ingen detaljer.
+RAPPORT_MED_UKENDT_FORSIKRING_PDF = lav_pdf_placeret([
+    FORSIDE, INDHOLD_FORSIKRING, AFTALER, SUNDHED, _hoved("Udbetaling ved død (2 | 3)", "Overblik") + [(99, 143, "Noget andet", 7)],
+    DOED_DETALJER, TAE, TAE_DETALJER, KS, KS_DETALJER, KS_BOERN, SCENARIE, FLERE, BILAG])

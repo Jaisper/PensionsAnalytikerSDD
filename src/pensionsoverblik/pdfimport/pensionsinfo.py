@@ -25,6 +25,7 @@ from dataclasses import dataclass, field
 import pdfplumber
 
 from .aflaeser import AflaesningFejl, Aflaesning, AflaestOrdning, Periode
+from .daekninger import aflaes_daekninger
 
 logging.getLogger("pdfminer").setLevel(logging.ERROR)
 
@@ -354,6 +355,9 @@ class PensionsInfoAflaeser:
                 aftaler = _dine_aftaler(aftaleside)
                 scenariealder, kolonner, produkter = _udbetalingstabel(sektioner["scenarie"])
                 detaljer = _flere_oplysninger(sektioner.get("flere", []))
+                # Feature 031: forsikringerne. Kun med indholdsfortegnelse, så ingen andre sider læses.
+                indhold = next((_tekst(s) for s in pdf.pages[1:3] if "Indhold" in _tekst(s)), None)
+                daekninger, daekning_bem = aflaes_daekninger(pdf.pages, indhold)
         except AflaesningFejl:
             raise
         except Exception:
@@ -397,4 +401,4 @@ class PensionsInfoAflaeser:
                     noter=["Aftalen har en opsparing, men ingen udbetalingsprognose i rapporten."]))
         if not ordninger and atp is None:
             raise AflaesningFejl("ingen_ordninger", "Vi fandt ingen pensionsordninger i rapporten.")
-        return Aflaesning(atp_aarlig=atp, ordninger=ordninger)
+        return Aflaesning(atp_aarlig=atp, ordninger=ordninger, daekninger=daekninger, bemaerkninger=daekning_bem)
