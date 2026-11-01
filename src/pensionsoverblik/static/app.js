@@ -82,8 +82,8 @@ const tilstand = {
   forrigeHovedtal: null, graf: null,
   tlRaekker: null, valgtRaekke: null, prAar: null,  // tidslinjen (006)
   forslag: null,       // forslag fra "Find bedste plan" (007): { d, noegle }
-  rulle: false,        // talrullen kører (028)
-  rulleLanding: null, soegNoegle: null,
+  soeger: false,       // den bedste plan søges, så hovedtallet er en tekst (032)
+  soegNoegle: null,
 };
 
 /* ── Hjælpere ──────────────────────────────────────────────────────────── */
@@ -2030,74 +2030,19 @@ function anvendPlan(svar, hvem, plan) {
   else svar.antagelser.folkepension_opsaettelse_aar = plan.folkepension_opsaettelse_aar;
 }
 
-/* ── Feature 028: talrullen ───────────────────────────────────────────── */
-// Mens den bedste plan søges, ruller hovedtallet som en enarmet tyveknægt i stedet for at vise den
-// egne plans beløb. Den lander på det endelige beløb, før planen meldes klar. Kun visning: tallet
-// kommer fra kernen som før (dataset.vaerdi).
-const RULLE_CIFRE = 5;     // hjul, mens vi venter (de fleste beløb er "12.345")
-const RULLE_LAND_MS = 900;  // hvert hjul bremser så længe
-const RULLE_FORSKUD_MS = 220;  // næste hjul stopper så meget senere
-const roligt = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-function rulleHjul(i) {
-  const strimmel = el("span", { class: "rulle__strimmel", style: `animation-duration: ${0.32 + (i % 3) * 0.09}s` },
-    [..."01234567890123456789"].map((c) => el("span", { tekst: c })));
-  return el("span", { class: "rulle__hjul" }, strimmel);
-}
-
-function rulleSkilt(tekst) {
-  return el("span", { class: "rulle__skilt", tekst });
-}
-
-function startRulle() {
-  const tal = $("#hovedtal");
-  tilstand.rulle = true;
-  if (roligt()) { tal.replaceChildren("… kr.", el("span", { class: "sr-only", tekst: " Regner …" })); return; }
-  const hjul = Array.from({ length: RULLE_CIFRE }, (_, i) => rulleHjul(i));
-  tal.replaceChildren(el("span", { class: "rulle", "aria-hidden": "true" }, hjul[0], hjul[1], rulleSkilt("."), ...hjul.slice(2), rulleSkilt(" kr.")),
-    el("span", { class: "sr-only", tekst: "Regner …" }));
-}
-
-function stopRulle() {
-  // Én landing ad gangen: kaldes den igen under landingen, venter den på den samme.
-  if (!tilstand.rulleLanding) tilstand.rulleLanding = landRulle().finally(() => { tilstand.rulleLanding = null; });
-  return tilstand.rulleLanding;
-}
-
-async function landRulle() {
-  // Bygger hjulene til det endelige beløb og stopper dem ét ad gangen fra venstre.
-  if (!tilstand.rulle) return;
-  tilstand.rulle = false;
-  const tal = $("#hovedtal");
-  const tekst = `${kr(+tal.dataset.vaerdi)} kr.`;
-  if (roligt()) { tal.textContent = tekst; return; }
-  const hjul = [];
-  const dele = [...tekst].map((c) => {
-    if (!/\d/.test(c)) return rulleSkilt(c);
-    const h = rulleHjul(hjul.length);
-    hjul.push([h, +c]);
-    return h;
-  });
-  tal.replaceChildren(el("span", { class: "rulle", "aria-hidden": "true" }, dele), el("span", { class: "sr-only", tekst: "Regner …" }));
-  await Promise.all(hjul.map(([h, ciffer], i) => new Promise((ok) => setTimeout(() => {
-    const s = $(".rulle__strimmel", h);
-    s.style.animation = "none";
-    s.style.transform = "translateY(0)";
-    void s.offsetHeight;  // start bremsningen fra toppen af strimlen
-    s.style.transition = `transform ${RULLE_LAND_MS}ms cubic-bezier(.15, .85, .3, 1.15)`;
-    s.style.transform = `translateY(${-(10 + ciffer)}em)`;
-    setTimeout(ok, RULLE_LAND_MS);
-  }, i * RULLE_FORSKUD_MS))));
-  if (!tilstand.rulle) tal.textContent = tekst;  // en ny søgning kan være startet imens
-}
-
+/* ── Feature 032: "Finder bedste plan …" ──────────────────────────────── */
+// Mens den bedste plan søges, står der en tekst i stedet for den egne plans beløb (fx 0 kr.).
+// Kun visning: tallet kommer fra kernen som før (dataset.vaerdi).
 function skrivHovedtal(maaned) {
   $("#hovedtal").dataset.vaerdi = maaned;
-  if (!tilstand.rulle) $("#hovedtal").textContent = `${kr(maaned)} kr.`;
+  if (!tilstand.soeger) $("#hovedtal").textContent = `${kr(maaned)} kr.`;
 }
 
-async function planKlar() {
-  await stopRulle();
+function planKlar() {
+  if (tilstand.soeger) {
+    tilstand.soeger = false;
+    $("#hovedtal").textContent = `${kr(+$("#hovedtal").dataset.vaerdi)} kr.`;
+  }
   document.body.dataset.plan = "klar";
 }
 
@@ -2105,10 +2050,11 @@ async function findBedstePlanAutomatisk() {
   const nr = ++autoNr;
   tilstand.planer = null;
   document.body.dataset.plan = "";  // "klar", når den bedste plan er fundet og vist
-  startRulle();
+  tilstand.soeger = true;
+  $("#hovedtal").textContent = "Finder bedste plan …";
   const linje = $("#hovedtal-plan");
   const fremdrift = el("progress", { max: 1, value: 0, "aria-label": "Finder den bedste plan" });
-  linje.replaceChildren(el("span", { tekst: "Finder den bedste plan for dine udbetalinger … " }), fremdrift);
+  linje.replaceChildren(fremdrift);  // teksten står i hovedtallet (032)
   linje.hidden = false;
   const egen = structuredClone(tilstand.aktuelleSvar);
   tilstand.soegNoegle = JSON.stringify(egen);
@@ -2150,9 +2096,9 @@ function skiftPlan(hvilken) {
 }
 
 function tegnPlanLinje() {
-  // Talrullen (028) lander, så snart der er et nyt resultat for en anden plan end den, vi søger fra:
+  // Beløbet (032) vises, så snart der er et nyt resultat for en anden plan end den, vi søger fra:
   // den bedste plan, eller fordi borgeren har ændret planen imens (så kasseres søgningen).
-  if (tilstand.rulle && svarNoegle() !== tilstand.soegNoegle) planKlar();
+  if (tilstand.soeger && svarNoegle() !== tilstand.soegNoegle) planKlar();
   const p = tilstand.planer;
   const linje = $("#hovedtal-plan");
   const noegle = svarNoegle();

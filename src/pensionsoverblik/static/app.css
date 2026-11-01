@@ -150,16 +150,11 @@ input[type="date"], input:not([type]), input[inputmode], select { font: inherit;
 .hero__lead { font-size: 1.25rem; margin: 0; opacity: .9; }
 .hero__tal { font-size: clamp(2.8rem, 7vw, 5.2rem); font-weight: 800; line-height: 1.05; margin: 4px 0 12px; letter-spacing: -0.02em; }
 .hero__tal #hovedtal { color: var(--sand-300); white-space: nowrap; }
-/* Feature 028: talrullen. Hvert hjul er 1em højt; strimlen har 0–9 to gange, så rulningen er sømløs. */
-.rulle { display: inline-flex; align-items: flex-end; line-height: 1; }
-.rulle__hjul { display: inline-block; height: 1em; overflow: hidden; width: .62em; text-align: center; margin: 0 .02em;
-  background: linear-gradient(rgba(0, 0, 0, .35), rgba(255, 255, 255, .06) 30%, rgba(255, 255, 255, .06) 70%, rgba(0, 0, 0, .35));
-  border-radius: .08em; }
-.rulle__strimmel { display: flex; flex-direction: column; animation: rulle-spin linear infinite; }
-.rulle__strimmel span { height: 1em; line-height: 1; }
-.rulle__skilt { line-height: 1; white-space: pre; }
-@keyframes rulle-spin { from { transform: translateY(0); } to { transform: translateY(-10em); } }
-body[data-plan=""] #hovedtal-forklaring, body[data-plan=""] #hovedtal-loen, body[data-plan=""] #hovedtal-spaend { visibility: hidden; }
+body[data-plan=""] #hovedtal-spaend { visibility: hidden; }
+/* Feature 032: fremdriften står lige under teksten, så det, der ligger imellem, fylder ikke. */
+body[data-plan=""] #hovedtal-forklaring, body[data-plan=""] #hovedtal-loen, body[data-plan=""] .hero__enhed { display: none; }
+/* Feature 032: "Finder bedste plan …" står i hovedtallets plads, men mindre, så den kan bryde. */
+body[data-plan=""] .hero__tal #hovedtal { display: block; font-size: .55em; white-space: normal; }
 .hero__enhed { display: block; font-size: 1.3rem; font-weight: 600; letter-spacing: 0; color: var(--hvid); }
 .hero__forklaring { font-size: 1.05rem; max-width: 440px; opacity: .92; }
 .hero__aendring { font-weight: 700; color: var(--sand-300); min-height: 1.5em; }
