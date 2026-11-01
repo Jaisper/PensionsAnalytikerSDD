@@ -51,4 +51,5 @@ def test_forklaringen_og_buffergrafen(resultat):
     assert "fra din buffer" in tekst and "skraverede" in tekst and "aldrig i minus" in tekst
     titel = resultat.evaluate("tilstand.buffergraf.options.plugins.title.text")
     assert titel.startswith("Din buffer")
-    assert resultat.evaluate("tilstand.buffergraf.data.datasets[0].borderColor") == resultat.evaluate("css('--kilde-buffer')")
+    # 029: "Fra din buffer" har samme farve i begge grafer (før 029: buffergrafens linje).
+    assert resultat.evaluate("tilstand.buffergraf.data.datasets.find(d => d.label === 'Fra din buffer').backgroundColor")         == resultat.evaluate("css('--kilde-buffer')")

@@ -81,6 +81,8 @@ const tilstand = {
   forrigeHovedtal: null, graf: null,
   tlRaekker: null, valgtRaekke: null, prAar: null,  // tidslinjen (006)
   forslag: null,       // forslag fra "Find bedste plan" (007): { d, noegle }
+  rulle: false,        // talrullen kører (028)
+  rulleLanding: null, soegNoegle: null,
 };
 
 /* ── Hjælpere ──────────────────────────────────────────────────────────── */
@@ -632,7 +634,7 @@ function iValgteKroner(v) {
   const f = v.graf.realfaktor;
   const del = (arr) => arr && arr.map((x, i) => (x === null ? null : x / f[i]));
   const graf = { ...v.graf, serier: v.graf.serier.map((s) => ({ ...s, vaerdier: del(s.vaerdier) })), jaevn: del(v.graf.jaevn),
-    buffer: del(v.graf.buffer), skat_buffer: del(v.graf.skat_buffer), fra_buffer: del(v.graf.fra_buffer),
+    buffer: del(v.graf.buffer), skat_buffer: del(v.graf.skat_buffer), fra_buffer: del(v.graf.fra_buffer), buffer_ind: del(v.graf.buffer_ind),
     til_side: v.graf.til_side && v.graf.til_side.map((t, i) => t && { buffer: t.buffer / f[i], skat: t.skat / f[i], indskud: t.indskud / f[i] }), engangs: v.graf.engangs.map((e) => ({ ...e, netto_real: e.netto })) };
   const formue = v.formue && { ...v.formue, i_plan: v.formue.i_plan.map((x, i) => x / v.formue.realfaktor[i]),
     uden_for_plan: v.formue.uden_for_plan.map((x, i) => x / v.formue.realfaktor[i]) };
@@ -648,16 +650,19 @@ function tegnGraf(v) {
   $("#farveforklaring").replaceChildren(...serier.map((s) => el("li", {}, el("i", { style: `background: var(${s.farve})`, "aria-hidden": "true" }), s.titel)),
     ...(v.graf.jaevn ? [el("li", {}, el("i", { style: "background: var(--kilde-buffer)", "aria-hidden": "true" }), BUFFER_NAVN),
       el("li", {}, el("i", { class: "skraveret", "aria-hidden": "true" }), TIL_SIDE_NAVN),
-      el("li", {}, el("i", { class: "linje", "aria-hidden": "true" }), JAEVN_NAVN)] : []));
+      el("li", {}, el("i", { class: "linje", "aria-hidden": "true" }), JAEVN_NAVN),
+      el("li", {}, el("i", { style: "background: var(--kilde-engangs)", "aria-hidden": "true" }), `${BUFFER_IND_NAVN} (engangsbeløb og opsparing)`),
+      el("li", {}, el("i", { class: "linje linje--saldo", "aria-hidden": "true" }), BUFFER_SALDO_NAVN)] : []));
   const forklaring = $("#jaevn-forklaring");
   forklaring.hidden = !v.graf.jaevn;
   // Feature 027: søjlen viser, hvor pengene kommer fra – også fra bufferen. Saldoen står i grafen nedenunder.
   forklaring.textContent = "Den stiplede linje er det faste beløb, du kan bruge hver måned, hvis du selv udjævner – uden "
     + "nogensinde at låne. Når dine indtægter ikke når op til linjen, tager du resten fra din buffer (opsparing uden for "
     + "pension, fx dine engangsbeløb). Det skraverede over linjen sætter du til side i bufferen"
-    + (v.graf.skat_buffer ? " eller betaler i skat af opsparingen" : "") + ". Den nederste graf viser, hvor meget der står "
-    + "i bufferen. Den går aldrig i minus: Når den er brugt op, kan beløbet først stige, når der kommer flere penge. "
-    + "Derfor kan linjen gå op i trin.";
+    + (v.graf.skat_buffer ? " eller betaler i skat af opsparingen" : "") + ". Den nederste graf viser bufferen år for år: "
+    + "Op er det, der kommer ind (engangsbeløb og opsparing) eller sættes til side. Ned er det, du tager fra den. "
+    + "Linjen er saldoen ved årets udgang. Den går aldrig i minus: Når bufferen er brugt op, kan beløbet først stige, "
+    + "når der kommer flere penge. Derfor kan den stiplede linje gå op i trin.";
   const engangs = engangsMarkoerer(v);
   $("#graf-markeringer").replaceChildren(
     ...engangs.map((e) => el("li", {}, el("span", { class: "ikon ikon--engangs", "aria-hidden": "true", tekst: "◆" }), e.lang)),
@@ -668,6 +673,7 @@ function tegnGraf(v) {
   const jaevn = v.graf.jaevn;
   const hoved = el("tr", {}, el("th", { scope: "col", tekst: "Alder" }), ...serier.map((s) => el("th", { scope: "col", tekst: s.titel })),
     el("th", { scope: "col", tekst: "I alt" }), jaevn ? el("th", { scope: "col", tekst: BUFFER_NAVN }) : null,
+    jaevn ? el("th", { scope: "col", tekst: `${BUFFER_IND_NAVN} (pr. år)` }) : null,
     jaevn ? el("th", { scope: "col", tekst: TIL_SIDE_NAVN }) : null, jaevn ? el("th", { scope: "col", tekst: JAEVN_NAVN }) : null,
     el("th", { scope: "col", tekst: "Engangsbeløb" }), v.graf.buffer ? el("th", { scope: "col", tekst: "Buffer" }) : null,
     v.graf.skat_buffer ? el("th", { scope: "col", tekst: "Skat af opsparing pr. md." }) : null);
@@ -677,6 +683,7 @@ function tegnGraf(v) {
     ...serier.map((s) => el("td", { tekst: s.vaerdier[i] ? `${kr(s.vaerdier[i])} kr.` : "–" })),
     el("td", { tekst: `${kr(serier.reduce((sum, s) => sum + s.vaerdier[i], 0))} kr.` }),
     jaevn ? el("td", { tekst: v.graf.fra_buffer[i] >= 1 ? `${kr(v.graf.fra_buffer[i])} kr.` : "–" }) : null,
+    jaevn ? el("td", { tekst: v.graf.buffer_ind[i] >= 1 ? `${kr(v.graf.buffer_ind[i])} kr.` : "–" }) : null,
     jaevn ? el("td", { tekst: tilSide(v.graf.til_side[i]) >= 1 ? `${kr(tilSide(v.graf.til_side[i]))} kr.` : "–" }) : null,
     jaevn ? el("td", { tekst: jaevn[i] === null ? "–" : `${kr(jaevn[i])} kr.` }) : null,
     el("td", { tekst: engangsPrAlder.has(alder) ? `${kr(engangsPrAlder.get(alder))} kr.` : "–" }),
@@ -740,6 +747,8 @@ function tegnGraf(v) {
 const JAEVN_NAVN = "Fast beløb, hvis du udjævner";
 const BUFFER_NAVN = "Fra din buffer";  // feature 027
 const TIL_SIDE_NAVN = "Sættes til side";
+const BUFFER_IND_NAVN = "Ind i bufferen";  // feature 029: engangsbeløb og opsparing
+const BUFFER_SALDO_NAVN = "Saldo i bufferen";
 const tilSide = (t) => (t ? t.buffer + t.indskud : 0);  // til bufferen og indskud på opsparingen (013b)
 const Y_AKSE_PX = 84;  // samme y-aksebredde i begge grafer, så aldrene flugter
 const fastYAkse = (skala) => { skala.width = Y_AKSE_PX; };
@@ -858,38 +867,62 @@ const TIL_SIDE_PLUGIN = {
   },
 };
 
+const STRIBER = (farve) => {
+  // Skravering som i forklaringen ("Sættes til side", 027) til søjler i buffergrafen.
+  const c = document.createElement("canvas");
+  c.width = c.height = 6;
+  const g = c.getContext("2d");
+  g.strokeStyle = farve;
+  g.lineWidth = 1.5;
+  g.beginPath(); g.moveTo(0, 6); g.lineTo(6, 0); g.moveTo(-1, 1); g.lineTo(1, -1); g.moveTo(5, 7); g.lineTo(7, 5); g.stroke();
+  return g.createPattern(c, "repeat");
+};
+
 function tegnBuffergraf(v) {
+  // Feature 029: bufferen pr. år i samme kolonner som søjlegrafen. Op: det, der kommer ind (engangsbeløb
+  // og opsparing) og sættes til side. Ned: det, du tager fra bufferen. Linjen er saldoen ved årets udgang.
   const ramme = $("#buffergraf-ramme");
-  const buffer = v.graf.buffer;
-  if (!buffer || typeof Chart === "undefined") {
+  const g = v.graf;
+  if (!g.buffer || typeof Chart === "undefined") {
     ramme.hidden = true;
     return;
   }
   ramme.hidden = false;
-  const farve = css("--kilde-buffer");  // samme farve som "Fra din buffer" i søjlerne (027)
-  const roed = css("--fejl");
+  const aar = (x) => (x === null || x === undefined ? null : Math.round(x * 12));  // pr. måned → pr. år
+  const titel = `Din buffer (opsparing uden for pension): ind, ud og saldo pr. år, ${kronerTekst()}`;
   const data = {
-    labels: v.graf.aldre.map((a) => `${a}`),
-    datasets: [{
-      label: "Buffer", data: buffer.map((x) => (x === null ? null : Math.round(x))), borderColor: farve, borderWidth: 2, pointRadius: 0, tension: 0,
-      fill: { target: "origin", above: `${farve}33`, below: `${roed}33` },
-      segment: { borderColor: (c) => (c.p0.parsed.y < 0 || c.p1.parsed.y < 0 ? roed : farve) },
-    }],
+    labels: g.aldre.map((a) => `${a}`),
+    datasets: [
+      { type: "line", label: BUFFER_SALDO_NAVN, data: g.buffer.map((x) => (x === null ? null : Math.round(x))), borderColor: css("--petrol-900"),
+        borderWidth: 2, pointRadius: 0, tension: 0, order: 0 },
+      { label: BUFFER_IND_NAVN, data: g.buffer_ind.map((x) => (x === null ? null : Math.round(x))), backgroundColor: css("--kilde-engangs"),
+        stack: "flow", order: 1 },
+      { label: TIL_SIDE_NAVN, data: g.til_side.map((t) => (t ? aar(t.buffer) : null)), backgroundColor: STRIBER(css("--graa-600")),
+        stack: "flow", order: 1 },
+      { label: BUFFER_NAVN, data: g.fra_buffer.map((x) => (x === null ? null : -aar(x))), backgroundColor: css("--kilde-buffer"),
+        stack: "flow", order: 1 },
+    ],
   };
+  if (tilstand.buffergraf) {
+    tilstand.buffergraf.data = data;
+    tilstand.buffergraf.options.plugins.title.text = titel;
+    tilstand.buffergraf.update();
+    return;
+  }
   const valg = {
     responsive: true, maintainAspectRatio: false, animation: { duration: 250 },
     plugins: {
       legend: { display: false },
-      title: { display: true, text: `Din buffer: opsparing uden for pension, som bruges i din faste udbetaling, ${kronerTekst()}`, align: "start", color: css("--petrol-900") },
-      tooltip: { callbacks: { title: (t) => `${t[0].label} år`, label: (c) => ` Opsparing: ${kr(c.raw)} kr.` } },
+      title: { display: true, text: titel, align: "start", color: css("--petrol-900") },
+      tooltip: { filter: (c) => c.raw, callbacks: { title: (t) => `${t[0].label} år`,
+        label: (c) => ` ${c.dataset.label}: ${kr(Math.abs(c.raw))} kr.` } },
     },
     scales: {
-      x: { offset: true, grid: { display: false }, ticks: { display: false } },  // samme kolonner som søjlegrafen
-      y: { ticks: { callback: (x) => `${kr(x)} kr.`, maxTicksLimit: 4 }, grid: { color: css("--graa-200") }, afterFit: fastYAkse },
+      x: { stacked: true, offset: true, grid: { display: false }, ticks: { display: false } },  // samme kolonner som søjlegrafen
+      y: { stacked: true, ticks: { callback: (x) => `${kr(x)} kr.`, maxTicksLimit: 5 }, grid: { color: css("--graa-200") }, afterFit: fastYAkse },
     },
   };
-  if (tilstand.buffergraf) { tilstand.buffergraf.data = data; tilstand.buffergraf.update(); }
-  else tilstand.buffergraf = new Chart($("#buffergraf"), { type: "line", data, options: valg });
+  tilstand.buffergraf = new Chart($("#buffergraf"), { type: "bar", data, options: valg });
 }
 
 function tegnFormue(v) {
@@ -1982,15 +2015,88 @@ function anvendPlan(svar, hvem, plan) {
   else svar.antagelser.folkepension_opsaettelse_aar = plan.folkepension_opsaettelse_aar;
 }
 
+/* ── Feature 028: talrullen ───────────────────────────────────────────── */
+// Mens den bedste plan søges, ruller hovedtallet som en enarmet tyveknægt i stedet for at vise den
+// egne plans beløb. Den lander på det endelige beløb, før planen meldes klar. Kun visning: tallet
+// kommer fra kernen som før (dataset.vaerdi).
+const RULLE_CIFRE = 5;     // hjul, mens vi venter (de fleste beløb er "12.345")
+const RULLE_LAND_MS = 900;  // hvert hjul bremser så længe
+const RULLE_FORSKUD_MS = 220;  // næste hjul stopper så meget senere
+const roligt = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function rulleHjul(i) {
+  const strimmel = el("span", { class: "rulle__strimmel", style: `animation-duration: ${0.32 + (i % 3) * 0.09}s` },
+    [..."01234567890123456789"].map((c) => el("span", { tekst: c })));
+  return el("span", { class: "rulle__hjul" }, strimmel);
+}
+
+function rulleSkilt(tekst) {
+  return el("span", { class: "rulle__skilt", tekst });
+}
+
+function startRulle() {
+  const tal = $("#hovedtal");
+  tilstand.rulle = true;
+  if (roligt()) { tal.replaceChildren("… kr.", el("span", { class: "sr-only", tekst: " Regner …" })); return; }
+  const hjul = Array.from({ length: RULLE_CIFRE }, (_, i) => rulleHjul(i));
+  tal.replaceChildren(el("span", { class: "rulle", "aria-hidden": "true" }, hjul[0], hjul[1], rulleSkilt("."), ...hjul.slice(2), rulleSkilt(" kr.")),
+    el("span", { class: "sr-only", tekst: "Regner …" }));
+}
+
+function stopRulle() {
+  // Én landing ad gangen: kaldes den igen under landingen, venter den på den samme.
+  if (!tilstand.rulleLanding) tilstand.rulleLanding = landRulle().finally(() => { tilstand.rulleLanding = null; });
+  return tilstand.rulleLanding;
+}
+
+async function landRulle() {
+  // Bygger hjulene til det endelige beløb og stopper dem ét ad gangen fra venstre.
+  if (!tilstand.rulle) return;
+  tilstand.rulle = false;
+  const tal = $("#hovedtal");
+  const tekst = `${kr(+tal.dataset.vaerdi)} kr.`;
+  if (roligt()) { tal.textContent = tekst; return; }
+  const hjul = [];
+  const dele = [...tekst].map((c) => {
+    if (!/\d/.test(c)) return rulleSkilt(c);
+    const h = rulleHjul(hjul.length);
+    hjul.push([h, +c]);
+    return h;
+  });
+  tal.replaceChildren(el("span", { class: "rulle", "aria-hidden": "true" }, dele), el("span", { class: "sr-only", tekst: "Regner …" }));
+  await Promise.all(hjul.map(([h, ciffer], i) => new Promise((ok) => setTimeout(() => {
+    const s = $(".rulle__strimmel", h);
+    s.style.animation = "none";
+    s.style.transform = "translateY(0)";
+    void s.offsetHeight;  // start bremsningen fra toppen af strimlen
+    s.style.transition = `transform ${RULLE_LAND_MS}ms cubic-bezier(.15, .85, .3, 1.15)`;
+    s.style.transform = `translateY(${-(10 + ciffer)}em)`;
+    setTimeout(ok, RULLE_LAND_MS);
+  }, i * RULLE_FORSKUD_MS))));
+  if (!tilstand.rulle) tal.textContent = tekst;  // en ny søgning kan være startet imens
+}
+
+function skrivHovedtal(maaned) {
+  $("#hovedtal").dataset.vaerdi = maaned;
+  if (!tilstand.rulle) $("#hovedtal").textContent = `${kr(maaned)} kr.`;
+}
+
+async function planKlar() {
+  await stopRulle();
+  document.body.dataset.plan = "klar";
+}
+
 async function findBedstePlanAutomatisk() {
   const nr = ++autoNr;
   tilstand.planer = null;
   document.body.dataset.plan = "";  // "klar", når den bedste plan er fundet og vist
+  startRulle();
   const linje = $("#hovedtal-plan");
   const fremdrift = el("progress", { max: 1, value: 0, "aria-label": "Finder den bedste plan" });
   linje.replaceChildren(el("span", { tekst: "Finder den bedste plan for dine udbetalinger … " }), fremdrift);
   linje.hidden = false;
   const egen = structuredClone(tilstand.aktuelleSvar);
+  tilstand.soegNoegle = JSON.stringify(egen);
   const egenMaaned = +$("#hovedtal").dataset.vaerdi;
   const bedste = structuredClone(egen);
   const aendringer = [];
@@ -2006,13 +2112,13 @@ async function findBedstePlanAutomatisk() {
       }
     }
   } catch {
-    if (nr === autoNr) { linje.hidden = true; document.body.dataset.plan = "klar"; }
+    if (nr === autoNr) { linje.hidden = true; planKlar(); }
     return;
   }
   if (nr !== autoNr || svarNoegle() !== JSON.stringify(egen)) return;  // planen er ændret imens
   if (!aendringer.length) {
     linje.replaceChildren(el("p", { tekst: "Din plan er allerede den bedste, vi kan finde." }));
-    document.body.dataset.plan = "klar";
+    planKlar();
     return;
   }
   tilstand.planer = { egen, bedste, egenMaaned, aendringer, vist: "bedste" };
@@ -2029,6 +2135,9 @@ function skiftPlan(hvilken) {
 }
 
 function tegnPlanLinje() {
+  // Talrullen (028) lander, så snart der er et nyt resultat for en anden plan end den, vi søger fra:
+  // den bedste plan, eller fordi borgeren har ændret planen imens (så kasseres søgningen).
+  if (tilstand.rulle && svarNoegle() !== tilstand.soegNoegle) planKlar();
   const p = tilstand.planer;
   const linje = $("#hovedtal-plan");
   const noegle = svarNoegle();
@@ -2055,7 +2164,7 @@ function tegnPlanLinje() {
     el("details", {}, el("summary", { tekst: "Det har vi ændret" }), liste),
     knap);
   linje.hidden = false;
-  document.body.dataset.plan = "klar";
+  planKlar();
 }
 
 /* ── Usikkerhed om afkast og inflation (feature 018) ──────────────────── */
@@ -2150,8 +2259,7 @@ function tegnPerson(v, foersteGang) {
   const partner = tilstand.hvem === "partner";
   $("#resultat-titel").textContent = partner ? "Din partner kan forvente ca." : "Du kan forvente ca.";
   const h = v.hovedtal;
-  $("#hovedtal").textContent = `${kr(h.maaned)} kr.`;
-  $("#hovedtal").dataset.vaerdi = h.maaned;
+  skrivHovedtal(h.maaned);
   $("#hovedtal-forklaring").textContent = h.type === "jaevn"
     ? (partner
       ? `Det faste beløb, din partner kan bruge hver måned fra ${h.fra_alder} år ved selv at udjævne (den stiplede linje i grafen). I dagens kroner.`
@@ -2200,8 +2308,7 @@ function tegnSamlet() {
   const vDig = tilstand.vDig;
   const vP = tilstand.husstand.partner;
   $("#resultat-titel").textContent = "I kan forvente ca.";
-  $("#hovedtal").textContent = `${kr(s.maaned)} kr.`;
-  $("#hovedtal").dataset.vaerdi = s.maaned;
+  skrivHovedtal(s.maaned);
   $("#hovedtal-forklaring").textContent = `Dig ${kr(s.dig.maaned)} kr. og din partner ${kr(s.partner.maaned)} kr. om måneden – `
     + "jeres faste beløb, hvis I hver især udjævner. I dagens kroner. Jeres pensionstillæg og ældrecheck er regnet sammen, som loven siger.";
   $("#hovedtal-aendring").textContent = "";

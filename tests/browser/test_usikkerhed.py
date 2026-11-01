@@ -4,6 +4,8 @@ import time
 
 import pytest
 
+from tests.browser.conftest import vent_paa_planen
+
 from pensionsoverblik import app
 from tests.browser.test_partner import faner, til_resultat_som_par
 
@@ -54,6 +56,7 @@ def test_ny_beregning_afbryder_de_gamle_scenarier(resultat):
 def test_spaendet_foelger_fanen(side, tmp_path):
     til_resultat_som_par(side, tmp_path)
     vent_paa_spaend(side, timeout=60000)
+    vent_paa_planen(side, timeout=120000)  # 028: spændet er skjult, mens talrullen kører
     dig = side.inner_text("#hovedtal-spaend")
     faner(side).nth(2).click()
     samlet = side.inner_text("#hovedtal-spaend")

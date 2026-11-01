@@ -161,7 +161,7 @@ def byg_visning(res: Fremskrivning) -> dict:
                      "fra_alder": engangs[0]["alder"], "til_alder": engangs[-1]["alder"],
                      "advarsler": [], "detaljer": [], "engangs": engangs, "pr_ordning": list(pr_ordning.values())})
 
-    jaevn = buffer = fra_buffer = til_side = None
+    jaevn = buffer = fra_buffer = til_side = buffer_ind = None
     if res.jaevn:
         fra = res.jaevn_fra_alder or res.aar[0].alder  # arbejdsår (017) har ingen jævn linje
         jaevn = [j.jaevn * a.realfaktor / MAANEDER if a.alder >= fra else None for j, a in zip(res.jaevn.aar, res.aar)]
@@ -172,6 +172,8 @@ def byg_visning(res: Fremskrivning) -> dict:
         # sættes til side, og det, udjævningen ikke fordeler (skat af opsparingen og indskud, 013b).
         fra_buffer = [j.fra_buffer * a.realfaktor / MAANEDER if x is not None else None
                       for j, a, x in zip(res.jaevn.aar, res.aar, jaevn)]
+        # Feature 029: det, der kommer ind i bufferen (engangsbeløb og opsparing), pr. år i dagens kroner.
+        buffer_ind = [j.ind_buffer * a.realfaktor for j, a in zip(res.jaevn.aar, res.aar)]
         til_side = [{"buffer": j.til_buffer * a.realfaktor / MAANEDER, "skat": a.skat_opsparing * a.realfaktor / MAANEDER,
                      "indskud": a.indskud_opsparing * a.realfaktor / MAANEDER} if x is not None else None
                     for j, a, x in zip(res.jaevn.aar, res.aar, jaevn)]
@@ -216,6 +218,7 @@ def byg_visning(res: Fremskrivning) -> dict:
             "buffer": None if buffer is None else [None] * foran + buffer,
             "fra_buffer": None if fra_buffer is None else [None] * foran + fra_buffer,
             "til_side": None if til_side is None else [None] * foran + til_side,
+            "buffer_ind": None if buffer_ind is None else [None] * foran + buffer_ind,
             # Skat af opsparing uden for pension (009, 013b): kapitalindkomst, aktieindkomst og ASK.
             "skat_buffer": [None] * foran + [a.skat_opsparing * a.realfaktor / MAANEDER for a in res.aar]
             if any(a.skat_opsparing for a in res.aar) else None,

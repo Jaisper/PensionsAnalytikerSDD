@@ -232,6 +232,7 @@ class JaevnAar:
     fra_buffer: float
     til_buffer: float
     buffer_rest: float
+    ind_buffer: float = 0.0     # engangsbeløb og opsparing, der kommer ind i bufferen i året (029)
 
 
 @dataclass(frozen=True)

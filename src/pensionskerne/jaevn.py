@@ -79,6 +79,7 @@ def beregn_jaevn(
         aar.append(JaevnAar(
             alder=r.alder, jaevn=niveau[t], normal=normal[t],
             fra_buffer=max(0.0, forskel), til_buffer=max(0.0, -forskel), buffer_rest=buffer,
+            ind_buffer=engangs_i_buffer.get(r.alder, 0.0),
         ))
 
     niveau_real = niveau[0] / vaekst ** (raekker[0].kalenderaar - beregningsaar)
