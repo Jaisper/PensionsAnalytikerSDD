@@ -197,6 +197,11 @@ body[data-plan=""] #hovedtal-forklaring, body[data-plan=""] #hovedtal-loen, body
 .sektion--tonet { background: var(--petrol-100); }
 .sektion__intro { max-width: 680px; color: var(--graa-600); font-size: 1.05rem; margin-bottom: 32px; }
 .kortgitter { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; }
+/* 031: forsikringerne fra rapporten */
+.forsikringer { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; }
+.forsikringer__gruppe h3 { margin: 0 0 8px; }
+.forsikringer__gruppe ul { margin: 8px 0 0; padding-left: 1.2em; }
+.forsikringer__gruppe li { margin-bottom: 6px; }
 .kort { background: var(--hvid); border: 1px solid var(--graa-200); border-radius: var(--radius); padding: 24px; box-shadow: var(--skygge); display: flex; flex-direction: column; gap: 8px; border-top: 6px solid var(--farve); }
 .kort__ikon { width: 40px; height: 40px; border-radius: 50%; background: var(--farve); opacity: .9; }
 .kort__titel { display: flex; align-items: center; gap: 8px; margin: 6px 0 0; }

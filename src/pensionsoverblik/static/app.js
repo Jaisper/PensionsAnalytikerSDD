@@ -70,7 +70,8 @@ const ANTAGELSE_NAVNE = {
 
 const tilstand = {
   trin: 1, ordninger: [], naesteId: 1,
-  partnerOrdninger: [], naestePid: 1,  // partnerens ordninger (012); id'er "p1", "p2", … er unikke på tværs
+  partnerOrdninger: [], naestePid: 1,
+  forsikringer: [], partnerForsikringer: [],  // fra rapporten (031); indgår ikke i beregningen  // partnerens ordninger (012); id'er "p1", "p2", … er unikke på tværs
   hvem: "dig",         // resultatsidens fane: "dig" | "partner" | "samlet" (012)
   vDig: null, husstand: null, samletGraf: null,
   mineSvar: null,      // svarene fra guiden (til "Nulstil")
@@ -549,6 +550,7 @@ function udfyldFraRapport(d, hvem = "dig") {
     afgift_betalt: !!o.afgift_betalt, fra_loen: o.fra_loen,
   }));
   if (partner) tilstand.partnerOrdninger = liste; else tilstand.ordninger = liste;
+  tilstand[partner ? "partnerForsikringer" : "forsikringer"] = d.forsikringer || [];
   tegnOrdninger();
   tilstand.rapportIndbetaling = { ...tilstand.rapportIndbetaling, [partner ? "p-" : ""]: d.indbetaling_maaned };
   tegnPensionsRapport(partner ? "p-" : "");
@@ -1236,6 +1238,7 @@ async function gemTilSenere() {
   const data = {
     skema: GEM.skema, gemt: idag(), felter: guideFelter(),
     ordninger: tilstand.ordninger, partnerOrdninger: tilstand.partnerOrdninger,
+    forsikringer: tilstand.forsikringer, partnerForsikringer: tilstand.partnerForsikringer,
     naesteId: tilstand.naesteId, naestePid: tilstand.naestePid, rapportIndbetaling: tilstand.rapportIndbetaling ?? null,
     valg: { niveau: tilstand.niveau ?? null, kroner: tilstand.kroner ?? null },
   };
@@ -1272,6 +1275,8 @@ async function aabnGemt() {
   saetGuideFelter(data.felter);
   tilstand.ordninger = data.ordninger || [];
   tilstand.partnerOrdninger = data.partnerOrdninger || [];
+  tilstand.forsikringer = data.forsikringer || [];
+  tilstand.partnerForsikringer = data.partnerForsikringer || [];
   tilstand.naesteId = data.naesteId || tilstand.naesteId;
   tilstand.naestePid = data.naestePid || tilstand.naestePid;
   tilstand.rapportIndbetaling = data.rapportIndbetaling || {};
@@ -2259,10 +2264,65 @@ function visHvem(foersteGang = false) {
   $("#graf-panel").hidden = samlet;
   $("#sammensaetning").hidden = samlet;
   $("#link-sammensaetning").hidden = samlet;
+  tegnForsikringer(samlet ? [] : tilstand.hvem === "partner" ? tilstand.partnerForsikringer : tilstand.forsikringer);
   $("#link-graf").setAttribute("href", samlet ? "#samlet-panel" : "#graf-panel");
   $("#overblik-titel").textContent = { dig: "Dit overblik", partner: "Din partners overblik", samlet: "Jeres overblik" }[tilstand.hvem];
   if (samlet) { tegnSamlet(); return; }
   tegnPerson(tilstand.hvem === "partner" ? tilstand.husstand.partner : tilstand.vDig, foersteGang);
+}
+
+/* ── Forsikringer fra rapporten (031) ─────────────────────────────────────
+   Kun omformatering af det aflæste (Princip X). Beløbene er "i dag" og før skat. */
+const FORSIKRING_SKAT = { A: "afgiftspligtig", F: "skattefri", S: "skattepligtig" };
+const FORSIKRING_FORM = { engang: "på én gang", aarraekke: "om året", livsvarig: "om året, livet ud" };
+
+function forsikringLinje(f, medModtager) {
+  const dele = [
+    `${medModtager && f.modtager ? `${f.modtager}: ` : ""}${kr(f.beloeb ?? 0)} kr. ${FORSIKRING_FORM[f.form] ?? ""} fra ${f.selskab}`.replace(/\s+fra/, " fra"),
+    FORSIKRING_SKAT[f.skat],
+    f.til_alder ? `${f.type === "erhvervsevne" ? "udbetales" : "dækker"}, til du er ${f.til_alder} år` : null,
+    f.praemiefritagelse ? "med præmiefritagelse" : null,
+    ...f.noter,
+  ].filter(Boolean);
+  return el("li", { tekst: dele.join(" · ") });
+}
+
+function tegnForsikringer(liste) {
+  const af = (...typer) => liste.filter((f) => typer.includes(f.type));
+  const grupper = [];
+  const doed = af("doed", "doed_boern");
+  if (doed.length) {
+    const sum = (form) => doed.filter((f) => f.type === "doed" && f.form === form).reduce((s, f) => s + (f.beloeb ?? 0), 0);
+    const engang = sum("engang"), loebende = sum("aarraekke") + sum("livsvarig");
+    const i_alt = [engang ? `${kr(engang)} kr. på én gang` : null, loebende ? `${kr(loebende)} kr. om året` : null].filter(Boolean);
+    grupper.push(["Hvis du dør", i_alt.length ? `Dine efterladte får i alt ${i_alt.join(" og ")}.` : null,
+      doed.map((f) => forsikringLinje(f.type === "doed_boern" ? { ...f, modtager: f.modtager || "Børn" } : f, true))]);
+  }
+  const tae = af("erhvervsevne");
+  if (tae.length) grupper.push(["Hvis du mister arbejdsevnen", null, tae.map((f) => forsikringLinje(f, false))]);
+  const ks = af("kritisk_sygdom", "kritisk_sygdom_boern");
+  if (ks.length) grupper.push(["Hvis du får en kritisk sygdom", null,
+    ks.map((f) => (f.type === "kritisk_sygdom_boern" ? forsikringLinje({ ...f, modtager: "Børn" }, true) : forsikringLinje(f, false)))]);
+  const sundhed = af("sundhed", "sundhed_boern");
+  if (sundhed.length) {
+    // Én linje pr. selskab: rapporten har ofte flere delaftaler med "0 kr." under samme forsikring.
+    const linjer = new Map();
+    for (const f of sundhed) {
+      const n = `${f.type}|${f.selskab}`;
+      const l = linjer.get(n) ?? { ...f, beloeb: 0, til_alder: null };
+      l.beloeb += f.beloeb ?? 0;
+      l.til_alder = Math.min(l.til_alder ?? Infinity, f.til_alder ?? Infinity);
+      linjer.set(n, l);
+    }
+    grupper.push(["Sundhedsforsikring", null, [...linjer.values()].map((l) => el("li", { tekst: [
+      `${l.type === "sundhed_boern" ? "Dine børn er dækket" : "Du er dækket"} hos ${l.selskab}`
+        + (l.beloeb ? ` (op til ${kr(l.beloeb)} kr.)` : ""),
+      Number.isFinite(l.til_alder) ? `dækker, til du er ${l.til_alder} år` : null,
+    ].filter(Boolean).join(" · ") }))]);
+  }
+  $("#forsikringer").hidden = !grupper.length;
+  $("#forsikringer-indhold").replaceChildren(...grupper.map(([titel, intro, punkter]) => el("div", { class: "forsikringer__gruppe" },
+    el("h3", { tekst: titel }), intro ? el("p", { tekst: intro }) : null, el("ul", {}, punkter))));
 }
 
 function tegnPerson(v, foersteGang) {

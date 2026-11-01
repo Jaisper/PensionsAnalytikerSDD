@@ -35,9 +35,28 @@ class AflaestOrdning:
 
 
 @dataclass
+class AflaestDaekning:
+    """En forsikring fra rapporten (feature 031). Beløbet er det, der ville blive udbetalt i dag."""
+    type: Literal["doed", "doed_boern", "erhvervsevne", "kritisk_sygdom", "kritisk_sygdom_boern", "sundhed",
+                  "sundhed_boern"]
+    selskab: str
+    aftalenr: str | None
+    skat: Literal["A", "F", "S"] | None  # afgiftspligtig, skatte- og afgiftsfri, skattepligtig
+    modtager: str | None                # ved død: "Ægtefælle", "Begunstiget oplyst" …
+    form: Literal["engang", "aarraekke", "livsvarig"] | None
+    beloeb: int | None
+    kolonner: list[Periode]             # beløb pr. kolonne i rapportens tabel
+    til_alder: int | None = None
+    praemiefritagelse: bool | None = None
+    noter: list[str] = field(default_factory=list)
+
+
+@dataclass
 class Aflaesning:
     atp_aarlig: int | None
     ordninger: list[AflaestOrdning]
+    daekninger: list[AflaestDaekning] = field(default_factory=list)
+    bemaerkninger: list[str] = field(default_factory=list)
 
 
 class AflaesningFejl(RuntimeError):

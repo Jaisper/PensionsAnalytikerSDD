@@ -494,3 +494,13 @@ PDF-import fra PensionsInfo · AI-forklaring/chat · Optimering af udbetalingsr�
 - Ved samme laveste beløb vinder det fladeste forløb (`optimering.spring`), ikke det højeste senere
   niveau (valgt af brugeren 2026-10-28). Et spring op er kun tilbage, når en ordning tidligst kan
   udbetales sent; udjævningen låner ikke mod senere indkomst (010).
+
+## 7n. Forsikringer fra PensionsInfo (feature 031)
+
+- Legacy lod AI læse "Liv og erstatning", "Tab af erhvervsevne", "Kritisk sygdom" og "Sundhedsforsikring"
+  og summerede dem til tre tal (`death_cover`, `disability_annual`, `critical_illness`). Den nye parser
+  læser dem lokalt pr. selskab, aftale og modtager med skattekode, varighed og præmiefritagelse.
+- Legacy vurderede dækningen mod en estimeret løn (pensionsindbetaling / 14 %) og "anbefalet 60–80 %".
+  Det er ikke en lovregel og er ikke overført. Dækningerne vises, som de står i rapporten.
+- Indholdsfortegnelsens sidetal kan være en side forskudt (PensionsInfos demorapport, 2026). Parseren
+  bruger sidehovedet til at placere siderne.
