@@ -11,4 +11,4 @@
 - [x] T007 Lokal kørsel mod produktejerens egen rapport (kun strukturelle invarianter, ingen tal i output):
   alle tabeller summer til rapportens "I alt", ingen bemærkninger. Fandt kritisk sygdom for børn
   (`kritisk_sygdom_boern`), som nu også er i den syntetiske rapport
-- [ ] T008 Hele suiten grøn, også browsertestene
+- [x] T008 Hele suiten grøn, også browsertestene (`test_forklaring` fejlede én gang i Playwright, grøn ved genkørsel)
