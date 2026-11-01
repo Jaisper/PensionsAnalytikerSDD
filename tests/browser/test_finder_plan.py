@@ -31,8 +31,10 @@ def test_teksten_staar_mens_planen_soeges_og_beloebet_bagefter(side, tmp_path):
     assert side.locator("#hovedtal-forklaring").is_hidden() and side.locator("#hovedtal-loen").is_hidden()
     assert TEKST not in side.inner_text("#hovedtal-plan")  # står kun én gang
     assert side.locator("#hovedtal-plan progress").is_visible()
-    tekst, fremdrift = side.locator("#hovedtal").bounding_box(), side.locator("#hovedtal-plan progress").bounding_box()
-    assert 0 <= fremdrift["y"] - (tekst["y"] + tekst["height"]) < 48  # lige under teksten
+    # Målt i ét kald: siden kan scrolle mellem to bounding_box-kald, mens resultatet vises.
+    afstand = side.evaluate("""() => document.querySelector('#hovedtal-plan progress').getBoundingClientRect().top
+                                     - document.querySelector('#hovedtal').getBoundingClientRect().bottom""")
+    assert 0 <= afstand < 48  # lige under teksten
     vent_paa_planen(side)
     assert side.inner_text("#hovedtal") == vist_beloeb(side)
     assert side.locator(".hero__enhed").is_visible()
