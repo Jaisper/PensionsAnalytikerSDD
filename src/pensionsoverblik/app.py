@@ -273,6 +273,7 @@ def _fast_beloeb(v: dict) -> float:
 
 
 def naeste_krone(guide_json: str, idag: str, beloeb: float) -> dict:
+    from pensionskerne.model import stopalder
     from pensionskerne.register.opslag import Regelopslag
     from pensionskerne.regler.folkepension import folkepensionsalder
 
@@ -284,7 +285,7 @@ def naeste_krone(guide_json: str, idag: str, beloeb: float) -> dict:
         if not beloeb or beloeb <= 0:
             raise UgyldigtInput("naeste_krone.beloeb", "Skriv et beløb om året")
         fp = folkepensionsalder(profil.foedselsdato, Regelopslag(_satsaar(), dato.year, 0.0))
-        stop = profil.loen.stop_alder or fp
+        stop = stopalder(profil, fp)  # 030: uden valgt stopalder den første udbetaling
 
         def regn(d: dict) -> dict:
             r = beregn(json.dumps(d), idag)

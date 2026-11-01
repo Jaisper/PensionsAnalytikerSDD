@@ -5,7 +5,7 @@ import math
 from datetime import date
 
 from . import register
-from .model import Antagelser, Pensionsprofil, UgyldigtInput
+from .model import Antagelser, Pensionsprofil, UgyldigtInput, stopalder
 from .regler.folkepension import folkepensionsalder
 from .regler.udbetalingsalder import tidligste_udbetalingsalder
 from .register.opslag import Regelopslag
@@ -108,7 +108,7 @@ def valider(profil: Pensionsprofil, antagelser: Antagelser, satsaar: int, beregn
         _ikke_negativ("loen.aarlig", profil.loen.aarlig)
         _ikke_negativ("loen.deltid_aarlig", profil.loen.deltid_aarlig)
         if profil.loen.deltid_aarlig > 0 and profil.loen.deltid_til_alder is not None and \
-                profil.loen.deltid_til_alder <= (profil.loen.stop_alder or fp_alder):
+                profil.loen.deltid_til_alder <= stopalder(profil, fp_alder):
             raise UgyldigtInput("loen.deltid_til_alder", "Deltidslønnen skal stoppe efter, at du stopper med fuld løn")
         for navn in ("pension_eget", "pension_firma"):
             if not 0 <= getattr(profil.loen, navn) < 1:

@@ -70,6 +70,39 @@ def test_ingen_raekke_uden_loen(resultat):
     assert resultat.locator('.tl-raekke[data-id="stopalder"]').count() == 0
 
 
+@pytest.fixture
+def uden_stopalder(side, tmp_path):
+    from tests.app.pensionsinfo_syntetisk import RAPPORT_PDF
+
+    pdf = tmp_path / "rapport.pdf"
+    pdf.write_bytes(RAPPORT_PDF)
+    side.set_input_files("#pdf-fil", str(pdf))
+    side.wait_for_selector("#pdf-status p")
+    side.fill("#loen-maaned", "40000")
+    koer_guide(side)
+    vent_paa_planen(side)
+    return side
+
+
+def foerste_udbetaling(side):
+    return side.evaluate("Math.min(...tilstand.aktuelleSvar.ordninger.map(o => o.udbetaling_start_alder), 69)")
+
+
+def test_uden_valgt_stopalder_foelger_punktet_foerste_udbetaling(uden_stopalder):
+    # Feature 030: punktet viser den udledte stopalder og flytter sig, når den første udbetaling flyttes.
+    side = uden_stopalder
+    assert stopalder(side) is None
+    foer = foerste_udbetaling(side)
+    assert side.locator(PUNKT).get_attribute("aria-valuenow") == str(foer)
+    oid = side.evaluate("tilstand.aktuelleSvar.ordninger.reduce((a, o) => "
+                        "o.udbetaling_start_alder < a.udbetaling_start_alder ? o : a).id")
+    marker_resultat(side)
+    side.locator(f'.tl-raekke[data-id="{oid}"] .tl-bjaelke').press("ArrowRight")
+    vent_paa_ny_beregning(side)
+    assert stopalder(side) is None
+    assert side.locator(PUNKT).get_attribute("aria-valuenow") == str(foerste_udbetaling(side))
+
+
 def test_axe(med_loen):
     med_loen.add_script_tag(url="https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.9.1/axe.min.js")
     med_loen.locator(PUNKT).click()
