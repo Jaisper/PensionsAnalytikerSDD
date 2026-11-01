@@ -75,3 +75,9 @@ def test_for_et_par_maales_husstandens_samlede_beloeb():
     assert d["par"]
     samlet = app.beregn(json.dumps(par), IDAG)["data"]["husstand"]["samlet"]["maaned"]
     assert d["i_dag"] >= samlet - 100                        # begge personers gennemsnit
+
+
+def test_uden_stopalder_maales_fra_foerste_udbetaling():
+    # Feature 030: uden valgt stopalder er stopalderen ratepensionens start (65), ikke folkepensionsalderen.
+    loen = {"aarlig": 450000}
+    assert naeste(med_loen(GUIDE, loen))["stop_alder"] == 65

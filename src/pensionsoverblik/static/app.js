@@ -1654,11 +1654,10 @@ function tidslinjeRaekker(v) {
   // Feature 025: stopalderen som et punkt øverst, når den viste person har en løn.
   const loen = s.person?.loen;
   if (loen) {
-    const fp = g.folkepensionsalder;
     raekker.unshift({ id: "stopalder", type: "stopalder", titel: "Du stopper med at arbejde", farve: "--kilde-loen", engang: true,
       kontroller: { start: { navn: "Stopper", label: "Du stopper med at arbejde", ned: "Stop 1 år tidligere", op: "Stop 1 år senere",
         min: g.stopalder.min, maks: g.stopalder.maks,
-        hent: () => loen.stop_alder ?? fp, saet: (n) => { loen.stop_alder = n; }, tekst: (n) => `${n} år` } } });
+        hent: () => loen.stop_alder ?? g.stopalder.aktuel, saet: (n) => { loen.stop_alder = n; }, tekst: (n) => `${n} år` } } });
   }
   return raekker;
 }

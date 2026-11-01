@@ -260,6 +260,7 @@ def graenser(profil, satsaar: int) -> dict:
     Tidligste lovlige alder pr. ordning (oplyst af selskabet eller udledt efter loven),
     ratepensionens periode, maksimal opsættelse af folkepensionen og stopalderen (025).
     """
+    from pensionskerne.model import stopalder as udled_stopalder
     from pensionskerne.register.opslag import Regelopslag
     from pensionskerne.regler.folkepension import folkepensionsalder
     from pensionskerne.regler.udbetalingsalder import tidligste_udbetalingsalder
@@ -285,10 +286,9 @@ def graenser(profil, satsaar: int) -> dict:
     tidligste = min((x["tidligste"] for x in ordninger.values()), default=None)
     if tidligste is None:
         tidligste, _ = tidligste_udbetalingsalder(profil.foedselsdato, None, fp_alder, o)
-    stop = profil.loen.stop_alder if profil.loen is not None else None
-    stopalder = {"min": math.ceil(tidligste), "maks": fp_alder}
-    if stop is not None:
-        stopalder = {"min": min(stopalder["min"], stop), "maks": max(stopalder["maks"], stop)}
+    # Feature 030: "aktuel" er stopalderen, der gælder nu — valgt, ellers den første udbetaling.
+    stop = udled_stopalder(profil, fp_alder)
+    stopalder = {"min": min(math.ceil(tidligste), stop), "maks": max(fp_alder, stop), "aktuel": stop}
     return {
         "folkepensionsalder": fp_alder,
         "ordninger": ordninger,

@@ -1,5 +1,9 @@
-"""Feature 007b T001 — den bedste plan begynder tidligst ved pensionsalderen (stopalderen, ellers
-folkepensionsalderen). Borgeren er født 1. maj 1963: 63 år i 2026 og folkepensionsalder 68."""
+"""Feature 007b T001 — den bedste plan begynder tidligst ved pensionsalderen. Borgeren er født 1. maj
+1963: 63 år i 2026 og folkepensionsalder 68.
+
+Ændret med feature 030 (2026-10-31, produktejerens beslutning): uden valgt stopalder er pensionsalderen
+den første udbetaling, der bruges i det faste beløb (højst folkepensionsalderen), ikke
+folkepensionsalderen. Den ligger fast under søgningen."""
 from dataclasses import replace
 from datetime import date
 
@@ -16,15 +20,18 @@ def starter(dimensioner, oid):
     return [d[2] for dim in dimensioner for d in dim if d[0] == "start" and d[1] == oid]
 
 
-def test_pensionsalderen_er_stopalderen_ellers_folkepensionsalderen():
-    assert pensionsalder(enlig_profil(), 68) == 68
-    assert pensionsalder(enlig_profil(loen=Loen(480_000)), 68) == 68
-    assert pensionsalder(enlig_profil(loen=Loen(480_000, stop_alder=65)), 68) == 65
+def test_pensionsalderen_er_stopalderen_ellers_foerste_udbetaling():
+    # Før 030: 68, 68, 65 (uden stopalder altid folkepensionsalderen).
+    assert pensionsalder(enlig_profil(ordninger=(RATE, LIV)), 68) == 64
+    assert pensionsalder(enlig_profil(ordninger=(RATE, LIV), loen=Loen(480_000)), 68) == 64
+    assert pensionsalder(enlig_profil(ordninger=(RATE, LIV), loen=Loen(480_000, stop_alder=65)), 68) == 65
+    assert pensionsalder(enlig_profil(ordninger=(replace(RATE, udbetaling_start_alder=70),)), 68) == 68
 
 
-def test_uden_stopalder_starter_ingen_ordning_foer_folkepensionen():
+def test_uden_stopalder_starter_ingen_ordning_foer_foerste_udbetaling():
+    # Før 030: ingen ordning før folkepensionsalderen (68).
     _, dim = soegerum(enlig_profil(ordninger=(RATE, LIV)), A, 2026, BEREGNINGSDATO)
-    assert min(starter(dim, "rate")) == 68 and min(starter(dim, "liv")) == 68
+    assert min(starter(dim, "rate")) == 64 and min(starter(dim, "liv")) == 64
 
 
 def test_med_stopalder_starter_ingen_ordning_foer_stop():
@@ -39,11 +46,29 @@ def test_en_ordning_der_allerede_udbetaler_flyttes_ikke():
     assert starter(dim, "rate") == [60]
 
 
-def test_den_bedste_plan_maales_fra_pensionsalderen():
+def test_den_bedste_plan_holder_den_foerste_udbetaling_fast():
+    # Før 030: forslaget flyttede begge ordninger til 68 eller senere. Nu ligger den første udbetaling
+    # fast ved 64 (stopalderen er udledt af den), og et forslag ændrer kun resten.
     r = optimer(enlig_profil(ordninger=(RATE, LIV)), A, 2026, BEREGNINGSDATO, maks_evalueringer=300)
+    if r.bedste is not None:
+        assert min(r.bedste.starter.values()) == 64
+        assert r.bedste_maaned > r.udgangspunkt_maaned
+
+
+def test_forslaget_giver_samme_beloeb_uden_valgt_stopalder():
+    # 030: kandidaterne regnes med den udledte stopalder; brugt uden stopalder giver forslaget samme beløb.
+    from pensionskerne import beregn
+    from pensionskerne.optimering import anvend, fast_niveau, maalvindue
+
+    p = enlig_profil(ordninger=(RATE, LIV, Ordning("ald", "aldersopsparing", 300_000, 72, oprettet=date(2015, 1, 1))),
+                     loen=Loen(480_000))
+    r = optimer(p, A, 2026, BEREGNINGSDATO, maks_evalueringer=300)
     assert r.bedste is not None
-    assert min(r.bedste.starter.values()) >= 68
-    assert r.bedste_maaned > r.udgangspunkt_maaned
+    assert min(r.bedste.starter.values()) == 64
+    q, a = anvend(p, A, r.bedste)
+    res = beregn(q, a, 2026, BEREGNINGSDATO)
+    assert res.jaevn_fra_alder == 64
+    assert fast_niveau(res, maalvindue(res, q)) == r.bedste_maaned
 
 
 def test_bufferen_goer_ikke_en_plan_daarligere_end_at_skubbe_engangsbeloeb_sent():

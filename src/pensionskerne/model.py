@@ -119,6 +119,24 @@ class Pensionsprofil:
     partner: Partner | None = None
 
 
+ENGANGSTYPER = ("aldersopsparing", "kapitalpension")
+
+
+def bruges_i_fast_beloeb(o: Ordning) -> bool:
+    """Ordningen indgår i det faste beløb: løbende udbetaling (også omlagt kapitalpension) eller
+    engangsbeløb i bufferen. Et engangsbeløb, der udbetales direkte, gør ikke."""
+    return o.type not in ENGANGSTYPER or o.i_buffer or o.udbetalingsform in ("ratepension", "livsvarig")
+
+
+def stopalder(profil: Pensionsprofil, fp_alder: int) -> int:
+    """Første år uden løn (017, 030): den valgte stopalder, ellers det år, den første udbetaling, der
+    bruges i det faste beløb, begynder — højst folkepensionsalderen. En modelantagelse, ikke en
+    lovregel; den vises ved feltet i guiden."""
+    if profil.loen is not None and profil.loen.stop_alder is not None:
+        return profil.loen.stop_alder
+    return min([fp_alder] + [o.udbetaling_start_alder for o in profil.ordninger if bruges_i_fast_beloeb(o)])
+
+
 @dataclass(frozen=True)
 class Antagelser:
     afkast_efter_pal: float = 0.04
