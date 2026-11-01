@@ -5,4 +5,4 @@
 - [x] T003 Optimeringen holder den udledte stopalder fast og afviser kandidater med en anden første udbetaling (FR-003)
 - [x] T004 "Næste krone" og `graenser()["stopalder"]["aktuel"]`; punktet i tidslinjen (025) viser den udledte stopalder (FR-002)
 - [x] T005 Hjælpetekst ved feltet og forklaringen til den bedste plan (FR-004)
-- [ ] T006 Hele suiten grøn, også browsertestene
+- [x] T006 Hele suiten grøn, også browsertestene
