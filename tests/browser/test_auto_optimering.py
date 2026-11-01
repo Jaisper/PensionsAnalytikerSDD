@@ -1,5 +1,6 @@
 """Feature 007b — den bedste plan regnes og vises med det samme (hovedtallet), og borgeren kan
-skifte til sin egen plan. Uden stopalder starter ingen ordning før folkepensionsalderen."""
+skifte til sin egen plan. Uden valgt stopalder starter ingen ændret ordning før stopalderen, som
+udledes af den egne plans første udbetaling (030 FR-003; før 030: folkepensionsalderen)."""
 import pytest
 
 pytestmark = pytest.mark.browser
@@ -12,11 +13,12 @@ def test_bedste_plan_er_hovedtallet(bedste_plan):
     assert "den bedste plan" in tekst and "Med din egen plan" in tekst
     bedste = bedste_plan.evaluate("+document.querySelector('#hovedtal').dataset.vaerdi")
     assert bedste >= p["egenMaaned"]
-    fp = bedste_plan.evaluate("tilstand.v.graenser.folkepensionsalder")
+    stop = bedste_plan.evaluate("tilstand.v.graenser.stopalder.aktuel")
+    assert stop <= bedste_plan.evaluate("tilstand.v.graenser.folkepensionsalder")
     for o in bedste_plan.evaluate("tilstand.aktuelleSvar.ordninger"):
         egen = next(x for x in p["egen"]["ordninger"] if x["id"] == o["id"])
         if o["udbetaling_start_alder"] != egen["udbetaling_start_alder"]:
-            assert o["udbetaling_start_alder"] >= fp
+            assert o["udbetaling_start_alder"] >= stop
     assert bedste_plan.fejl == []
 
 
