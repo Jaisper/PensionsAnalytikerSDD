@@ -50,7 +50,7 @@ from itertools import product
 from typing import Callable
 
 from .fremskrivning import beregn
-from .model import Antagelser, Fremskrivning, Pensionsprofil, UgyldigtInput
+from .model import ENGANGSTYPER, Antagelser, Fremskrivning, Pensionsprofil, UgyldigtInput, stopalder
 from .register.opslag import Regelopslag
 from .regler.folkepension import folkepensionsalder
 from .regler.udbetalingsalder import tidligste_udbetalingsalder
@@ -69,7 +69,6 @@ BUFFER_TOLERANCE_MAANEDER = 1.0
 # regnefejl (CPython 3.11/3.12 og WebAssembly). Under 1 kr. tæller derfor som nul.
 BUFFER_NUL_KR = 1.0
 
-ENGANGSTYPER = ("aldersopsparing", "kapitalpension")
 
 
 @dataclass(frozen=True)
@@ -138,11 +137,10 @@ def spring(res: Fremskrivning, vindue: range) -> float:
 
 
 def pensionsalder(profil: Pensionsprofil, fp_alder: int) -> int:
-    """Alderen, borgeren går på pension (007b): stopalderen med løn, ellers folkepensionsalderen.
-    Den bedste plan starter ingen ordning før, og målet regnes fra den."""
-    if profil.loen is not None and profil.loen.stop_alder is not None:
-        return profil.loen.stop_alder
-    return fp_alder
+    """Alderen, borgeren går på pension (007b, 030): den valgte stopalder, ellers den første udbetaling,
+    der bruges i det faste beløb (højst folkepensionsalderen). Den bedste plan starter ingen ordning
+    før, og målet regnes fra den."""
+    return stopalder(profil, fp_alder)
 
 
 def maalvindue(res: Fremskrivning, profil: Pensionsprofil) -> range:
@@ -315,10 +313,15 @@ def _gennemfoerlig(res: Fremskrivning, ref: _Reference) -> float | None:
 
 
 def _evaluer_plan(plan: Plan, profil: Pensionsprofil, antagelser: Antagelser, satsaar: int,
-                  beregningsdato: date, ref: _Reference, varm: dict | None = None) -> tuple[float, float] | None:
+                  beregningsdato: date, ref: _Reference, varm: dict | None = None,
+                  fast_stop: tuple[int, int] | None = None) -> tuple[float, float] | None:
     """(fast beløb, minus springet, samlet real netto) for en gennemførlig kandidat, ellers None.
-    `varm` holder den forrige kandidats resultat som startgæt for bufferens fastpunkt."""
+    `varm` holder den forrige kandidats resultat som startgæt for bufferens fastpunkt.
+    `fast_stop` = (stopalder, folkepensionsalder), når stopalderen er udledt (030): kandidaten skal have
+    sin første udbetaling netop dér, så stopalderen er den samme, når forslaget bruges."""
     p, a = anvend(profil, antagelser, plan)
+    if fast_stop is not None and stopalder(replace(p, loen=None), fast_stop[1]) != fast_stop[0]:
+        return None
     try:
         res = beregn(p, a, satsaar, beregningsdato, buffer_start=(varm or {}).get("res"))
     except UgyldigtInput:
@@ -352,6 +355,13 @@ def optimer(
     udgangspunkt, dimensioner = soegerum(profil, antagelser, satsaar, beregningsdato)
     basis = beregn(profil, antagelser, satsaar, beregningsdato)
     ref = _reference(basis, profil)
+    # 030: uden valgt stopalder udledes den af borgerens egen plan og ligger fast under søgningen.
+    fast_stop = None
+    if profil.loen is None or profil.loen.stop_alder is None:
+        stop = pensionsalder(profil, basis.folkepensionsalder)
+        fast_stop = (stop, basis.folkepensionsalder)
+        if profil.loen is not None:
+            profil = replace(profil, loen=replace(profil.loen, stop_alder=stop))
     mulige = math.prod(len(d) for d in dimensioner)
     udtoemmende = mulige <= maks_evalueringer
     budget = mulige if udtoemmende else maks_evalueringer
@@ -364,7 +374,7 @@ def optimer(
 
     def evaluer(vektor: tuple) -> tuple | None:
         if vektor not in score:
-            r = _evaluer_plan(_plan(vektor, udgangspunkt), profil, antagelser, satsaar, beregningsdato, ref, varm)
+            r = _evaluer_plan(_plan(vektor, udgangspunkt), profil, antagelser, satsaar, beregningsdato, ref, varm, fast_stop)
             # Rangering: fast beløb hele perioden (= hovedtallet), så det mindste spring, så samlet real netto — i hele
             # kroner. Uafrundede tal ville lade forskelle i sidste decimal mellem CPython og
             # WebAssembly (research R001) afgøre uafgjorte og sende søgningen ad en anden vej.

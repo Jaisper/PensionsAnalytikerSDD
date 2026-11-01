@@ -17,7 +17,7 @@ from datetime import date
 from .model import (
     AKTIVLAG, Engangsbeloeb, FormueAar, JaevnAar, JaevnUdbetaling, Aarsdetaljer, SkatDetaljer,
     Aarsresultat, Advarsel, Antagelser, Fremskrivning, Indkomstkilde, Ordning,
-    Partner, PartnerIndkomst, Pensionsprofil,
+    Partner, PartnerIndkomst, Pensionsprofil, stopalder,
 )
 from .register.opslag import Regelopslag
 from .regler.aktier import aktieindkomst_skat, ask_skat
@@ -177,7 +177,7 @@ def beregn(
                      if x in modtagere else x for x in ordninger]
         loen = replace(loen, aarlig=aarlig, pension_eget=0.0, pension_firma=0.0)
     har_loen = loen is not None and (loen.aarlig > 0 or loen.deltid_aarlig > 0)
-    stop = (loen.stop_alder or fp_alder) if loen is not None else fp_alder
+    stop = stopalder(profil, fp_alder)  # 030: uden valgt stopalder følger den første udbetaling
     deltid_til = (loen.deltid_til_alder or stop) if loen is not None else stop
 
     def loen_i_aar(alder: int) -> float:

@@ -30,13 +30,22 @@ def test_stopalder_fra_tidligste_udbetaling_til_folkepensionsalderen():
         Ordning("a", "ratepension", 1, 65, oprettet=date(2010, 1, 1)),     # 63
         Ordning("b", "livsvarig", 1, 67, oprettet=date(2020, 1, 1)),      # 65
     ))
-    assert graenser(profil, 2026)["stopalder"] == {"min": 63, "maks": 68}
+    assert graenser(profil, 2026)["stopalder"] == {"min": 63, "maks": 68, "aktuel": 65}  # 030: + aktuel
 
 
 def test_stopalder_uden_ordninger_og_over_folkepensionsalderen():
     # Uden ordninger: lovens alder for en ordning uden oprettelsesdato (fp 68 − 3).
     # En stopalder uden for grænserne fra guiden bliver selv grænsen.
     profil = enlig_profil(ordninger=(), loen=Loen(480_000, stop_alder=70))
-    assert graenser(profil, 2026)["stopalder"] == {"min": 65, "maks": 70}
+    assert graenser(profil, 2026)["stopalder"] == {"min": 65, "maks": 70, "aktuel": 70}
     profil = enlig_profil(ordninger=(), loen=Loen(480_000, stop_alder=62))
-    assert graenser(profil, 2026)["stopalder"] == {"min": 62, "maks": 68}
+    assert graenser(profil, 2026)["stopalder"] == {"min": 62, "maks": 68, "aktuel": 62}
+
+
+def test_stopalderen_der_gaelder_nu_er_udledt_uden_valg():
+    # Feature 030: uden valgt stopalder står punktet ved den første udbetaling (højst folkepensionsalderen).
+    ordninger = (Ordning("a", "ratepension", 1, 65, oprettet=date(2010, 1, 1)),
+                 Ordning("b", "livsvarig", 1, 67, oprettet=date(2020, 1, 1)))
+    assert graenser(enlig_profil(ordninger=ordninger, loen=Loen(480_000)), 2026)["stopalder"]["aktuel"] == 65
+    assert graenser(enlig_profil(ordninger=ordninger, loen=Loen(480_000, stop_alder=66)), 2026)["stopalder"]["aktuel"] == 66
+    assert graenser(enlig_profil(ordninger=(), loen=Loen(480_000)), 2026)["stopalder"]["aktuel"] == 68
