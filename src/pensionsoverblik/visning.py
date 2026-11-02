@@ -49,17 +49,20 @@ def _hovedtal(res: Fremskrivning) -> dict:
 
 
 def _forbrug(res: Fremskrivning) -> dict | None:
-    """Forbrugsprofilens bånd (033) med procent og det faktiske beløb pr. måned i dagens kroner i
-    båndets første år. Kun omformatering: båndene og beløbene kommer fra kernen."""
+    """Forbrugsprofilens bånd (033) med procent og beløbet pr. måned i dagens kroner. Kun omformatering:
+    båndene og beløbene kommer fra kernen. Beløbet er det, båndet har i flest år (ved lighed det seneste):
+    båndets første år kan ligge før beregningen eller være et skæveår, når pengene kommer i trin."""
     if not res.jaevn or not res.forbrug_baand:
         return None
-    pr_alder = {a.alder: (j, a) for j, a in zip(res.jaevn.aar, res.aar)}
+    pr_alder = {a.alder: round(j.jaevn * a.realfaktor / MAANEDER, -2) for j, a in zip(res.jaevn.aar, res.aar)
+                if a.alder >= (res.jaevn_fra_alder or res.aar[0].alder)}
     procenter = list(res.antagelser.forbrugsprofil.procenter) or [1.0]
     baand = []
     for i, (fra, til) in enumerate(res.forbrug_baand):
-        ja = pr_alder.get(fra)
+        beloeb = [pr_alder[x] for x in range(fra, til + 1) if x in pr_alder]
+        typisk = max(reversed(beloeb), key=beloeb.count) if beloeb else None
         baand.append({"fra": fra, "til": til, "procent": round(procenter[min(i, len(procenter) - 1)] * 100),
-                      "maaned": round(ja[0].jaevn * ja[1].realfaktor / MAANEDER, -2) if ja else None})
+                      "maaned": typisk})
     return {"baand": baand, "flad": all(b["procent"] == 100 for b in baand)}
 
 

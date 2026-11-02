@@ -84,7 +84,8 @@ const tilstand = {
   forslag: null,       // forslag fra "Find bedste plan" (007): { d, noegle }
   soeger: false,       // den bedste plan søges, så hovedtallet er en tekst (032)
   soegNoegle: null,
-  soegIgen: false,     // søg den bedste plan igen efter næste beregning (033: profilen er ændret)
+  soegIgen: false,     // søg den bedste plan igen efter næste beregning (033: "Find bedste plan med denne fordeling")
+  forbrugStart: null,  // borgerens egen plan, før profilen blev ændret (033): { egen, noegle }
 };
 
 /* ── Hjælpere ──────────────────────────────────────────────────────────── */
@@ -580,6 +581,7 @@ async function beregnFraGuide() {
     if (fejl) { visFejl(fejl.felt, fejl.besked); return; }
     tilstand.mineSvar = structuredClone(svar);
     tilstand.aktuelleSvar = structuredClone(svar);
+    tilstand.forbrugStart = null;
     tilstand.sidsteGyldige = structuredClone(svar);
     tilstand.forrigeHovedtal = null;
     visResultat(visning);
@@ -1581,6 +1583,7 @@ async function opdaterFraPanel() {
     tilstand.forrigeHovedtal = +$("#hovedtal").dataset.vaerdi;
     tilstand.mineSvar = structuredClone(svar);
     tilstand.aktuelleSvar = structuredClone(svar);
+    tilstand.forbrugStart = null;
     tilstand.sidsteGyldige = structuredClone(svar);
     visResultat(visning, false);
     status.textContent = "Beregningen er opdateret.";
@@ -2289,19 +2292,41 @@ function forbrugTekst(b) {
   return `${b.procent} %` + (b.maaned ? `, ca. ${kr(b.maaned)} kr. om måneden` : "");
 }
 
+function utenProfil(svar) {
+  const s = structuredClone(svar);
+  delete s.antagelser.forbrugsprofil;
+  return JSON.stringify(s);
+}
+
 function saetForbrug(procenter) {
-  // Profilen ændrer, hvilken plan der er bedst, så den søges igen efter beregningen (007b). Søgningen
-  // starter fra borgerens egen plan, ikke fra den forrige bedste, så "Brug min egen plan" stadig er den.
-  if (tilstand.planer) {
-    tilstand.aktuelleSvar = structuredClone(tilstand.planer.egen);
-    tilstand.planer = null;
-    synkroniserFormular();
-    tegnTidslinje(tilstand.v);
+  // Beløbene regnes med det samme for den viste plan. Den bedste plan søges først, når borgeren er færdig
+  // og trykker "Find bedste plan med denne fordeling" (033). Vi husker borgerens egen plan fra før.
+  if (!tilstand.forbrugStart) {
+    tilstand.forbrugStart = { egen: tilstand.planer ? structuredClone(tilstand.planer.egen) : null,
+      noegle: utenProfil(tilstand.aktuelleSvar) };
   }
   const a = tilstand.aktuelleSvar.antagelser;
   if (procenter.every((x) => x === 100)) delete a.forbrugsprofil;
   else a.forbrugsprofil = procenter.map((x) => x / 100);
   $("#forbrug-flad").hidden = !a.forbrugsprofil;
+  $("#forbrug-soeg").hidden = false;
+  genberegn();
+}
+
+function soegMedForbrug() {
+  // Søgningen starter fra borgerens egen plan med den nye fordeling, så "Brug min egen plan" stadig er
+  // den. Har borgeren ændret andet imens (fx flyttet en bjælke), starter den fra det, der vises nu.
+  const start = tilstand.forbrugStart;
+  const profil = tilstand.aktuelleSvar.antagelser.forbrugsprofil;
+  const svar = structuredClone(start?.egen && utenProfil(tilstand.aktuelleSvar) === start.noegle ? start.egen
+    : tilstand.aktuelleSvar);
+  if (profil) svar.antagelser.forbrugsprofil = profil; else delete svar.antagelser.forbrugsprofil;
+  tilstand.forbrugStart = null;
+  tilstand.planer = null;
+  tilstand.aktuelleSvar = svar;
+  $("#forbrug-soeg").hidden = true;
+  synkroniserFormular();
+  tegnTidslinje(tilstand.v);
   tilstand.soegIgen = true;
   genberegn();
 }
@@ -2311,12 +2336,13 @@ function tegnForbrug(v) {
   $("#forbrug").hidden = !f;
   if (!f) return;
   $("#forbrug-flad").hidden = f.flad;
+  $("#forbrug-soeg").hidden = !tilstand.forbrugStart;
   // Kommer der flere penge ind senere, end fordelingen bruger, stiger beløbet igen (ingen lån, 010).
   const stiger = f.flad ? null : f.baand.find((b, i) => i > 0 && b.maaned && f.baand[i - 1].maaned
     && b.maaned > f.baand[i - 1].maaned + 100);
   $("#forbrug-note").hidden = !stiger;
   $("#forbrug-note").textContent = stiger
-    ? `Fra ${stiger.fra} år kommer der flere penge ind, end din fordeling bruger. Vi låner aldrig af senere år, så beløbet stiger igen dér. "Find bedste plan" kan måske rykke dine udbetalinger frem.`
+    ? `Fra ${stiger.fra} år kommer der flere penge ind, end din fordeling bruger. Vi låner aldrig af senere år, så beløbet stiger igen dér. "Find bedste plan med denne fordeling" kan måske rykke dine udbetalinger frem.`
     : "";
   const ramme = $("#forbrug-baand");
   const partner = tilstand.husstand && tilstand.hvem === "dig" ? tilstand.husstand.partner.forbrug : null;
@@ -2329,7 +2355,7 @@ function tegnForbrug(v) {
       s.value = b.procent;
       s.setAttribute("aria-valuetext", forbrugTekst(b));
       k.querySelector("output").textContent = `${b.procent} %`;
-      k.querySelector(".forbrug__kr").textContent = b.maaned ? `${kr(b.maaned)} kr.` : "";
+      k.querySelector(".forbrug__kr").textContent = b.maaned ? `${kr(b.maaned)} kr.` : "–";
     });
     return;
   }
@@ -2357,7 +2383,7 @@ function tegnForbrug(v) {
       el("label", { for: id }, navn, pNavn ? el("span", { class: "forbrug__partner", tekst: `(${pNavn})` }) : null),
       skyder,
       el("output", { for: id, tekst: `${b.procent} %` }),
-      el("span", { class: "forbrug__kr", tekst: b.maaned ? `${kr(b.maaned)} kr.` : "" }));
+      el("span", { class: "forbrug__kr", tekst: b.maaned ? `${kr(b.maaned)} kr.` : "–" }));
   }));
 }
 
@@ -2623,6 +2649,7 @@ function forbind() {
   });
   skyder("r-afkast", (v) => { tilstand.aktuelleSvar.antagelser.afkast_efter_pal = v / 100; synkroniserFormular(); }, (v) => `${decimal(v)} %`);
   skyder("r-inflation", (v) => { tilstand.aktuelleSvar.antagelser.inflation = v / 100; synkroniserFormular(); }, (v) => `${decimal(v)} %`);
+  $("#forbrug-soeg-knap").addEventListener("click", soegMedForbrug);
   $("#forbrug-flad").addEventListener("click", () => {
     $$("#forbrug-baand input").forEach((x) => { x.value = 100; });
     saetForbrug($$("#forbrug-baand input").map(() => 100));
@@ -2630,6 +2657,7 @@ function forbind() {
   $("#hovedtal-spaend").addEventListener("click", (e) => { if (e.target.closest("a")) $("#usikkerhed").open = true; });
   $("#nulstil").addEventListener("click", () => {
     tilstand.aktuelleSvar = structuredClone(tilstand.mineSvar);
+    tilstand.forbrugStart = null;
     synkroniserFormular();
     tegnSkydere();
     tegnTidslinje(tilstand.v);
