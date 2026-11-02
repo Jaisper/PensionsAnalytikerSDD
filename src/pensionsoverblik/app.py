@@ -510,6 +510,23 @@ def optimer(guide_json: str, idag: str, fremdrift=None, hvem: str = "dig") -> di
     })
 
 
+def forsikringer(guide_json: str, forsikringer_json: str, idag: str, hvem: str = "dig") -> dict:
+    """Forsikringerne fra rapporten som kort med beløb efter skat (feature 034). Skatten regnes med
+    personens kommune og kirkeskat; for partneren dennes (012)."""
+    from .forsikringer import forsikringskort
+
+    try:
+        data, dato = _data(guide_json, idag)
+        daekninger = json.loads(forsikringer_json)
+        if hvem == "partner" and (hus := til_husstand(data)) is not None:
+            profil = hus[2]
+        else:
+            profil, _ = til_kerne(data)
+    except (UgyldigtInput, ValueError) as e:
+        return _fejl("ugyldigt_input", getattr(e, "besked", "Forsikringerne kunne ikke læses"), getattr(e, "felt", None))
+    return _ok({"kort": forsikringskort(daekninger, profil.kommune, profil.folkekirkemedlem, _satsaar(), dato)})
+
+
 def pdf(data: bytes) -> dict:
     """Aflæser en PensionsInfo-rapport lokalt til guidedata."""
     global AFLAESER

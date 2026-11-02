@@ -508,6 +508,13 @@ kilde = "Pensionsbeskatningsloven § 25, stk. 1, nr. 1: 40 % afgift af udbetalin
 status = "verificeret"
 
 [[post]]
+id = "forsikring.afgift"
+vaerdi = 0.40
+enhed = "brok"
+kilde = "Afgiftspligtige udbetalinger fra forsikringer og pensioner ved død (skattekode A i PensionsInfo): 40 % afgift, pensionsbeskatningsloven § 25, stk. 1, nr. 1 og 6 (kapitalpension og kapitalforsikring), og § 29, stk. 1 (rateordning omregnet til engangsbeløb). Den juridiske vejledning C.A.10.2.5.4.5 og C.A.10.2.2.4.3. Lavere satser for visse indbetalinger før 1980 (PBL § 14 A) er ikke modelleret. Feature 034: kun brudstykker af vejledningen er læst, lovteksten er ikke verificeret"
+status = "sekundaer"
+
+[[post]]
 id = "ordning.kapitalpension.seneste_aar_efter_udbetalingsalder"
 vaerdi = 20
 enhed = "aar"
