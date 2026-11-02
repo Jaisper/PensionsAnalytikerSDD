@@ -29,6 +29,8 @@ def kald(op, *args):
         svar = app.scenarier(args[0])
     elif op == "scenarie":
         svar = app.scenarie(*args)
+    elif op == "forsikringer":
+        svar = app.forsikringer(*args)
     elif op == "pdf":
         svar = app.pdf(args[0].to_bytes())
     elif op == "optimer":
