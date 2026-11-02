@@ -452,10 +452,12 @@
             <div class="graf-ramme graf-ramme--bred"><canvas id="graf" role="img" aria-label="Søjlediagram over din udbetaling pr. år, fordelt på kilder og det, du tager fra din buffer. Det skraverede over linjen sættes til side. Tallene findes også som tabel under diagrammet."></canvas></div>
             <div class="graf-ramme graf-ramme--buffer" id="buffergraf-ramme" hidden><canvas id="buffergraf" role="img" aria-label="Diagram over din buffer pr. år: søjler for det, der kommer ind, sættes til side og tages fra bufferen, og en linje for saldoen. Den går aldrig i minus. Tallene findes også i tabellen under diagrammet."></canvas></div>
             <ul class="forklaring-farver" id="farveforklaring"></ul>
-            <details class="laes" data-laes="graf"><summary></summary><div class="laes__tekst"></div></details>
-            <p class="graf-forklaring" id="jaevn-forklaring" hidden></p>
-            <ul class="markeringer" id="graf-markeringer"></ul>
-            <p class="felt__hjaelp">Klik på et år i grafen for at se, hvordan det er regnet.</p>
+            <!-- Grafens forklaring, mærker og tip samlet under "Sådan læser du grafen" (giver plads) -->
+            <details class="laes" data-laes="graf"><summary></summary><div class="laes__tekst"></div>
+              <p class="graf-forklaring" id="jaevn-forklaring" hidden></p>
+              <ul class="markeringer" id="graf-markeringer"></ul>
+              <p class="laes__tip">Klik på et år i grafen for at se, hvordan det er regnet.</p>
+            </details>
             <section class="aar-forklaring" id="aar-forklaring" aria-labelledby="aar-forklaring-titel" hidden>
               <div class="aar-forklaring__top">
                 <h3 id="aar-forklaring-titel" tabindex="-1"></h3>
@@ -467,9 +469,14 @@
             <!-- Feature 033: faldende udbetalinger, en equalizer pr. bånd på fem år fra stopalderen -->
             <section class="forbrug" id="forbrug" aria-labelledby="forbrug-titel" hidden>
               <h3 id="forbrug-titel">Mere i de første år?</h3>
-              <p class="felt__hjaelp" id="forbrug-hjaelp">Mange bruger mest i årene lige efter pensionen. Sænk de senere perioder, så får du mere fra starten. Procenten er i forhold til de første år. Vi bruger stadig alle pengene og låner aldrig af senere år.</p>
-              <div class="forbrug__baand" id="forbrug-baand" role="group" aria-labelledby="forbrug-titel" aria-describedby="forbrug-hjaelp"></div>
+              <p class="felt__hjaelp" id="forbrug-hjaelp">Mange bruger mest i årene lige efter pensionen. Sænk de senere perioder, så får du mere fra starten. Procenten er i forhold til de første år. Vi bruger stadig alle pengene og låner aldrig af senere år. Beløbene opdateres, mens du justerer.</p>
+              <div class="forbrug__baand" id="forbrug-baand" role="group" aria-labelledby="forbrug-titel" aria-describedby="forbrug-hjaelp forbrug-kroner"></div>
+              <p class="felt__hjaelp" id="forbrug-kroner">Beløbene er pr. måned efter skat i dagens kroner, også når grafen viser årets kroner. Så kan du sammenligne perioderne direkte: 80 % betyder 80 % af det, pengene kan købe i de første år.</p>
               <p class="felt__hjaelp" id="forbrug-note" role="status" hidden></p>
+              <div class="forbrug__soeg" id="forbrug-soeg" hidden>
+                <p>Når du er færdig med at justere, så find den plan, der passer bedst til din fordeling. Den kan rykke dine udbetalinger frem, så du har flere penge i de første år.</p>
+                <button type="button" class="knap knap--primaer" id="forbrug-soeg-knap">Find bedste plan med denne fordeling</button>
+              </div>
               <button type="button" class="knap knap--tekst" id="forbrug-flad" hidden>Samme beløb hele livet</button>
             </section>
             <div class="optimering">

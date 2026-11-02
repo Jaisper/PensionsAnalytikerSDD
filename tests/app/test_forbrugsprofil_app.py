@@ -1,6 +1,8 @@
 """Feature 033 — forbrugsprofilen gennem oversættelse og visning (US1, US3)."""
 import json
 
+import pytest
+
 from pensionsoverblik import app
 from pensionsoverblik.oversaet import til_husstand, til_kerne
 from tests.app.test_husstand_app import IDAG, PAR
@@ -36,10 +38,10 @@ def test_visningen_har_baandene_med_beloeb():
     assert [(b["fra"], b["til"]) for b in f["baand"]][:2] == [(65, 69), (70, 74)]
     assert [b["procent"] for b in f["baand"]] == [100, 100, 90, 80, 70][:len(f["baand"])]
     assert all(b["maaned"] is None or b["maaned"] > 0 for b in f["baand"])
-    # Hovedtallet er beløbet i første bånd. Folkepensionen kommer senere, så beløbet kan stadig stige i
-    # trin (010), men i forhold til det flade forløb er der mere først og mindre til sidst.
+    # Hovedtallet er det laveste beløb i første bånd; båndet viser det typiske (det kan stige i trin, 010).
+    # Folkepensionen kommer senere, men i forhold til det flade forløb er der mere først og mindre til sidst.
     flad = app.beregn(json.dumps(med_loen(GUIDE)), IDAG)["data"]
-    assert v["hovedtal"]["maaned"] == f["baand"][0]["maaned"] >= flad["hovedtal"]["maaned"]
+    assert flad["hovedtal"]["maaned"] <= v["hovedtal"]["maaned"] <= f["baand"][0]["maaned"]
     assert f["baand"][-1]["maaned"] < flad["forbrug"]["baand"][-1]["maaned"]
     assert any(a["kode"] == "FORBRUGSPROFIL" for a in v["hovedtal_advarsler"])
 
@@ -55,3 +57,17 @@ def test_antagelserne_er_i_json_form():
     v = app.beregn(json.dumps(med_profil(GUIDE)), IDAG)["data"]
     assert v["antagelser"]["forbrugsprofil"]["procenter"] == FALDENDE
     assert json.loads(json.dumps(v["antagelser"])) == v["antagelser"]
+
+
+def test_baandets_beloeb_er_det_typiske():
+    # Set i browseren: 66 år med ratepension fra 64. Beregningen begynder ved 66, så 64–68 havde intet
+    # beløb, og et bånds første år kan være et skæveår. Beløbet er det, båndet har i flest år (ved
+    # lighed det seneste): 66–68 stiger i trin, så 64–68 viser 68's beløb, og 69–73 viser 90 % af det.
+    g = {**GUIDE, "person": {**GUIDE["person"], "foedselsdato": "1960-05-01"},
+         "ordninger": [{**GUIDE["ordninger"][0], "udbetaling_start_alder": 64}]}
+    v = app.beregn(json.dumps(med_profil(g, [1.0, 0.9, 0.85, 0.8])), IDAG)["data"]
+    baand = v["forbrug"]["baand"]
+    pr_alder = {a["alder"]: round(a["jaevn"] * a["realfaktor"] / 12, -2) for a in v["aar"]}
+    assert baand[0]["fra"] == 64 and baand[0]["maaned"] == pr_alder[68]
+    assert baand[1]["maaned"] == pr_alder[70]
+    assert baand[1]["maaned"] == pytest.approx(0.9 * baand[0]["maaned"], rel=0.01)

@@ -76,8 +76,11 @@ flade beløb.
 
 1. **Given** en faldende profil, **Then** finder den bedste plan det højeste beløb i første bånd,
    hvor alle senere bånd holder deres procent.
-2. **When** borgeren ændrer profilen, **Then** søges den bedste plan igen med det samme, fra borgerens
-   egen plan med den nye profil. "Brug min egen plan" er stadig borgerens egen plan.
+2. **When** borgeren ændrer profilen, **Then** regnes beløbene med det samme for den viste plan, og
+   knappen "Find bedste plan med denne fordeling" vises. **When** borgeren trykker på den, **Then**
+   søges den bedste plan fra borgerens egen plan med den nye profil. "Brug min egen plan" er stadig
+   borgerens egen plan. (Først søgte vi automatisk ved hver ændring; det var uroligt, og det var
+   uklart, hvad man skulle gøre.)
 2. **Given** en flad profil, **Then** er den bedste plan den samme som før 033.
 
 ### User Story 3 - Forstå og gemme profilen (Priority: P2)
