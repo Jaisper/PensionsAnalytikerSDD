@@ -2256,12 +2256,14 @@ function forsikringDetalje(p) {
 }
 
 function forsikringBjaelker(k, pr) {
+  // Pr. måned (tab af arbejdsevne) er et skøn efter skat og rundes som hovedtallet til hele hundrede.
+  const rund = (x) => (pr === 12 ? Math.round(x / 100) * 100 : x);
   const maks = Math.max(...k.selskaber.map((s) => s.beloeb), 1);
   return el("ul", { class: "fkort__bjaelker" }, k.selskaber.map((s) => el("li", {},
     el("span", { class: "fkort__selskab", tekst: s.selskab }),
+    el("span", { class: "fkort__beloeb", tekst: `${kr(rund(s.beloeb / pr))} kr.${s.efter_skat ? "" : " før skat"}` }),
     el("span", { class: "fkort__bjaelke", "aria-hidden": "true" },
-      el("span", { style: `width: ${Math.max(2, (100 * s.beloeb) / maks)}%` })),
-    el("span", { class: "fkort__beloeb", tekst: `${kr(s.beloeb / pr)} kr.${s.efter_skat ? "" : " før skat"}` }))));
+      el("span", { style: `width: ${Math.max(2, (100 * s.beloeb) / maks)}%` })))));
 }
 
 function forsikringKort(k) {
@@ -2270,12 +2272,13 @@ function forsikringKort(k) {
   const sum = k.hoved ? k[k.hoved] : null;
   if (k.hoved === "loebende" && sum) {
     // Tab af arbejdsevne: pr. måned, som resten af siden.
-    dele.push(el("p", { class: "fkort__tal", tekst: `${kr(sum.efter_skat / 12)} kr.` }),
+    dele.push(el("p", { class: "fkort__tal", tekst: `${kr(Math.round(sum.efter_skat / 1200) * 100)} kr.` }),
       el("p", { class: "fkort__under", tekst: `om måneden efter skat · ${kr(sum.foer_skat / 12)} kr. før skat` }));
   } else if (sum) {
     const kunFoer = sum.efter_skat === 0;
     dele.push(el("p", { class: "fkort__tal", tekst: `${kr(kunFoer ? sum.foer_skat : sum.efter_skat)} kr.` }),
       el("p", { class: "fkort__under", tekst: kunFoer ? "på én gang, før skat"
+        : sum.efter_skat === sum.foer_skat ? "på én gang, skattefri"
         : `på én gang efter skat · ${kr(sum.foer_skat)} kr. før skat` }));
     if (sum.hos_modtager && !kunFoer) {
       dele.push(el("p", { class: "fkort__note", tekst: `Heraf er ${kr(sum.hos_modtager)} kr. regnet før skat. De beskattes som indkomst hos modtageren.` }));

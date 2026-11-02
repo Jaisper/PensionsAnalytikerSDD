@@ -207,9 +207,10 @@ body[data-plan=""] .hero__tal #hovedtal { display: block; font-size: .55em; whit
 .fkort__under { color: var(--graa-600); margin: 4px 0 8px; }
 .fkort__note { margin: 6px 0; }
 .fkort__bjaelker { list-style: none; padding: 0; margin: 12px 0; display: grid; gap: 6px; }
-.fkort__bjaelker li { display: grid; grid-template-columns: minmax(80px, 1fr) 2fr auto; gap: 8px; align-items: center; }
-.fkort__selskab { overflow-wrap: anywhere; }
-.fkort__bjaelke { height: 10px; background: var(--graa-50); border-radius: 5px; overflow: hidden; }
+/* Navn og beløb på én linje, bjælken i fuld bredde under. */
+.fkort__bjaelker li { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; align-items: baseline; }
+.fkort__selskab { overflow-wrap: break-word; }
+.fkort__bjaelke { grid-column: 1 / -1; height: 10px; background: var(--graa-50); border-radius: 5px; overflow: hidden; }
 .fkort__bjaelke span { display: block; height: 100%; background: var(--petrol-700); border-radius: 5px; }
 .fkort__beloeb { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .fkort__maerke { display: inline-block; margin: 8px 0 4px; padding: 2px 10px; border-radius: 999px;

@@ -48,6 +48,7 @@ def test_arbejdsevne_pr_maaned_efter_skat(med_forsikringer):
     k = kort(med_forsikringer, "erhvervsevne")
     tal = int(re.sub(r"\D", "", k.locator(".fkort__tal").inner_text()))
     assert 0 < tal < 25_000                                            # 300.000 om året før skat
+    assert tal % 100 == 0                                              # et skøn: hele hundrede
     assert "om måneden efter skat · 25.000 kr. før skat" in k.inner_text()
     assert "Dækker til 67 år" in k.inner_text()
 
@@ -55,6 +56,7 @@ def test_arbejdsevne_pr_maaned_efter_skat(med_forsikringer):
 def test_kritisk_sygdom_og_boern(med_forsikringer):
     k = kort(med_forsikringer, "kritisk_sygdom")
     assert k.locator(".fkort__tal").inner_text() == "150.000 kr."
+    assert "på én gang, skattefri" in k.inner_text()                  # ingen gentagelse af beløbet
     assert "Børn: 50.000 kr." in k.inner_text()
 
 
