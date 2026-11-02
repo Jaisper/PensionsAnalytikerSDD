@@ -34,16 +34,33 @@ def _hovedtal(res: Fremskrivning) -> dict:
         # Hovedtallet er det faste beløb hele perioden: det laveste jævne beløb (feature 008) — det
         # samme, som "Find bedste plan" bruger. Niveauet stiger kun, når et engangsbeløb lander
         # (det lånes ikke på forhånd); et senere spring oplyses som "senere". Med løn tæller kun
-        # årene fra stopalderen (017).
+        # årene fra stopalderen (017). Med en forbrugsprofil (033) måles i forhold til profilen, så
+        # hovedtallet er beløbet i første bånd; "senere" er årets faktiske beløb.
         fra = res.jaevn_fra_alder or res.aar[0].alder
         par = [(j, a) for j, a in zip(res.jaevn.aar, res.aar) if a.alder >= fra]
-        real = [j.jaevn * a.realfaktor / MAANEDER for j, a in par]
+        real = [j.jaevn / j.vaegt * a.realfaktor / MAANEDER for j, a in par]
         ref = max([0] + [i for i in range(1, len(real)) if real[i] > real[i - 1] + 1])
-        senere = {"maaned": round(real[ref], -2), "fra_alder": par[ref][1].alder} if ref else None
+        senere = {"maaned": round(par[ref][0].jaevn * par[ref][1].realfaktor / MAANEDER, -2),
+                  "fra_alder": par[ref][1].alder} if ref else None
         return {"type": "jaevn", "maaned": round(min(real), -2), "fra_alder": fra, "senere": senere}
     foerste_hele = next((a for a in res.aar if a.alder > res.folkepensionsalder), res.aar[-1])
     return {"type": "foerste_fp_aar", "maaned": round(foerste_hele.netto_real / MAANEDER, -2),
             "fra_alder": foerste_hele.alder, "senere": None}
+
+
+def _forbrug(res: Fremskrivning) -> dict | None:
+    """Forbrugsprofilens bånd (033) med procent og det faktiske beløb pr. måned i dagens kroner i
+    båndets første år. Kun omformatering: båndene og beløbene kommer fra kernen."""
+    if not res.jaevn or not res.forbrug_baand:
+        return None
+    pr_alder = {a.alder: (j, a) for j, a in zip(res.jaevn.aar, res.aar)}
+    procenter = list(res.antagelser.forbrugsprofil.procenter) or [1.0]
+    baand = []
+    for i, (fra, til) in enumerate(res.forbrug_baand):
+        ja = pr_alder.get(fra)
+        baand.append({"fra": fra, "til": til, "procent": round(procenter[min(i, len(procenter) - 1)] * 100),
+                      "maaned": round(ja[0].jaevn * ja[1].realfaktor / MAANEDER, -2) if ja else None})
+    return {"baand": baand, "flad": all(b["procent"] == 100 for b in baand)}
 
 
 def _loen(res: Fremskrivning, hovedtal: dict) -> dict | None:
@@ -207,6 +224,7 @@ def byg_visning(res: Fremskrivning) -> dict:
         "hovedtal": hovedtal,
         "hovedtal_advarsler": hovedtal_advarsler,
         "loen": _loen(res, hovedtal),
+        "forbrug": _forbrug(res),
         "folkepensionsalder": res.folkepensionsalder,
         "kort": kort,
         "graf": {
@@ -230,7 +248,9 @@ def byg_visning(res: Fremskrivning) -> dict:
         "forenklinger": _forenklinger(res),
         "generelle_advarsler": generelle,
         "antagelser": {**asdict(res.antagelser), "satsregulering": res.antagelser.effektiv_satsregulering,
-                       "traekraekkefoelge": list(res.antagelser.traekraekkefoelge)},  # JSON-form (013b)
+                       "traekraekkefoelge": list(res.antagelser.traekraekkefoelge),  # JSON-form (013b)
+                       "forbrugsprofil": {**asdict(res.antagelser.forbrugsprofil),  # JSON-form (033)
+                                          "procenter": list(res.antagelser.forbrugsprofil.procenter)}},
         "aar": [{
             "alder": a.alder, "kalenderaar": a.kalenderaar, "personlig_indkomst": a.personlig_indkomst,
             "skat": a.skat_i_alt, "netto": a.netto_i_alt, "netto_real": a.netto_real,

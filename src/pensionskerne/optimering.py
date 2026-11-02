@@ -97,11 +97,14 @@ class Optimering:
 # ── Mål ─────────────────────────────────────────────────────────────────────────────────────────
 
 def _jaevn_real(res: Fremskrivning) -> list[float]:
-    return [j.jaevn * a.realfaktor for j, a in zip(res.jaevn.aar, res.aar)]
+    """Det jævne niveau pr. år i dagens kroner i forhold til forbrugsprofilen (033): beløbet delt med
+    årets vægt, altså det, året svarer til i første bånd. Uden profil er vægten 1."""
+    return [j.jaevn / j.vaegt * a.realfaktor for j, a in zip(res.jaevn.aar, res.aar)]
 
 
 def fast_niveau(res: Fremskrivning, vindue: range) -> float:
-    """Det faste beløb hele perioden (kr./md., dagens kroner): det laveste jævne beløb i vinduet."""
+    """Det faste beløb hele perioden (kr./md., dagens kroner): det laveste jævne beløb i vinduet, i
+    forhold til forbrugsprofilen (033) — med en faldende profil beløbet i første bånd."""
     if res.jaevn:
         pr_alder = dict(zip((a.alder for a in res.aar), _jaevn_real(res)))
     else:

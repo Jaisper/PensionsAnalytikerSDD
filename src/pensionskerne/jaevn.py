@@ -18,6 +18,10 @@ er derfor aldrig negativ, niveauet er ikke-faldende i dagens kroner, og bufferen
 (Før 010 blev grundniveauet finansieret af nutidsværdien af alle senere udbetalinger, så de
 første år kunne låne af fremtiden.)
 
+Faldende udbetalinger (033): med en forbrugsprofil vægtes hvert år med w_t, så nævneren bliver
+Σ w_t · g^(t−i) / (1+r)^(t−i), og niveauet i år t er c · w_t. Kravene ovenfor gælder for c: ingen
+lån, ingen negativ buffer, og c er ikke-faldende. Uden profil er w_t = 1.
+
 Betalinger sker primo året. Beløb er kr. pr. år (månedligt = / 12 i præsentationen).
 """
 from __future__ import annotations
@@ -34,6 +38,41 @@ from .model import Aarsresultat, JaevnAar, JaevnUdbetaling
 BUFFER_TOLERANCE_KR = 1.0  # pr. måned
 BUFFER_MAKS_ITERATIONER = 12
 
+# Forbrugsprofilens bånd (033) — modelparametre, ikke lovsatser: fem år ad gangen fra stopalderen
+# og et sidste bånd fra 85 til planens slutning.
+BAAND_AAR = 5
+SIDSTE_BAAND_FRA = 85
+KORTESTE_BAAND = 3  # et kortere bånd før 85 lægges sammen med det foregående
+FORBRUG_MIN = 0.5  # et senere bånd må højst falde til halvdelen af det første (FR-005)
+
+
+def baand(start_alder: int, slut_alder: int) -> tuple[tuple[int, int], ...]:
+    """Båndene (fra, til, begge med) fra `start_alder` til `slut_alder`. Et bånd før 85, der er
+    kortere end `KORTESTE_BAAND`, lægges sammen med det foregående (fx 79–84 i stedet for 79–83 og 84)."""
+    ud: list[tuple[int, int]] = []
+    fra = start_alder
+    while fra <= slut_alder:
+        til = slut_alder if fra >= SIDSTE_BAAND_FRA else min(fra + BAAND_AAR - 1, SIDSTE_BAAND_FRA - 1, slut_alder)
+        if ud and fra < SIDSTE_BAAND_FRA and til - fra + 1 < KORTESTE_BAAND:
+            ud[-1] = (ud[-1][0], til)
+        else:
+            ud.append((fra, til))
+        fra = til + 1
+    return tuple(ud)
+
+
+def vaegte(procenter: Sequence[float], start_alder: int, aldre: Sequence[int]) -> dict[int, float]:
+    """Vægten pr. alder: 1.0 før stopalderen, ellers båndets procent. Er der flere bånd end
+    procenter (stopalderen er flyttet frem), gælder den sidste procent."""
+    if not procenter:
+        return {alder: 1.0 for alder in aldre}
+    starter = [fra for fra, _ in baand(start_alder, max([start_alder, SIDSTE_BAAND_FRA] + list(aldre)))]
+    ud = {}
+    for alder in aldre:
+        nr = sum(1 for fra in starter if fra <= alder) - 1
+        ud[alder] = 1.0 if nr < 0 else procenter[min(nr, len(procenter) - 1)]
+    return ud
+
 
 def beregn_jaevn(
     raekker: tuple[Aarsresultat, ...],
@@ -41,6 +80,7 @@ def beregn_jaevn(
     rente: float | Sequence[float],
     inflation: float,
     beregningsaar: int,
+    vaegt: Sequence[float] | None = None,
 ) -> JaevnUdbetaling | None:
     if not raekker:
         return None
@@ -48,6 +88,7 @@ def beregn_jaevn(
     n = len(raekker)
     # Bufferens rente pr. række (023a); fast rente er det samme hvert år.
     renter = list(rente) if isinstance(rente, Sequence) else [rente] * n
+    w = list(vaegt) if vaegt is not None else [1.0] * n
     normal = [r.disponibel for r in raekker]
     indbetaling = [normal[t] + engangs_i_buffer.get(r.alder, 0.0) for t, r in enumerate(raekker)]
 
@@ -62,12 +103,12 @@ def beregn_jaevn(
             if k > i:
                 faktor /= 1 + renter[k - 1]
             nv_ind += indbetaling[k] * faktor
-            nv_vaekst += vaekst ** (k - i) * faktor
+            nv_vaekst += w[k] * vaekst ** (k - i) * faktor
             c = nv_ind / nv_vaekst
             if c <= bedste_c + 1e-12 * max(1.0, abs(c)):  # sidste minimum: så lange segmenter som muligt
                 bedste_c, bedste_k = min(c, bedste_c), k
         for t in range(i, bedste_k + 1):
-            niveau[t] = bedste_c * vaekst ** (t - i)
+            niveau[t] = bedste_c * w[t] * vaekst ** (t - i)
             buffer = (buffer + indbetaling[t] - niveau[t]) * (1 + renter[t])
         i = bedste_k + 1
 
@@ -79,7 +120,7 @@ def beregn_jaevn(
         aar.append(JaevnAar(
             alder=r.alder, jaevn=niveau[t], normal=normal[t],
             fra_buffer=max(0.0, forskel), til_buffer=max(0.0, -forskel), buffer_rest=buffer,
-            ind_buffer=engangs_i_buffer.get(r.alder, 0.0),
+            ind_buffer=engangs_i_buffer.get(r.alder, 0.0), vaegt=w[t],
         ))
 
     niveau_real = niveau[0] / vaekst ** (raekker[0].kalenderaar - beregningsaar)

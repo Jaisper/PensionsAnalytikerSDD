@@ -213,6 +213,7 @@ Eksporten laves lokalt i browseren (Princip VII).
 - AM-bidrag (og hvorfor det ikke betales af pension)
 - Kapitalindkomst og bundfradrag (bufferens og opsparingens afkast)
 - Udjævning, fast beløb og buffer uden lån (008–010)
+- Faldende udbetalinger (forbrugsprofil) (033)
 - Opsparing uden for pension: i planen eller urørt, restformue (013)
 - Usikkerhed om afkast og inflation (018) og levetid som scenarie (019)
 - Optimering (007)

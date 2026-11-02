@@ -314,6 +314,18 @@ thead th { background: var(--graa-50); position: sticky; top: 0; }
 .optimering { margin-top: 18px; display: grid; gap: 12px; }
 .optimering__top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; }
 .optimering__top .felt__hjaelp { flex: 1 1 280px; margin: 0; }
+/* Feature 033: equalizeren. Lodrette skydere (writing-mode), 44 px brede som berøringsmål. */
+.forbrug { margin: 24px 0; }
+.forbrug h3 { margin: 0 0 4px; }
+.forbrug__baand { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: flex-end; margin: 12px 0; }
+.forbrug__kolonne { display: flex; flex-direction: column; align-items: center; min-width: 76px; text-align: center; }
+.forbrug__kolonne label { font-weight: 600; font-size: .95rem; }
+.forbrug__partner { display: block; font-weight: 400; font-size: .85rem; color: var(--graa-600); }
+.forbrug__kolonne input[type="range"] { writing-mode: vertical-lr; direction: rtl; height: 120px; width: 44px; margin: 8px 0;
+  accent-color: var(--petrol-900); }
+.forbrug__kolonne input[type="range"]:disabled { opacity: .6; }
+.forbrug__kolonne output { font-weight: 700; color: var(--petrol-900); }
+.forbrug__kr { font-size: .9rem; color: var(--graa-600); }
 .forslag { border-left: 4px solid var(--sand-500); background: var(--sand-100); border-radius: 6px; padding: 14px 18px; }
 .forslag[hidden] { display: none; }
 .forslag h3 { margin: 0 0 4px; }

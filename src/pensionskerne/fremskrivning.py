@@ -10,7 +10,7 @@ Pr. kalenderår:
 """
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field, replace
 from datetime import date
 
@@ -30,7 +30,7 @@ from .regler.ordninger import engangs_netto, indbetalingsloft, livsvarig_ydelse,
 from .regler.skat import beregn_skat, fordel
 from .regler.udbetalingsalder import tidligste_udbetalingsalder
 from .regler.ydelser import aeldrecheck, mediecheck, tillaegsprocent
-from .jaevn import BUFFER_MAKS_ITERATIONER, BUFFER_TOLERANCE_KR, beregn_jaevn
+from .jaevn import BUFFER_MAKS_ITERATIONER, BUFFER_TOLERANCE_KR, baand, beregn_jaevn, vaegte
 from .validering import valider
 
 OVERSKUD_ID = "ratepension_overskud_livsvarig"
@@ -638,6 +638,21 @@ def beregn(
     def opsparingsskat(jaevn: JaevnUdbetaling | None) -> _Opsparingsskat:
         return _lag_forloeb(jaevn, engangs_bank, indskud_plan, rente_i, rente_buffer > 0, antagelser.traekraekkefoelge)
 
+    forbrug = antagelser.forbrugsprofil
+
+    def vaegt(raekker: Sequence[Aarsresultat]) -> list[float] | None:
+        """Forbrugsprofilens vægt pr. række (033). Båndene regnes fra stopalderen, i en husstand fra
+        det fælles startår; uden profil er forløbet fladt."""
+        if not forbrug.procenter:
+            return None
+        if forbrug.start_kalenderaar is None:
+            start, aldre = stop, [a.alder for a in raekker]
+        else:
+            start = forbrug.start_alder
+            aldre = [a.kalenderaar - forbrug.start_kalenderaar + start for a in raekker]
+        pr_alder = vaegte(forbrug.procenter, start, aldre)
+        return [pr_alder[x] for x in aldre]
+
     def udjaevn(aar: list[Aarsresultat]) -> JaevnUdbetaling | None:
         """Udjævning fra `jaevn_fra` (017). Årene før (arbejdsår) udjævnes ikke: det faste beløb er
         årets nettoindkomst, og opsparing i planen og engangsbeløb samles i bufferen, vokser med
@@ -645,7 +660,7 @@ def beregn(
         foer = [a for a in aar if a.alder < jaevn_fra]
         if not foer:
             return beregn_jaevn(tuple(aar), engangs_i_buffer, [rente_i(a.alder) for a in aar], antagelser.inflation,
-                                beregningsdato.year)
+                                beregningsdato.year, vaegt(aar))
         engangs = dict(engangs_i_buffer)
         b = 0.0
         foer_aar = []
@@ -657,7 +672,8 @@ def beregn(
                                      buffer_rest=b, ind_buffer=ind))
         engangs[jaevn_fra] = engangs.get(jaevn_fra, 0.0) + b
         efter = tuple(a for a in aar if a.alder >= jaevn_fra)
-        j = beregn_jaevn(efter, engangs, [rente_i(a.alder) for a in efter], antagelser.inflation, beregningsdato.year)
+        j = beregn_jaevn(efter, engangs, [rente_i(a.alder) for a in efter], antagelser.inflation, beregningsdato.year,
+                         vaegt(efter))
         # Saldoen fra arbejdsårene føres videre ved stopalderen; den er ikke nye penge i bufferen (029).
         foerste = replace(j.aar[0], ind_buffer=j.aar[0].ind_buffer - b)
         return JaevnUdbetaling(j.niveau_foerste_aar, j.niveau_real, tuple(foer_aar) + (foerste,) + j.aar[1:])
@@ -681,6 +697,24 @@ def beregn(
         if iteration >= BUFFER_MAKS_ITERATIONER:
             break
         tilstand, forrige = ny, niveauer
+
+    # Forbrugsprofilens bånd i personens egne aldre (033): fra stopalderen, i en husstand fra det fælles
+    # startår (forskudt med aldersforskellen).
+    if forbrug.start_kalenderaar is None:
+        forbrug_baand = baand(stop, tabel_slut)
+    else:
+        forskyd = forbrug.start_kalenderaar - profil.foedselsdato.year - forbrug.start_alder
+        forbrug_baand = tuple((fra + forskyd, til + forskyd)
+                              for fra, til in baand(forbrug.start_alder, tabel_slut - forskyd))
+    if any(x < 1.0 for x in forbrug.procenter):
+        procent = list(forbrug.procenter) + [forbrug.procenter[-1]] * len(forbrug_baand)
+        trin = [f"{round(procent[i] * 100)} % fra {fra}" for i, (fra, _) in enumerate(forbrug_baand)
+                if i > 0 and procent[i] < procent[i - 1]]
+        advarsler.append(Advarsel(
+            "FORBRUGSPROFIL",
+            "Du har valgt at bruge mindre i senere år: " + ", ".join(trin)
+            + " af beløbet i de første år. Det er dit eget valg, ikke en regel.",
+        ))
 
     # ── 4. Advarsler ─────────────────────────────────────────────────────────
     for fra, til in _intervaller(mellemskat_aldre):
@@ -790,6 +824,7 @@ def beregn(
                        1 + antagelser.inflation),
         formue_start=i_plan_start + uroert_start,
         jaevn_fra_alder=jaevn_fra,
+        forbrug_baand=forbrug_baand,
     )
 
 

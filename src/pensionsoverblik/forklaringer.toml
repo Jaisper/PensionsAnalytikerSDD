@@ -20,6 +20,7 @@ inventar = [
   "AM-bidrag",
   "Kapitalindkomst og bundfradrag",
   "Udjævning, fast beløb og buffer uden lån",
+  "Faldende udbetalinger (forbrugsprofil)",
   "Opsparing uden for pension",
   "Frit depot og aktiesparekonto",
   "Hvor skal næste krone hen?",
@@ -46,6 +47,16 @@ advarsler = ["BUFFER_SOM_OPSPARING"]
 niveau1 = "Du kan bruge ca. {maaned} kr. om måneden fra {fra_alder} år. Det er efter skat. Det er i dagens kroner. Så er det lige meget værd hele livet. Beløbet stiger kun, når der kommer flere penge ind. Det lånes aldrig."
 niveau2 = "Dine udbetalinger svinger fra år til år. Vi jævner dem ud: i år med meget sparer vi op, og i år med lidt bruger vi af opsparingen. Det faste beløb er det højeste beløb, der kan holdes hvert år, uden at opsparingen nogensinde går i minus. Når et stort beløb lander senere, kan beløbet først stige fra det år. Opsparingens afkast beskattes som kapitalindkomst, og skatten betales af opsparingen."
 niveau3 = "Forbrugsudjævning med likviditetsbegrænsning, segment for segment: fra et år med opsparing B er niveauet c = min over k af (B + nutidsværdien af indbetalingerne til og med år k) / (nutidsværdien af en voksende annuitet til og med år k). Segmentet slutter i det k, der giver minimum, og opsparingen er der netop brugt op. Renten er pensionens afkast før PAL-skat. Niveauet vokser med inflationen. Hovedtallet er det laveste niveau i perioden, regnet om til dagens kroner og afrundet til hele hundrede kroner."
+
+[[emne]]
+id = "forbrugsprofil"
+titel = "Mere i de første år"
+inventar = ["Faldende udbetalinger (forbrugsprofil)"]
+registerposter = []
+advarsler = ["FORBRUGSPROFIL"]
+niveau1 = "Du kan vælge at bruge mere i de første år og mindre senere. Du sætter en procent for hver periode på fem år. Den er i forhold til de første år. Vi bruger stadig alle pengene. Vi låner aldrig af senere år. Det er dit eget valg, ikke en regel."
+niveau2 = "Tiden, efter du stopper, deles i perioder på fem år og en sidste periode fra 85 år. Den første periode får det fulde beløb. Sænker du en senere periode, får den den andel af beløbet i de første år. Vi finder det højeste beløb i de første år, hvor alle perioder holder deres andel, og opsparingen aldrig går i minus. Kommer pengene først senere, kan beløbet stadig stige i trin. Bruger du mere tidligt, bliver opsparingen mindre. Det kan give lidt mere i pensionstillæg og ældrecheck, fordi formuen og renterne bliver mindre."
+niveau3 = "Udjævningen vægter hvert år med periodens andel w: nævneren bliver nutidsværdien af w gange den voksende annuitet, og niveauet i år t er c gange w. Kravene til c er de samme som uden profil: ingen lån, ingen negativ opsparing, og c falder aldrig. Optimeringen maksimerer c. Profilen er en modelantagelse, som borgeren selv vælger; der er ingen lovregel for forbrug efter pensionen. For et par regnes perioderne fra det år, den første stopper."
 
 [[emne]]
 id = "aar"
