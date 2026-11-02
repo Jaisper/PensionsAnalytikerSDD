@@ -70,6 +70,7 @@ DELAAR_FOERST = {"folkepension", "atp"}
 
 ADVARSLER: dict[str, dict[str, str]] = {
     "ATP_SKOENNET": {"placering": "atp", "ikon": "≈", "titel": "ATP er et skøn"},
+    "FORBRUGSPROFIL": {"placering": "hovedtal", "ikon": "≈", "titel": "Mindre i senere år"},  # 033
     "RATEPENSION_LOFT": {"placering": "ratepension", "ikon": "!", "titel": "Over loftet for ratepension"},
     "750_TIMER": {"placering": "folkepension", "ikon": "!", "titel": "Krav om arbejde"},
     "OPSAT_ANDRE_FORMER": {"placering": "folkepension", "ikon": "≈", "titel": "Andre udbetalingsformer"},

@@ -37,6 +37,12 @@ def test_baand_fra_65_til_90_giver_fem():
     assert baand(65, 90) == ((65, 69), (70, 74), (75, 79), (80, 84), (85, 90))
 
 
+def test_kort_baand_foer_85_laegges_sammen():
+    # Stop ved 64: 84–84 ville være ét år; det lægges sammen med 79–83.
+    assert baand(64, 90) == ((64, 68), (69, 73), (74, 78), (79, 84), (85, 90))
+    assert baand(83, 90) == ((83, 84), (85, 90))  # intet bånd foran at lægge det sammen med
+
+
 def test_baand_slutter_med_planen():
     assert baand(65, 78) == ((65, 69), (70, 74), (75, 78))
 
@@ -222,3 +228,30 @@ def test_optimeringens_maal_er_beloebet_i_foerste_baand():
     from pensionskerne.optimering import fast_niveau, vindue
     res = beregn(profil(), Antagelser(forbrugsprofil=FALDENDE), 2026, BEREGNINGSDATO)
     assert fast_niveau(res, vindue(res)) == pytest.approx(real(res)[65] / 12)
+
+
+# ── Resultatet til visningen (US3, FR-008) ─────────────────────────────────────
+
+def test_baandene_staar_paa_resultatet():
+    res = beregn(profil(), Antagelser(), 2026, BEREGNINGSDATO)
+    assert res.forbrug_baand[0] == (65, 69) and res.forbrug_baand[-1][0] == 85
+    tidlig = beregn(replace(profil(), loen=Loen(480_000, stop_alder=60)), Antagelser(), 2026, BEREGNINGSDATO)
+    assert tidlig.forbrug_baand[:2] == ((60, 64), (65, 69)) and len(tidlig.forbrug_baand) == 6
+
+
+def test_husstandens_baand_i_egne_aldre():
+    # B er fire år yngre end A: A's bånd 67–71 er B's 63–67.
+    from pensionskerne.husstand import beregn_husstand
+    from tests.golden.test_husstand import A, A_ANT, B
+    ant = replace(A_ANT, forbrugsprofil=Forbrugsprofil((1.0, 0.8)))
+    h = beregn_husstand(A, ant, B, ant, 2026, BEREGNINGSDATO)
+    assert h.a.forbrug_baand[0] == (67, 71)
+    assert h.b.forbrug_baand[0] == (63, 67)
+
+
+def test_forudsaetning_kun_med_faldende_profil():
+    koder = lambda res: [a.kode for a in res.advarsler]
+    assert "FORBRUGSPROFIL" not in koder(beregn(profil(), Antagelser(), 2026, BEREGNINGSDATO))
+    res = beregn(profil(), Antagelser(forbrugsprofil=FALDENDE), 2026, BEREGNINGSDATO)
+    besked = next(a.besked for a in res.advarsler if a.kode == "FORBRUGSPROFIL")
+    assert "90 % fra 75, 80 % fra 80, 70 % fra 85" in besked

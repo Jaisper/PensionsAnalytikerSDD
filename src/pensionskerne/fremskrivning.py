@@ -30,7 +30,7 @@ from .regler.ordninger import engangs_netto, indbetalingsloft, livsvarig_ydelse,
 from .regler.skat import beregn_skat, fordel
 from .regler.udbetalingsalder import tidligste_udbetalingsalder
 from .regler.ydelser import aeldrecheck, mediecheck, tillaegsprocent
-from .jaevn import BUFFER_MAKS_ITERATIONER, BUFFER_TOLERANCE_KR, beregn_jaevn, vaegte
+from .jaevn import BUFFER_MAKS_ITERATIONER, BUFFER_TOLERANCE_KR, baand, beregn_jaevn, vaegte
 from .validering import valider
 
 OVERSKUD_ID = "ratepension_overskud_livsvarig"
@@ -698,6 +698,24 @@ def beregn(
             break
         tilstand, forrige = ny, niveauer
 
+    # Forbrugsprofilens bånd i personens egne aldre (033): fra stopalderen, i en husstand fra det fælles
+    # startår (forskudt med aldersforskellen).
+    if forbrug.start_kalenderaar is None:
+        forbrug_baand = baand(stop, tabel_slut)
+    else:
+        forskyd = forbrug.start_kalenderaar - profil.foedselsdato.year - forbrug.start_alder
+        forbrug_baand = tuple((fra + forskyd, til + forskyd)
+                              for fra, til in baand(forbrug.start_alder, tabel_slut - forskyd))
+    if any(x < 1.0 for x in forbrug.procenter):
+        procent = list(forbrug.procenter) + [forbrug.procenter[-1]] * len(forbrug_baand)
+        trin = [f"{round(procent[i] * 100)} % fra {fra}" for i, (fra, _) in enumerate(forbrug_baand)
+                if i > 0 and procent[i] < procent[i - 1]]
+        advarsler.append(Advarsel(
+            "FORBRUGSPROFIL",
+            "Du har valgt at bruge mindre i senere år: " + ", ".join(trin)
+            + " af beløbet i de første år. Det er dit eget valg, ikke en regel.",
+        ))
+
     # ── 4. Advarsler ─────────────────────────────────────────────────────────
     for fra, til in _intervaller(mellemskat_aldre):
         advarsler.append(Advarsel(
@@ -806,6 +824,7 @@ def beregn(
                        1 + antagelser.inflation),
         formue_start=i_plan_start + uroert_start,
         jaevn_fra_alder=jaevn_fra,
+        forbrug_baand=forbrug_baand,
     )
 
 

@@ -37,8 +37,9 @@ har.
   60–64. Båndene følger stopalderen (030), også når den ændres eller trækkes i grafen (025).
 - Q: Hvor mange bånd? → A: Bånd på fem år op til 85 og et sidste bånd "85+" til planens slutning.
   Stop ved 60 giver seks skydere (60–64, 65–69, 70–74, 75–79, 80–84, 85+), stop ved 67 giver fem
-  (67–71, 72–76, 77–81, 82–84, 85+). Et bånd, der ville være kortere end ét år, slås sammen med det
-  foregående. (Tilføjet efter "også 60–65": fem faste bånd fra 60 ville samle 80–90 i ét "80+".)
+  (67–71, 72–76, 77–81, 82–84, 85+). Et bånd før 85, der ville være kortere end tre år, slås sammen
+  med det foregående: stop ved 64 giver 64–68, 69–73, 74–78, 79–84 og 85+ (rettet under
+  implementeringen; "kortere end ét år" gav et bånd på ét år, 84–84). (Tilføjet efter "også 60–65": fem faste bånd fra 60 ville samle 80–90 i ét "80+".)
 - Q: Udgangspunkt? → A: **Flad, som i dag.** 100 % i alle bånd. Ingen eksisterende beregning eller
   golden case ændrer sig, før borgeren rører skyderne.
 - Q: Partner? → A: **Én profil for husstanden.** Båndene regnes i kalenderår fra det år, den første i
@@ -75,6 +76,8 @@ flade beløb.
 
 1. **Given** en faldende profil, **Then** finder den bedste plan det højeste beløb i første bånd,
    hvor alle senere bånd holder deres procent.
+2. **When** borgeren ændrer profilen, **Then** søges den bedste plan igen med det samme, fra borgerens
+   egen plan med den nye profil. "Brug min egen plan" er stadig borgerens egen plan.
 2. **Given** en flad profil, **Then** er den bedste plan den samme som før 033.
 
 ### User Story 3 - Forstå og gemme profilen (Priority: P2)

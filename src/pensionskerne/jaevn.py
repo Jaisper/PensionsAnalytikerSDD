@@ -42,16 +42,21 @@ BUFFER_MAKS_ITERATIONER = 12
 # og et sidste bånd fra 85 til planens slutning.
 BAAND_AAR = 5
 SIDSTE_BAAND_FRA = 85
+KORTESTE_BAAND = 3  # et kortere bånd før 85 lægges sammen med det foregående
 FORBRUG_MIN = 0.5  # et senere bånd må højst falde til halvdelen af det første (FR-005)
 
 
 def baand(start_alder: int, slut_alder: int) -> tuple[tuple[int, int], ...]:
-    """Båndene (fra, til, begge med) fra `start_alder` til `slut_alder`."""
-    ud = []
+    """Båndene (fra, til, begge med) fra `start_alder` til `slut_alder`. Et bånd før 85, der er
+    kortere end `KORTESTE_BAAND`, lægges sammen med det foregående (fx 79–84 i stedet for 79–83 og 84)."""
+    ud: list[tuple[int, int]] = []
     fra = start_alder
     while fra <= slut_alder:
         til = slut_alder if fra >= SIDSTE_BAAND_FRA else min(fra + BAAND_AAR - 1, SIDSTE_BAAND_FRA - 1, slut_alder)
-        ud.append((fra, til))
+        if ud and fra < SIDSTE_BAAND_FRA and til - fra + 1 < KORTESTE_BAAND:
+            ud[-1] = (ud[-1][0], til)
+        else:
+            ud.append((fra, til))
         fra = til + 1
     return tuple(ud)
 

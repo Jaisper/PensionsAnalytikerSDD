@@ -307,6 +307,7 @@ class Fremskrivning:
     formue: tuple[FormueAar, ...] = ()  # fra i dag til sidste år (013)
     formue_start: float = 0.0           # opsparingen i dag (013)
     jaevn_fra_alder: int | None = None  # første år i udjævningen (017: stopalderen); None = første række
+    forbrug_baand: tuple[tuple[int, int], ...] = ()  # forbrugsprofilens bånd i egne aldre (033)
 
     def formue_primo(self) -> dict[int, float]:
         """Opsparingen pr. 1. januar pr. alder: ultimo året før, og i dag startsaldoen (013)."""

@@ -41,6 +41,9 @@ der giver det højeste faste beløb, og forklarer, hvordan tallet er regnet.
   kapitalpensionens udbetalingsform. Den finder det højeste faste beløb efter skat og regnes med det
   samme, mens "Finder bedste plan …" vises (007, 007b, 032). Uden en valgt stopalder stopper lønnen,
   når den første udbetaling begynder (030).
+- **Faldende udbetalinger:** en equalizer med en skyder pr. bånd på fem år fra stopalderen. Man kan bruge
+  mere i de første år og mindre senere, stadig uden lån. Den bedste plan finder det højeste beløb i
+  første bånd (033).
 - "Hvornår kan jeg stoppe?" og "Hvor skal næste krone hen?" (017, 021).
 
 **Usikkerhed**
@@ -174,6 +177,7 @@ Fra `main` udgives siden på GitHub Pages.
 | [030 Stopalderen følger](specs/030-stopalder-foelger/) | Uden valgt stopalder stopper lønnen ved første udbetaling |
 | [031 Dine forsikringer](specs/031-risikodaekninger/) | Dækninger ved død, tab af arbejdsevne, kritisk sygdom og sundhed fra rapporten |
 | [032 "Finder bedste plan …"](specs/032-finder-plan/) | Tekst i stedet for talrullen under søgningen |
+| [033 Faldende udbetalinger](specs/033-faldende-udbetalinger/) | En equalizer med en procent pr. bånd på fem år fra stopalderen: mere i de første år, mindre senere |
 
 **Specificeret, ikke bygget:** [014 Bolig og friværdi](specs/014-bolig/), [015 Arv](specs/015-arv/),
 [016 Monte Carlo](specs/016-monte-carlo/) og [022 Hvad hvis min partner dør?](specs/022-efterladte/).

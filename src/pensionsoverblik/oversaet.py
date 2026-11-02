@@ -8,7 +8,9 @@ from dataclasses import replace
 from datetime import date
 from typing import Any
 
-from pensionskerne import Aktiv, Antagelser, Loen, Ordning, Partner, PartnerIndkomst, Pensionsprofil, UgyldigtInput
+from pensionskerne import (
+    Aktiv, Antagelser, Forbrugsprofil, Loen, Ordning, Partner, PartnerIndkomst, Pensionsprofil, UgyldigtInput,
+)
 
 # Partnerens indkomst indtastes som ét årsbeløb og bruges for alle kalenderår.
 PARTNER_AAR = range(2000, 2101)
@@ -85,6 +87,9 @@ def til_kerne(data: dict) -> tuple[Pensionsprofil, Antagelser]:
         # 023a: afkast efter PAL-skat pr. kalenderår (JSON-nøgler er tekst).
         afkast_forloeb={_heltal(aar, "antagelser.afkast_forloeb"): _tal(v, "antagelser.afkast_forloeb")
                         for aar, v in (a.get("afkast_forloeb") or {}).items()},
+        # 033: procent pr. bånd i forhold til de første år; tom = fladt.
+        forbrugsprofil=Forbrugsprofil(tuple(_tal(x, "antagelser.forbrugsprofil")
+                                            for x in (a.get("forbrugsprofil") or []))),
     )
     return profil, antagelser
 
