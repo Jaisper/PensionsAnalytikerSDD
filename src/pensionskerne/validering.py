@@ -5,6 +5,7 @@ import math
 from datetime import date
 
 from . import register
+from .jaevn import FORBRUG_MIN
 from .model import Antagelser, Pensionsprofil, UgyldigtInput, stopalder
 from .regler.folkepension import folkepensionsalder
 from .regler.udbetalingsalder import tidligste_udbetalingsalder
@@ -24,6 +25,12 @@ def valider(profil: Pensionsprofil, antagelser: Antagelser, satsaar: int, beregn
     if satsaar not in register.satsaar():
         raise UgyldigtInput("satsaar", f"Satsår {satsaar} findes ikke i regelregistret")
     o = Regelopslag(satsaar, beregningsdato.year, 0.0)
+
+    procenter = antagelser.forbrugsprofil.procenter
+    if procenter and (procenter[0] != 1.0 or any(not FORBRUG_MIN <= x <= 1.0 for x in procenter)
+                      or any(y > x for x, y in zip(procenter, procenter[1:]))):
+        raise UgyldigtInput("antagelser.forbrugsprofil",
+                            "Det første bånd er 100 %, de senere mellem 50 og 100 %, og de må ikke stige")
 
     if profil.foedselsdato >= beregningsdato:
         raise UgyldigtInput("foedselsdato", "Fødselsdatoen skal ligge før beregningsdatoen")

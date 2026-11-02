@@ -26,7 +26,9 @@ from datetime import date
 
 from .fremskrivning import beregn
 from .jaevn import BUFFER_TOLERANCE_KR
-from .model import Advarsel, Antagelser, Fremskrivning, Partner, PartnerIndkomst, Pensionsprofil
+from .model import Advarsel, Antagelser, Fremskrivning, Partner, PartnerIndkomst, Pensionsprofil, stopalder
+from .regler.folkepension import folkepensionsalder
+from .register.opslag import Regelopslag
 
 HUSSTAND_MAKS_ITERATIONER = 6
 PARTNER_AAR = 80  # kalenderår frem, partnerens tal udfyldes for (0, hvor partneren ingen række har)
@@ -77,6 +79,24 @@ def _samme(x: Fremskrivning | None, y: Fremskrivning) -> bool:
     return max(abs(r.jaevn - s.jaevn) for r, s in zip(x.jaevn.aar, y.jaevn.aar)) < BUFFER_TOLERANCE_KR * 12
 
 
+def faelles_forbrug(profil_a: Pensionsprofil, antagelser_a: Antagelser, profil_b: Pensionsprofil,
+                    antagelser_b: Antagelser, satsaar: int, beregningsdato: date) -> tuple[Antagelser, Antagelser]:
+    """Husstandens forbrugsprofil (033) regnes fra det kalenderår, den første af de to stopper, og i
+    den persons aldre. Er profilen flad eller startåret valgt, ændres intet."""
+    f = antagelser_a.forbrugsprofil
+    if not f.procenter or f.start_kalenderaar is not None:
+        return antagelser_a, antagelser_b
+    o = Regelopslag(satsaar, beregningsdato.year, 0.0)
+
+    def start(p: Pensionsprofil) -> tuple[int, int]:
+        alder = stopalder(p, folkepensionsalder(p.foedselsdato, o))
+        return p.foedselsdato.year + alder, alder
+
+    kalenderaar, alder = min(start(profil_a), start(profil_b))
+    faelles = replace(f, start_kalenderaar=kalenderaar, start_alder=alder)
+    return replace(antagelser_a, forbrugsprofil=faelles), replace(antagelser_b, forbrugsprofil=faelles)
+
+
 def beregn_husstand(
     profil_a: Pensionsprofil,
     antagelser_a: Antagelser,
@@ -85,6 +105,8 @@ def beregn_husstand(
     satsaar: int,
     beregningsdato: date,
 ) -> Husstand:
+    antagelser_a, antagelser_b = faelles_forbrug(profil_a, antagelser_a, profil_b, antagelser_b, satsaar,
+                                                 beregningsdato)
     res_b = beregn(replace(profil_b, partner=_ukendt_partner(profil_a, beregningsdato)), antagelser_b,
                    satsaar, beregningsdato)
     res_a = None

@@ -103,8 +103,11 @@ flade beløb.
   til bånd. Første bånd er låst på 100 %.
 - **FR-006**: Equalizeren MUST kunne betjenes med tastatur og skærmlæser (WCAG 2.2 AA). Hver
   skyder har et navn med båndets aldre og sin værdi i procent og kr. pr. måned.
-- **FR-007**: Profilen er kun en fordeling over tid. Den MUST NOT ændre skat, ydelser eller
-  udbetalinger fra ordningerne, kun hvor meget der bruges, og hvor meget der sættes til side.
+- **FR-007**: Profilen er kun en fordeling over tid. Den MUST NOT ændre udbetalingerne fra
+  ordningerne, lønnen eller folkepensionens grundbeløb. Skat, pensionstillæg og ældrecheck kan ændre
+  sig, men kun gennem bufferen: bruges mere i de første år, bliver bufferen mindre, og dermed formuen
+  og kapitalindkomsten. (Rettet under implementeringen: første udkast sagde, at ydelserne ikke
+  ændrer sig.)
 - **FR-008**: Profilen MUST gemmes (024), med i udskriften (020d) og i forudsætningerne ved
   hovedtallet, når den ikke er flad.
 

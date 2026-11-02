@@ -138,6 +138,17 @@ def stopalder(profil: Pensionsprofil, fp_alder: int) -> int:
 
 
 @dataclass(frozen=True)
+class Forbrugsprofil:
+    """Faldende udbetalinger (033): forbruget pr. bånd på fem år fra stopalderen, i forhold til det
+    første bånd (1.0). Borgerens eget valg, ikke en lovregel. Tom = fladt forløb som før 033.
+    En husstand (012) deler profilen: båndene regnes fra `start_kalenderaar`, hvor den første stopper,
+    som da er `start_alder` år; uden dem fra personens egen stopalder."""
+    procenter: tuple[float, ...] = ()
+    start_kalenderaar: int | None = None
+    start_alder: int | None = None
+
+
+@dataclass(frozen=True)
 class Antagelser:
     afkast_efter_pal: float = 0.04
     inflation: float = 0.02
@@ -151,6 +162,7 @@ class Antagelser:
     traekraekkefoelge: tuple[str, ...] = AKTIVLAG  # rækkefølgen, opsparingen bruges i (013b)
     # Afkast efter PAL-skat pr. kalenderår (023a); mangler et år, bruges `afkast_efter_pal`.
     afkast_forloeb: Mapping[int, float] = field(default_factory=dict)
+    forbrugsprofil: Forbrugsprofil = field(default_factory=Forbrugsprofil)  # 033
 
     def afkast_i_aar(self, kalenderaar: int) -> float:
         return self.afkast_forloeb.get(kalenderaar, self.afkast_efter_pal)
@@ -251,6 +263,7 @@ class JaevnAar:
     til_buffer: float
     buffer_rest: float
     ind_buffer: float = 0.0     # engangsbeløb og opsparing, der kommer ind i bufferen i året (029)
+    vaegt: float = 1.0          # forbrugsprofilens vægt i året (033); 1.0 = fladt
 
 
 @dataclass(frozen=True)
