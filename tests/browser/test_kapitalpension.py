@@ -46,7 +46,7 @@ def test_portioner_i_tidslinje_og_graf(resultat):
     assert "65–70 år" in raekke.inner_text() and "6 portioner" in raekke.inner_text()
     assert raekke.locator(".tl-greb").count() == 1
     assert "tl-bjaelke--engang" not in raekke.locator(".tl-bjaelke").get_attribute("class")
-    liste = resultat.inner_text("#graf-markeringer")
+    liste = resultat.text_content("#graf-markeringer")
     assert "6 portioner" in liste and "→ buffer" in liste
     # Grebet ændrer antal portioner inden for fristen (sidste senest 80 år).
     g = raekke.locator(".tl-greb")

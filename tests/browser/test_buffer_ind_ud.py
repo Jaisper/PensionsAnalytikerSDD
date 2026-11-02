@@ -35,4 +35,4 @@ def test_forklaring_og_tabel(resultat):
     assert "Ind i bufferen" in resultat.inner_text("#farveforklaring")
     assert "Saldo i bufferen" in resultat.inner_text("#farveforklaring")
     assert "Ind i bufferen (pr. år)" in resultat.locator("#graf-tabel th").all_text_contents()
-    assert "Op er det, der kommer ind" in resultat.inner_text("#jaevn-forklaring")
+    assert "Op er det, der kommer ind" in resultat.text_content("#jaevn-forklaring")

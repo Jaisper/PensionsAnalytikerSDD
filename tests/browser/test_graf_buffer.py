@@ -10,17 +10,17 @@ pytestmark = pytest.mark.browser
 def test_linjen_hedder_fast_beloeb_og_forklares(resultat):
     forklaring = resultat.inner_text("#farveforklaring")
     assert "Fast beløb, hvis du udjævner" in forklaring and "Jævnt fordelt" not in forklaring
-    tekst = resultat.inner_text("#jaevn-forklaring")
+    tekst = resultat.text_content("#jaevn-forklaring")
     assert "fra din buffer" in tekst and "til side" in tekst  # ordlyd fra 027 (før: 010)
 
 
 def test_engangsbeloeb_vises_med_buffer_eller_udbetales(resultat):
-    liste = resultat.inner_text("#graf-markeringer")
+    liste = resultat.text_content("#graf-markeringer")
     assert "Kapitalpension" in liste and "→ buffer" in liste and "65" in liste
     resultat.click("#data-panel-knap")
     resultat.locator("#data-panel-form #o1-i_buffer").uncheck()
     resultat.click("#opdater")
-    resultat.wait_for_function("() => document.querySelector('#graf-markeringer').innerText.includes('→ udbetales')")
+    resultat.wait_for_function("() => document.querySelector('#graf-markeringer').textContent.includes('→ udbetales')")
     tabel_hoved = resultat.locator("#graf-tabel th").all_text_contents()  # tabellen ligger i en lukket <details>
     assert "Engangsbeløb" in tabel_hoved and "Buffer" in tabel_hoved
 
@@ -66,5 +66,5 @@ def test_axe_og_360(resultat):
 def test_bufferen_gaar_aldrig_i_minus_og_forklares(resultat):
     """Feature 010: udjævningen låner aldrig."""
     assert min(b for b in resultat.evaluate("tilstand.v.graf.buffer") if b is not None) >= 0
-    assert "aldrig i minus" in resultat.inner_text("#jaevn-forklaring")
+    assert "aldrig i minus" in resultat.text_content("#jaevn-forklaring")
     assert "opsparing uden for pension" in resultat.evaluate("tilstand.buffergraf.options.plugins.title.text").lower()

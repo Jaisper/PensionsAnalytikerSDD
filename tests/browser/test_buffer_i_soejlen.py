@@ -47,7 +47,7 @@ def test_tabellen_har_buffer_kolonner(resultat):
 
 
 def test_forklaringen_og_buffergrafen(resultat):
-    tekst = resultat.inner_text("#jaevn-forklaring")
+    tekst = resultat.text_content("#jaevn-forklaring")
     assert "fra din buffer" in tekst and "skraverede" in tekst and "aldrig i minus" in tekst
     titel = resultat.evaluate("tilstand.buffergraf.options.plugins.title.text")
     assert titel.startswith("Din buffer")
