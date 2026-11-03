@@ -177,6 +177,8 @@ body[data-plan=""] .hero__tal #hovedtal { display: block; font-size: .55em; whit
 .chip strong { display: block; }
 .forklaring-farver { list-style: none; display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 0; margin: 14px 0 0; font-size: .9rem; }
 .forklaring-farver li { display: flex; align-items: center; gap: 8px; }
+.forklaring-farver--buffer { margin-top: 8px; }
+.forklaring-farver__titel { font-weight: 700; }
 .forklaring-farver i { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
 .forklaring-farver i.skraveret { background: repeating-linear-gradient(135deg, var(--graa-600) 0 2px, transparent 2px 5px); }
 .forklaring-farver i.linje { height: 0; border-top: 3px dashed var(--jaevn-linje); border-radius: 0; width: 22px; }
@@ -193,10 +195,30 @@ body[data-plan=""] .hero__tal #hovedtal { display: block; font-size: .55em; whit
 .sektion__intro { max-width: 680px; color: var(--graa-600); font-size: 1.05rem; margin-bottom: 32px; }
 .kortgitter { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; }
 /* 031: forsikringerne fra rapporten */
-.forsikringer { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; }
-.forsikringer__gruppe h3 { margin: 0 0 8px; }
-.forsikringer__gruppe ul { margin: 8px 0 0; padding-left: 1.2em; }
-.forsikringer__gruppe li { margin-bottom: 6px; }
+/* Feature 034: et kort pr. situation. Tre i en række på en computer, ét pr. linje på en mobil. */
+.forsikringer { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; align-items: start; }
+.fkort { background: var(--hvid); border: 1px solid var(--graa-200); border-radius: 12px; padding: 20px 22px;
+  box-shadow: 0 2px 10px rgba(18, 56, 69, .06); }
+.fkort__top { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.fkort__top h3 { margin: 0; }
+.fkort__ikon { display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: 50%;
+  background: var(--petrol-100); color: var(--petrol-900); font-weight: 700; flex: none; }
+.fkort__tal { font-size: 2rem; font-weight: 800; color: var(--petrol-900); margin: 8px 0 0; line-height: 1.1; }
+.fkort__under { color: var(--graa-600); margin: 4px 0 8px; }
+.fkort__note { margin: 6px 0; }
+.fkort__bjaelker { list-style: none; padding: 0; margin: 12px 0; display: grid; gap: 6px; }
+/* Navn og beløb på én linje, bjælken i fuld bredde under. */
+.fkort__bjaelker li { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; align-items: baseline; }
+.fkort__selskab { overflow-wrap: break-word; }
+.fkort__bjaelke { grid-column: 1 / -1; height: 10px; background: var(--graa-50); border-radius: 5px; overflow: hidden; }
+.fkort__bjaelke span { display: block; height: 100%; background: var(--petrol-700); border-radius: 5px; }
+.fkort__beloeb { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fkort__maerke { display: inline-block; margin: 8px 0 4px; padding: 2px 10px; border-radius: 999px;
+  background: var(--sand-100); color: var(--tekst); font-weight: 600; }
+.fkort__liste, .fkort__detaljer ul { margin: 8px 0 0; padding-left: 1.2em; }
+.fkort__liste li, .fkort__detaljer li { margin-bottom: 6px; }
+.fkort__detaljer { margin-top: 8px; }
+.fkort__detaljer summary { cursor: pointer; color: var(--petrol-700); }
 .kort { background: var(--hvid); border: 1px solid var(--graa-200); border-radius: var(--radius); padding: 24px; box-shadow: var(--skygge); display: flex; flex-direction: column; gap: 8px; border-top: 6px solid var(--farve); }
 .kort__ikon { width: 40px; height: 40px; border-radius: 50%; background: var(--farve); opacity: .9; }
 .kort__titel { display: flex; align-items: center; gap: 8px; margin: 6px 0 0; }
@@ -368,7 +390,7 @@ thead th { background: var(--graa-50); position: sticky; top: 0; }
 .aar-forklaring { margin: 16px 0; padding: 16px; border: 1px solid var(--graa-200); border-radius: var(--radius); background: var(--hvid); }
 .aar-forklaring__top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .aar-forklaring h3 { margin: 0; }
-.aar-tabel-knap { background: none; border: 0; padding: 0; font: inherit; font-weight: 700; color: inherit; text-decoration: underline; cursor: pointer; }
+.aar-tabel-knap { background: none; border: 0; padding: 0; min-height: 24px; font: inherit; font-weight: 700; color: inherit; text-decoration: underline; cursor: pointer; } /* WCAG 2.5.8: knapperne står lige under hinanden */
 
 /* Feature 020b: skifter, læsevejledninger og ordliste */
 .beloebsvalg { border: 0; padding: 0; margin: 8px 0; display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; }

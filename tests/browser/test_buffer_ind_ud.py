@@ -32,7 +32,16 @@ def test_ud_foelger_soejlegrafen(resultat):
 
 
 def test_forklaring_og_tabel(resultat):
-    assert "Ind i bufferen" in resultat.inner_text("#farveforklaring")
-    assert "Saldo i bufferen" in resultat.inner_text("#farveforklaring")
+    assert "Ind i bufferen" in resultat.inner_text("#farveforklaring-buffer")
+    assert "Saldo i bufferen" in resultat.inner_text("#farveforklaring-buffer")
     assert "Ind i bufferen (pr. år)" in resultat.locator("#graf-tabel th").all_text_contents()
     assert "Op er det, der kommer ind" in resultat.text_content("#jaevn-forklaring")
+
+
+def test_farverne_i_to_linjer(resultat):
+    # Første linje forklarer den øverste graf, anden linje buffergrafen.
+    oeverst = resultat.inner_text("#farveforklaring")
+    buffer = resultat.inner_text("#farveforklaring-buffer")
+    assert oeverst.startswith("Udbetaling:") and "Fast beløb, hvis du udjævner" in oeverst
+    assert "Saldo i bufferen" not in oeverst and "Ind i bufferen" not in oeverst
+    assert buffer.startswith("Bufferen:") and "Saldo i bufferen" in buffer and "Fra din buffer" in buffer

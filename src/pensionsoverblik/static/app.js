@@ -654,12 +654,19 @@ function tegnGraf(v) {
   $("#kroner-tekst").textContent = kronerTekst();
   $$(".kroner-stort").forEach((s) => (s.textContent = kronerTekst(true)));
   const serier = v.graf.serier;
-  $("#farveforklaring").replaceChildren(...serier.map((s) => el("li", {}, el("i", { style: `background: var(${s.farve})`, "aria-hidden": "true" }), s.titel)),
-    ...(v.graf.jaevn ? [el("li", {}, el("i", { style: "background: var(--kilde-buffer)", "aria-hidden": "true" }), BUFFER_NAVN),
-      el("li", {}, el("i", { class: "skraveret", "aria-hidden": "true" }), TIL_SIDE_NAVN),
-      el("li", {}, el("i", { class: "linje", "aria-hidden": "true" }), JAEVN_NAVN),
-      el("li", {}, el("i", { style: "background: var(--kilde-engangs)", "aria-hidden": "true" }), `${BUFFER_IND_NAVN} (engangsbeløb og opsparing)`),
-      el("li", {}, el("i", { class: "linje linje--saldo", "aria-hidden": "true" }), BUFFER_SALDO_NAVN)] : []));
+  // Første linje forklarer den øverste graf, anden linje buffergrafen (hvis den vises).
+  const farve = (stil, tekst) => el("li", {}, el("i", { ...stil, "aria-hidden": "true" }), tekst);
+  const farveFraBuffer = farve({ style: "background: var(--kilde-buffer)" }, BUFFER_NAVN);
+  const farveTilSide = farve({ class: "skraveret" }, TIL_SIDE_NAVN);
+  $("#farveforklaring").replaceChildren(el("li", { class: "forklaring-farver__titel", tekst: "Udbetaling:" }),
+    ...serier.map((s) => farve({ style: `background: var(${s.farve})` }, s.titel)),
+    ...(v.graf.jaevn ? [farveFraBuffer, farveTilSide, farve({ class: "linje" }, JAEVN_NAVN)] : []));
+  const bufferFarver = $("#farveforklaring-buffer");
+  bufferFarver.hidden = !v.graf.buffer;
+  bufferFarver.replaceChildren(...(v.graf.buffer ? [el("li", { class: "forklaring-farver__titel", tekst: "Bufferen:" }),
+    farve({ style: "background: var(--kilde-engangs)" }, `${BUFFER_IND_NAVN} (engangsbeløb og opsparing)`),
+    farveFraBuffer.cloneNode(true), farveTilSide.cloneNode(true),
+    farve({ class: "linje linje--saldo" }, BUFFER_SALDO_NAVN)] : []));
   const forklaring = $("#jaevn-forklaring");
   forklaring.hidden = !v.graf.jaevn;
   // Feature 027: søjlen viser, hvor pengene kommer fra – også fra bufferen. Saldoen står i grafen nedenunder.
@@ -2223,58 +2230,105 @@ function visHvem(foersteGang = false) {
   tegnPerson(tilstand.hvem === "partner" ? tilstand.husstand.partner : tilstand.vDig, foersteGang);
 }
 
-/* ── Forsikringer fra rapporten (031) ─────────────────────────────────────
-   Kun omformatering af det aflæste (Princip X). Beløbene er "i dag" og før skat. */
-const FORSIKRING_SKAT = { A: "afgiftspligtig", F: "skattefri", S: "skattepligtig" };
+/* ── Forsikringer fra rapporten (031, 034) ────────────────────────────────
+   Beløbene er "i dag". Skatten regnes af kernen; her omformateres kun (Princip X). */
 const FORSIKRING_FORM = { engang: "på én gang", aarraekke: "om året", livsvarig: "om året, livet ud" };
 
-function forsikringLinje(f, medModtager) {
+// Feature 034: et kort pr. situation med det samlede beløb efter skat stort og før skat småt, en bjælke
+// pr. selskab, ophør som mærke og detaljerne foldet ud. Beløbene efter skat kommer fra kernen.
+const FORSIKRING_IKON = { doed: "♡", erhvervsevne: "✚", kritisk_sygdom: "✱", sundhed: "+" };
+const BESKATNING = { afgift: "efter afgift", skattefri: "skattefri", indkomst: "efter skat",
+  modtager: "beskattes som indkomst hos modtageren", ukendt: "skatten kendes ikke" };
+let forsikringNr = 0;
+
+function forsikringDetalje(p) {
+  const efter = p.netto !== null && p.beskatning !== "skattefri"
+    ? `${kr(p.netto)} kr. ${BESKATNING[p.beskatning]}` : BESKATNING[p.beskatning];
+  const modtager = p.boern ? p.modtager || "Børn" : p.modtager;
   const dele = [
-    `${medModtager && f.modtager ? `${f.modtager}: ` : ""}${kr(f.beloeb ?? 0)} kr. ${FORSIKRING_FORM[f.form] ?? ""} fra ${f.selskab}`.replace(/\s+fra/, " fra"),
-    FORSIKRING_SKAT[f.skat],
-    f.til_alder ? `${f.type === "erhvervsevne" ? "udbetales" : "dækker"}, til du er ${f.til_alder} år` : null,
-    f.praemiefritagelse ? "med præmiefritagelse" : null,
-    ...f.noter,
+    `${modtager ? `${modtager}: ` : ""}${kr(p.beloeb ?? 0)} kr. ${FORSIKRING_FORM[p.form] ?? ""} fra ${p.selskab}`.replace(/\s+fra/, " fra"),
+    efter,
+    p.til_alder ? `${p.type === "erhvervsevne" ? "udbetales" : "dækker"}, til du er ${p.til_alder} år` : null,
+    p.praemiefritagelse ? "med præmiefritagelse" : null,
+    ...p.noter,
   ].filter(Boolean);
   return el("li", { tekst: dele.join(" · ") });
 }
 
-function tegnForsikringer(liste) {
-  const af = (...typer) => liste.filter((f) => typer.includes(f.type));
-  const grupper = [];
-  const doed = af("doed", "doed_boern");
-  if (doed.length) {
-    const sum = (form) => doed.filter((f) => f.type === "doed" && f.form === form).reduce((s, f) => s + (f.beloeb ?? 0), 0);
-    const engang = sum("engang"), loebende = sum("aarraekke") + sum("livsvarig");
-    const i_alt = [engang ? `${kr(engang)} kr. på én gang` : null, loebende ? `${kr(loebende)} kr. om året` : null].filter(Boolean);
-    grupper.push(["Hvis du dør", i_alt.length ? `Dine efterladte får i alt ${i_alt.join(" og ")}.` : null,
-      doed.map((f) => forsikringLinje(f.type === "doed_boern" ? { ...f, modtager: f.modtager || "Børn" } : f, true))]);
+function forsikringBjaelker(k, pr) {
+  // Pr. måned (tab af arbejdsevne) er et skøn efter skat og rundes som hovedtallet til hele hundrede.
+  const rund = (x) => (pr === 12 ? Math.round(x / 100) * 100 : x);
+  const maks = Math.max(...k.selskaber.map((s) => s.beloeb), 1);
+  return el("ul", { class: "fkort__bjaelker" }, k.selskaber.map((s) => el("li", {},
+    el("span", { class: "fkort__selskab", tekst: s.selskab }),
+    el("span", { class: "fkort__beloeb", tekst: `${kr(rund(s.beloeb / pr))} kr.${s.efter_skat ? "" : " før skat"}` }),
+    el("span", { class: "fkort__bjaelke", "aria-hidden": "true" },
+      el("span", { style: `width: ${Math.max(2, (100 * s.beloeb) / maks)}%` })))));
+}
+
+function forsikringKort(k) {
+  const id = `fkort-${k.id}`;
+  const dele = [];
+  const sum = k.hoved ? k[k.hoved] : null;
+  if (k.hoved === "loebende" && sum) {
+    // Tab af arbejdsevne: pr. måned, som resten af siden.
+    dele.push(el("p", { class: "fkort__tal", tekst: `${kr(Math.round(sum.efter_skat / 1200) * 100)} kr.` }),
+      el("p", { class: "fkort__under", tekst: `om måneden efter skat · ${kr(sum.foer_skat / 12)} kr. før skat` }));
+  } else if (sum) {
+    const kunFoer = sum.efter_skat === 0;
+    dele.push(el("p", { class: "fkort__tal", tekst: `${kr(kunFoer ? sum.foer_skat : sum.efter_skat)} kr.` }),
+      el("p", { class: "fkort__under", tekst: kunFoer ? "på én gang, før skat"
+        : sum.efter_skat === sum.foer_skat ? "på én gang, skattefri"
+        : `på én gang efter skat · ${kr(sum.foer_skat)} kr. før skat` }));
+    if (sum.hos_modtager && !kunFoer) {
+      dele.push(el("p", { class: "fkort__note", tekst: `Heraf er ${kr(sum.hos_modtager)} kr. regnet før skat. De beskattes som indkomst hos modtageren.` }));
+    }
   }
-  const tae = af("erhvervsevne");
-  if (tae.length) grupper.push(["Hvis du mister arbejdsevnen", null, tae.map((f) => forsikringLinje(f, false))]);
-  const ks = af("kritisk_sygdom", "kritisk_sygdom_boern");
-  if (ks.length) grupper.push(["Hvis du får en kritisk sygdom", null,
-    ks.map((f) => (f.type === "kritisk_sygdom_boern" ? forsikringLinje({ ...f, modtager: "Børn" }, true) : forsikringLinje(f, false)))]);
-  const sundhed = af("sundhed", "sundhed_boern");
-  if (sundhed.length) {
-    // Én linje pr. selskab: rapporten har ofte flere delaftaler med "0 kr." under samme forsikring.
+  if (k.id === "doed" && k.loebende) {
+    dele.push(el("p", { class: "fkort__note", tekst: `Desuden ${kr(k.loebende.foer_skat)} kr. om året før skat`
+      + (k.loebende.efter_skat ? ` (${kr(k.loebende.efter_skat)} kr. efter afgift).` : ".") }));
+  }
+  if (k.boern) {
+    dele.push(el("p", { class: "fkort__note", tekst: `Børn: ${kr(k.boern.efter_skat || k.boern.foer_skat)} kr.${k.boern.efter_skat ? "" : " før skat"}` }));
+  }
+  if (k.selskaber.length) dele.push(forsikringBjaelker(k, k.hoved === "loebende" ? 12 : 1));
+  if (k.id === "sundhed") {
+    // Én linje pr. selskab: rapporten har ofte flere delaftaler under samme forsikring.
     const linjer = new Map();
-    for (const f of sundhed) {
-      const n = `${f.type}|${f.selskab}`;
-      const l = linjer.get(n) ?? { ...f, beloeb: 0, til_alder: null };
-      l.beloeb += f.beloeb ?? 0;
-      l.til_alder = Math.min(l.til_alder ?? Infinity, f.til_alder ?? Infinity);
+    for (const p of k.daekninger) {
+      const n = `${p.boern}|${p.selskab}`;
+      const l = linjer.get(n) ?? { ...p, beloeb: 0, til_alder: null };
+      l.beloeb += p.beloeb ?? 0;
+      l.til_alder = Math.min(l.til_alder ?? Infinity, p.til_alder ?? Infinity);
       linjer.set(n, l);
     }
-    grupper.push(["Sundhedsforsikring", null, [...linjer.values()].map((l) => el("li", { tekst: [
-      `${l.type === "sundhed_boern" ? "Dine børn er dækket" : "Du er dækket"} hos ${l.selskab}`
-        + (l.beloeb ? ` (op til ${kr(l.beloeb)} kr.)` : ""),
+    dele.push(el("ul", { class: "fkort__liste" }, [...linjer.values()].map((l) => el("li", { tekst: [
+      `${l.boern ? "Dine børn er dækket" : "Du er dækket"} hos ${l.selskab}` + (l.beloeb ? ` (op til ${kr(l.beloeb)} kr.)` : ""),
       Number.isFinite(l.til_alder) ? `dækker, til du er ${l.til_alder} år` : null,
-    ].filter(Boolean).join(" · ") }))]);
+    ].filter(Boolean).join(" · ") }))));
   }
-  $("#forsikringer").hidden = !grupper.length;
-  $("#forsikringer-indhold").replaceChildren(...grupper.map(([titel, intro, punkter]) => el("div", { class: "forsikringer__gruppe" },
-    el("h3", { tekst: titel }), intro ? el("p", { tekst: intro }) : null, el("ul", {}, punkter))));
+  if (k.ophoer && k.id !== "sundhed") {
+    dele.push(el("p", { class: "fkort__maerke", tekst: k.ophoer.alle_ens ? `Dækker til ${k.ophoer.tidligst} år`
+      : `Nogle dækninger ophører fra ${k.ophoer.tidligst} år` }));
+  }
+  if (k.id !== "sundhed") {
+    const n = k.daekninger.length;
+    dele.push(el("details", { class: "fkort__detaljer" },
+      el("summary", { tekst: n === 1 ? "Se dækningen" : `Se de ${n} dækninger` }),
+      el("ul", {}, k.daekninger.map(forsikringDetalje))));
+  }
+  return el("article", { class: "fkort", "aria-labelledby": id },
+    el("div", { class: "fkort__top" }, el("span", { class: "fkort__ikon", "aria-hidden": "true", tekst: FORSIKRING_IKON[k.id] }),
+      el("h3", { id, tekst: k.titel })), ...dele);
+}
+
+async function tegnForsikringer(liste) {
+  const nr = ++forsikringNr;
+  if (!liste.length) { $("#forsikringer").hidden = true; return; }
+  const r = await kald("forsikringer", JSON.stringify(tilstand.aktuelleSvar), JSON.stringify(liste), idag(), tilstand.hvem);
+  if (nr !== forsikringNr) return;  // en nyere tegning er i gang
+  $("#forsikringer").hidden = !r.ok || !r.data.kort.length;
+  if (r.ok) $("#forsikringer-indhold").replaceChildren(...r.data.kort.map(forsikringKort));
 }
 
 /* ── Feature 033: faldende udbetalinger ───────────────────────────────────

@@ -32,6 +32,7 @@ inventar = [
   "Fastpunkt-iterationer",
   "Afrunding og præcision",
   "PDF-aflæsning",
+  "Forsikringer fra PensionsInfo efter skat",
   "Dit år",
   "Præsentation: hovedtal, kort, graf, tidslinje, opsparingsgraf, faner, statusikoner og farver",
   "Nominelle beløb og dagens kroner, måned og år, alder og kalenderår",
@@ -57,6 +58,16 @@ advarsler = ["FORBRUGSPROFIL"]
 niveau1 = "Du kan vælge at bruge mere i de første år og mindre senere. Du sætter en procent for hver periode på fem år. Den er i forhold til de første år. Vi bruger stadig alle pengene. Vi låner aldrig af senere år. Det er dit eget valg, ikke en regel."
 niveau2 = "Tiden, efter du stopper, deles i perioder på fem år og en sidste periode fra 85 år. Den første periode får det fulde beløb. Sænker du en senere periode, får den den andel af beløbet i de første år. Vi finder det højeste beløb i de første år, hvor alle perioder holder deres andel, og opsparingen aldrig går i minus. Kommer pengene først senere, kan beløbet stadig stige i trin. Bruger du mere tidligt, bliver opsparingen mindre. Det kan give lidt mere i pensionstillæg og ældrecheck, fordi formuen og renterne bliver mindre."
 niveau3 = "Udjævningen vægter hvert år med periodens andel w: nævneren bliver nutidsværdien af w gange den voksende annuitet, og niveauet i år t er c gange w. Kravene til c er de samme som uden profil: ingen lån, ingen negativ opsparing, og c falder aldrig. Optimeringen maksimerer c. Profilen er en modelantagelse, som borgeren selv vælger; der er ingen lovregel for forbrug efter pensionen. For et par regnes perioderne fra det år, den første stopper."
+
+[[emne]]
+id = "forsikringer"
+titel = "Dine forsikringer efter skat"
+inventar = ["Forsikringer fra PensionsInfo efter skat"]
+registerposter = ["forsikring.afgift"]
+advarsler = []
+niveau1 = "Beløbene kommer fra din rapport fra PensionsInfo. De er det, der ville blive udbetalt i dag. Nogle beløb er skattefri. Andre betaler en afgift. Det trækker vi fra. Får dine efterladte et beløb, der beskattes som indkomst, ved vi ikke, hvad de betaler. Så viser vi beløbet før skat. Mister du arbejdsevnen, regner vi skatten, som om dækningen er din eneste indkomst."
+niveau2 = "Rapporten giver hver dækning en skattekode. Afgiftspligtige beløb ved død betaler afgift, før de udbetales; vi trækker den fra. Skattefri beløb er de samme efter skat. Skattepligtige beløb beskattes som indkomst hos den, der får dem. For dine efterladte afhænger skatten af deres øvrige indkomst, så vi viser beløbet før skat. En dækning ved tab af arbejdsevne erstatter din løn, så vi regner skatten af dækningen alene med din kommune og kirkeskat. Er der flere dækninger, beskattes de samlet. Beløbene indgår ikke i dit faste beløb."
+niveau3 = "Skattekode A: afgift efter pensionsbeskatningsloven § 25, stk. 1, nr. 1 og 6 (kapitalpension og kapitalforsikring ved død) og § 29, stk. 1 (rateordning omregnet til engangsbeløb). Lavere satser for visse indbetalinger før 1980 (§ 14 A) er ikke modelleret. Kode F: skatte- og afgiftsfri. Kode S: personlig indkomst. Tab af arbejdsevne regnes som årets eneste personlige indkomst uden arbejdsmarkedsbidrag (pensionsudbetalinger er ikke bidragspligtige). Registerposten har en sekundær kilde, indtil lovteksten er verificeret."
 
 [[emne]]
 id = "aar"
