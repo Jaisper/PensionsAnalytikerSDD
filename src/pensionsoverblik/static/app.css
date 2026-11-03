@@ -390,7 +390,7 @@ thead th { background: var(--graa-50); position: sticky; top: 0; }
 .aar-forklaring { margin: 16px 0; padding: 16px; border: 1px solid var(--graa-200); border-radius: var(--radius); background: var(--hvid); }
 .aar-forklaring__top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .aar-forklaring h3 { margin: 0; }
-.aar-tabel-knap { background: none; border: 0; padding: 0; font: inherit; font-weight: 700; color: inherit; text-decoration: underline; cursor: pointer; }
+.aar-tabel-knap { background: none; border: 0; padding: 0; min-height: 24px; font: inherit; font-weight: 700; color: inherit; text-decoration: underline; cursor: pointer; } /* WCAG 2.5.8: knapperne står lige under hinanden */
 
 /* Feature 020b: skifter, læsevejledninger og ordliste */
 .beloebsvalg { border: 0; padding: 0; margin: 8px 0; display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; }
