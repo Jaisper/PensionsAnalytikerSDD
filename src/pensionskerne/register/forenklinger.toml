@@ -139,3 +139,21 @@ beskrivelse = "Når vi afprøver gode og dårlige år, ændrer vi ikke din livsv
 begrundelse = "Pensionsselskaberne udjævner normalt afkastet på livsvarige pensioner over mange år."
 betydning = "Efter mange dårlige år kan selskabet sætte den livsvarige pension ned. Det viser beregningen ikke."
 kilde = "Feature 023a"
+
+[[forenkling]]
+id = "branchestandard_en_inflation"
+omfang = "markeret"
+titel = "Én inflation i branchestandarden"
+beskrivelse = "Rådet for Afkastforventninger forventer en lidt lavere inflation de første ti år end senere. Vi bruger Rådets langsigtede inflation for alle år, både til at regulere satser og til at regne om til dagens kroner."
+begrundelse = "Satserne i beregningen reguleres med én fast inflation. En inflation pr. år kræver en ændring af hele satsreguleringen."
+betydning = "Lille. Afkastet følger Rådets forventninger år for år; kun omregningen til dagens kroner og reguleringen af satser er en anelse anderledes de første ti år."
+kilde = "Feature 035, plan: forenkling branchestandard_en_inflation"
+
+[[forenkling]]
+id = "branchestandard_opsparing_fast_afkast"
+omfang = "markeret"
+titel = "Opsparing uden for pension følger dit faste afkast"
+beskrivelse = "Med branchestandarden følger pensionsordningerne Rådets forventninger og de tre forløb. Din opsparing uden for pension og bufferen bruger stadig det faste afkast fra dine antagelser."
+begrundelse = "Henstillingen gælder kun pensionsprognoser. Vi kender ikke, hvordan din frie opsparing er investeret."
+betydning = "Spændet mellem højt og lavt afkast gælder kun pensionerne. Har du meget opsparing uden for pension, er det reelle spænd større."
+kilde = "Feature 035, plan: forenkling branchestandard_buffer_fast_afkast"

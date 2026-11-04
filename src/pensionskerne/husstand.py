@@ -107,21 +107,29 @@ def beregn_husstand(
 ) -> Husstand:
     antagelser_a, antagelser_b = faelles_forbrug(profil_a, antagelser_a, profil_b, antagelser_b, satsaar,
                                                  beregningsdato)
+    # Branchestandarden (035): iterationen regner kun det forventede forløb; spændet regnes til sidst
+    # med partnerens forventede indkomst.
     res_b = beregn(replace(profil_b, partner=_ukendt_partner(profil_a, beregningsdato)), antagelser_b,
-                   satsaar, beregningsdato)
+                   satsaar, beregningsdato, med_spaend=False)
     res_a = None
     konvergeret = False
     iteration = 0
     while iteration < HUSSTAND_MAKS_ITERATIONER:
         iteration += 1
         ny_a = beregn(replace(profil_a, partner=partner_fra(res_b, profil_b, antagelser_b)), antagelser_a,
-                      satsaar, beregningsdato)
+                      satsaar, beregningsdato, med_spaend=False)
         ny_b = beregn(replace(profil_b, partner=partner_fra(ny_a, profil_a, antagelser_a)), antagelser_b,
-                      satsaar, beregningsdato)
+                      satsaar, beregningsdato, med_spaend=False)
         if _samme(res_a, ny_a) and _samme(res_b, ny_b):
             res_a, res_b, konvergeret = ny_a, ny_b, True
             break
         res_a, res_b = ny_a, ny_b
+    if antagelser_a.beregningsgrundlag == "branchestandard":
+        res_a = beregn(replace(profil_a, partner=partner_fra(res_b, profil_b, antagelser_b)), antagelser_a,
+                       satsaar, beregningsdato)
+    if antagelser_b.beregningsgrundlag == "branchestandard":
+        res_b = beregn(replace(profil_b, partner=partner_fra(res_a, profil_a, antagelser_a)), antagelser_b,
+                       satsaar, beregningsdato)
     if not konvergeret:
         advarsel = Advarsel("HUSSTAND_IKKE_KONVERGERET",
                             "Jeres to beregninger påvirker hinanden (pensionstillæg og ældrecheck) og kunne ikke "

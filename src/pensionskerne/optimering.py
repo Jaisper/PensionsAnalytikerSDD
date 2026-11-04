@@ -326,7 +326,7 @@ def _evaluer_plan(plan: Plan, profil: Pensionsprofil, antagelser: Antagelser, sa
     if fast_stop is not None and stopalder(replace(p, loen=None), fast_stop[1]) != fast_stop[0]:
         return None
     try:
-        res = beregn(p, a, satsaar, beregningsdato, buffer_start=(varm or {}).get("res"))
+        res = beregn(p, a, satsaar, beregningsdato, buffer_start=(varm or {}).get("res"), med_spaend=False)
     except UgyldigtInput:
         return None
     if varm is not None:
@@ -356,7 +356,7 @@ def optimer(
     fremdrift: Callable[[int, int], None] | None = None,
 ) -> Optimering:
     udgangspunkt, dimensioner = soegerum(profil, antagelser, satsaar, beregningsdato)
-    basis = beregn(profil, antagelser, satsaar, beregningsdato)
+    basis = beregn(profil, antagelser, satsaar, beregningsdato, med_spaend=False)
     ref = _reference(basis, profil)
     # 030: uden valgt stopalder udledes den af borgerens egen plan og ligger fast under søgningen.
     fast_stop = None
@@ -426,4 +426,4 @@ def optimer(
         return Optimering(udgangspunkt, udgangspunkt_maaned, None, None, len(score), mulige, udtoemmende)
     p, a = anvend(profil, antagelser, bedste_plan)
     return Optimering(udgangspunkt, udgangspunkt_maaned, bedste_plan,
-                      fast_niveau(beregn(p, a, satsaar, beregningsdato), ref.vindue), len(score), mulige, udtoemmende)
+                      fast_niveau(beregn(p, a, satsaar, beregningsdato, med_spaend=False), ref.vindue), len(score), mulige, udtoemmende)

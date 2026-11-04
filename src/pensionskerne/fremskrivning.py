@@ -31,6 +31,7 @@ from .regler.skat import beregn_skat, fordel
 from .regler.udbetalingsalder import tidligste_udbetalingsalder
 from .regler.ydelser import aeldrecheck, mediecheck, tillaegsprocent
 from .jaevn import BUFFER_MAKS_ITERATIONER, BUFFER_TOLERANCE_KR, baand, beregn_jaevn, vaegte
+from .prognose import beregn_branchestandard
 from .validering import valider
 
 OVERSKUD_ID = "ratepension_overskud_livsvarig"
@@ -139,10 +140,15 @@ def beregn(
     streng: bool = False,
     *,
     buffer_start: Fremskrivning | None = None,
+    med_spaend: bool = True,
 ) -> Fremskrivning:
     """Fremskrivningen år for år. `buffer_start` er et gæt på bufferen (en nabos resultat) til
     fastpunktets første iteration; det ændrer kun, hvor hurtigt fastpunktet findes, ikke hvilket
     (inden for tolerancen). Optimeringen bruger det til at regne naboplaner hurtigere (009)."""
+    if antagelser.beregningsgrundlag == "branchestandard":
+        # 035: tre afkaststier pr. ordning (trin 1–2) og fremskrivningen på hver (trin 3).
+        return beregn_branchestandard(profil, antagelser, satsaar, beregningsdato, beregn,
+                                      buffer_start=buffer_start, med_spaend=med_spaend)
     valider(profil, antagelser, satsaar, beregningsdato)
 
     ordninger: list[Ordning] = list(profil.ordninger)

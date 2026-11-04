@@ -18,9 +18,10 @@ Test først (Princip IV): hver opgave skriver testen, før koden.
 
 ## Fase 2: Trin 3 og tre forløb
 
-- [ ] T005 `Ordning.afkast_forloeb` og `gebyr_pr_aar` i fremskrivningen. `egne` er uændret (SC-001).
-- [ ] T006 `Antagelser.beregningsgrundlag` og `Fremskrivning.prognose` (høj, forventet, lav).
-- [ ] T007 Standardprofilen, gebyret og levetidsbenchmarket i registret. Forenklingerne i
+- [x] T005 `Ordning.afkast_forloeb` og `gebyr_pr_aar` i fremskrivningen. `egne` er uændret (SC-001).
+- [x] T006 `Antagelser.beregningsgrundlag` og `Fremskrivning.prognose` (høj, forventet, lav).
+- [ ] T007 Standardprofilen ✅, blandingen ✅ og forenklingerne ✅ i registret. Åbent: gebyrets størrelse
+      (kræver en kilde) og Finanstilsynets levetidsbenchmark (data skal hentes). Forenklingerne i
       `forenklinger.toml`.
 - [ ] T008 Golden cases for rate, livsvarig og aldersopsparing (SC-003).
 

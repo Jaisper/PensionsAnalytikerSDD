@@ -675,3 +675,17 @@ enhed = "tabel"
 kilde = "F&P, Henstilling om pensionsprognoser (LP-information 20/20), pkt. 7.1: udbetaling ved lavt afkast = 5 pct.-fraktilen, ved højt afkast = 95 pct.-fraktilen"
 status = "verificeret"
 vaerdi = [0.05, 0.95]
+
+[[post]]
+id = "branchestandard.standardprofil"
+enhed = "tabel"
+kilde = "Antagelse (feature 035): standardprofilen 'mellem risiko' med livscyklus-nedtrapning, når porteføljen ikke kendes. Punkter (år til første udbetaling, aktieandel), lineært imellem: 70 % aktier 15 år eller mere før, 40 % ved første udbetaling og 30 % 10 år inde i udbetalingen. Niveauet svarer til typiske mellemrisikoprofiler i markedsrente; henstillingen pkt. 7.2 kræver selskabets faktiske strategiske portefølje, som vi ikke kender. Erstattes af et skøn kalibreret mod selskabets prognose, hvor det findes"
+status = "sekundaer"
+vaerdi = [[15, 0.70], [0, 0.40], [-10, 0.30]]
+
+[[post]]
+id = "branchestandard.blanding"
+enhed = "tabel"
+kilde = "Antagelse (feature 035): porteføljen er en blanding af Rådets 'Globale aktier (developed markets)' og 'Stats- og realkreditobligationer'; aktieandelen er det eneste valg. Henstillingen pkt. 7.2 overlader indplaceringen i aktivklasser til selskabet"
+status = "sekundaer"
+vaerdi = { aktier = "Globale aktier (developed markets)", obligationer = "Stats- og realkreditobligationer" }
