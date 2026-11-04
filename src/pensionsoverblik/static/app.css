@@ -160,6 +160,10 @@ body[data-plan=""] .hero__tal #hovedtal { display: block; font-size: .55em; whit
 .hero__aendring { font-weight: 700; color: var(--sand-300); min-height: 1.5em; }
 .hero__spaend { max-width: 440px; opacity: .92; margin-top: 4px; }
 .hero__loen { max-width: 440px; opacity: .92; margin-top: 4px; }
+/* Feature 035: beregningsgrundlaget og skifteren lige under beløbet. */
+.hero__grundlag { max-width: 440px; opacity: .92; margin: 0 0 8px; }
+.hero__grundlag .knap--tekst { color: var(--hvid); padding: 0; min-height: 24px; }
+body[data-plan=""] #hovedtal-grundlag { display: none; }
 .hero__spaend a { color: var(--hvid); }
 .hero__plan { max-width: 440px; margin-top: 8px; }
 .hero__plan p { margin: 4px 0; }

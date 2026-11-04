@@ -339,6 +339,15 @@
           <fieldset class="trin" data-trin="5" hidden>
             <legend><h2 tabindex="-1">Dine forventninger</h2></legend>
             <p class="hjaelp">Ingen kender fremtiden. Vi har foreslået almindelige værdier. Du kan ændre dem nu eller senere.</p>
+            <div class="felt felt--valg" data-felt="antagelser.beregningsgrundlag">
+              <fieldset>
+                <legend>Hvordan skal vi regne afkast og inflation?</legend>
+                <label class="valg"><input type="radio" name="grundlag" value="branchestandard" checked aria-describedby="grundlag-hjaelp"> Som pensionsselskaberne</label>
+                <label class="valg"><input type="radio" name="grundlag" value="egne"> Med mine egne forventninger</label>
+              </fieldset>
+              <p class="felt__hjaelp" id="grundlag-hjaelp">Som pensionsselskaberne: de samme forventninger, som dit pensionsselskab bruger. Så kan du sammenligne med deres tal, og du får tre tal: ved højt, forventet og lavt afkast. Med dine egne forventninger vælger du selv ét afkast og én inflation.</p>
+            </div>
+            <div id="egne-forventninger" hidden>
             <div class="felt" data-felt="antagelser.afkast_efter_pal">
               <label for="afkast">Forventet afkast pr. år efter skat på pensionen</label>
               <div class="skyder"><input type="range" id="afkast" min="0" max="8" step="0.5" value="4"><output for="afkast" id="afkast-v">4 %</output></div>
@@ -346,6 +355,7 @@
             <div class="felt" data-felt="antagelser.inflation">
               <label for="inflation">Forventet prisstigning (inflation) pr. år</label>
               <div class="skyder"><input type="range" id="inflation" min="0" max="5" step="0.5" value="2"><output for="inflation" id="inflation-v">2 %</output></div>
+            </div>
             </div>
             <div class="felt" data-felt="antagelser.folkepension_opsaettelse_aar">
               <label for="opsaettelse">Udskyd folkepensionen</label>
@@ -380,6 +390,7 @@
         <div class="hero__tekst">
           <p class="hero__lead" id="resultat-titel">Du kan forvente ca.</p>
           <p class="hero__tal" aria-live="polite"><span id="hovedtal">–</span> <span class="hero__enhed">om måneden efter skat</span></p>
+          <p class="hero__grundlag" id="hovedtal-grundlag"></p>
           <p class="hero__forklaring" id="hovedtal-forklaring"></p>
           <p class="hero__loen" id="hovedtal-loen" hidden></p>
           <div class="hero__plan" id="hovedtal-plan" role="status" aria-live="polite" hidden></div>
@@ -526,7 +537,8 @@
         <div class="ramme">
           <h2 id="forudsaetninger-titel">Prøv andre forudsætninger</h2>
           <p class="sektion__intro">Se hvor følsomt beløbet er. Hvornår dine ordninger udbetales, flytter du på tidslinjen under grafen.</p>
-          <div class="skydergitter">
+          <p class="hjaelp" id="r-branche" hidden>Afkast og inflation følger pensionsselskabernes fælles forventninger. Vil du prøve andre, så skift til dine egne antagelser ved beløbet øverst.</p>
+          <div class="skydergitter" id="r-egne">
             <div class="felt"><label for="r-afkast">Afkast pr. år</label>
               <div class="skyder"><input type="range" id="r-afkast" min="0" max="8" step="0.5"><output for="r-afkast" id="r-afkast-v"></output></div></div>
             <div class="felt"><label for="r-inflation">Prisstigning pr. år</label>

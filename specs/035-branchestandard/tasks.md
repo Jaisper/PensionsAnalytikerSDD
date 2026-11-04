@@ -32,8 +32,8 @@ Test først (Princip IV): hver opgave skriver testen, før koden.
 
 ## Fase 4: Brugerflade
 
-- [ ] T011 Indgangslaget: `beregningsgrundlag`, gamle input → `egne` (US1-3), aktieandel pr. ordning.
-- [ ] T012 Skifter, tre niveauer i hovedtal og graf (FR-007, FR-010), porteføljeskøn (US3) og
+- [x] T011 Indgangslaget: `beregningsgrundlag`, gamle input → `egne` (US1-3), aktieandel pr. ordning.
+- [ ] T012 Skifter ✅ og tre niveauer i hovedtallet ✅ (FR-007). Åbent: tre forløb i grafen (FR-010), porteføljeskøn (US3) og
       sammenligning (US4).
 - [ ] T013 Forklaringer (FR-008) og advarsler.
 
