@@ -10,6 +10,7 @@
 kan man selv vælge egne tal eller standard."
 
 **Grundlag**:
+- Metoden forklaret: [docs/branchestandard-metode.md](../../docs/branchestandard-metode.md).
 - Forsikring & Pension, *Henstilling om pensionsprognoser – opdateret version* (LP-information 20/20,
   7.10.2020, gældende for prognoser fra 1.1.2021). Primærkilde og den nyeste version på
   fogp.dk/branchesamarbejde/pension pr. 2026-11-04. Bilag: 1 (Munk og Rangvid 2017, risikoen i

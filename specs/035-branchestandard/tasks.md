@@ -6,14 +6,14 @@ Test først (Princip IV): hver opgave skriver testen, før koden.
 
 ## Fase 1: Trin 1–2 i kernen
 
-- [ ] T001 Rådets forudsætninger for 1. halvår 2027 i `register/2026.toml` (`raadet.*`) med kilde,
+- [x] T001 Rådets forudsætninger for 1. halvår 2027 i `register/2026.toml` (`raadet.*`) med kilde,
       udgivelsesdato og status, og fraktilerne fra henstillingen (`branchestandard.fraktiler`).
       Test: `tests/register/test_raadet.py` (10 klasser, symmetrisk korrelation, perioder, inflation).
-- [ ] T002 Golden case for bilag 2, "Fraktilafkast Udledning årlige": M, V, 5 %-/95 %-depot og de
+- [x] T002 Golden case for bilag 2, "Fraktilafkast Udledning årlige": M, V, 5 %-/95 %-depot og de
       tre stier for t = 1…19 (SC-002). `tests/golden/test_branchestandard_bilag2.py`.
-- [ ] T003 `pensionskerne/prognose.py`: `trin1`, `fraktil` og `trin2`, inkl. reglen for, når
+- [x] T003 `pensionskerne/prognose.py`: `trin1`, `fraktil` og `trin2`, inkl. reglen for, når
       depotet løber tør (R1).
-- [ ] T004 `mu_sigma` og `periode_forudsaetninger` (år 1–5, 6–10 og 11+, investeringsomkostninger
+- [x] T004 `mu_sigma` og `periode_forudsaetninger` (år 1–5, 6–10 og 11+, investeringsomkostninger
       for år 1–10) med test af blandingsporteføljen mod håndregning.
 
 ## Fase 2: Trin 3 og tre forløb
