@@ -158,6 +158,20 @@ def beregn(
         """Årets afkast efter PAL-skat (023a): forløbet, ellers det faste afkast."""
         return antagelser.afkast_i_aar(foedselsaar + alder)
 
+    def livsvarig_afkast(ordning: Ordning, s: int, horisont: int) -> float:
+        """Livrentens beregningsrente: det fælles afkast (023a: selskaberne udjævner), men med et forløb
+        for ordningen (035) dets geometriske gennemsnit over horisonten."""
+        if not ordning.afkast_forloeb:
+            return afkast
+        vaekst = 1.0
+        for j in range(horisont):
+            vaekst *= 1 + ordningens_afkast(ordning, s + j)
+        return vaekst ** (1 / horisont) - 1
+
+    def ordningens_afkast(ordning: Ordning, alder: int) -> float:
+        """Ordningens eget forløb (branchestandarden, 035), ellers det fælles afkast."""
+        return ordning.afkast_forloeb.get(foedselsaar + alder, afkast_i(alder))
+
     samlet = opslag(alder_nu)
     fp_alder = folkepensionsalder(profil.foedselsdato, samlet)
     advarsler: list[Advarsel] = []
@@ -237,7 +251,9 @@ def beregn(
 
         for ordning in ordninger:
             if alder < start[ordning.id]:
-                saldo[ordning.id] = saldo[ordning.id] * (1 + afkast_i(alder)) + indbetaling.get(ordning.id, 0.0)
+                # Gebyret er uændret i dagens kroner (henstillingen pkt. 7.2); depotet bliver ikke negativt.
+                saldo[ordning.id] = max(0.0, saldo[ordning.id] * (1 + ordningens_afkast(ordning, alder))
+                                        + indbetaling.get(ordning.id, 0.0) - ordning.gebyr_pr_aar * o.reguleringsfaktor)
         if alder < overskud_start:
             overskud_saldo = overskud_saldo * (1 + afkast_i(alder)) + overskud
         o.antagelse("afkast_efter_pal", afkast)
@@ -270,13 +286,13 @@ def beregn(
             aar = ordning.udbetaling_aar or o.v("ordning.ratepension.min_aar")
             resterende = aar - (alder_nu - ordning.udbetaling_start_alder) if ordning.udbetaling_start_alder < alder_nu else aar
             rate_aar = max(0, resterende)
-            for i, rate in enumerate(rateplan(saldo[ordning.id], rate_aar, [afkast_i(s + j) for j in range(rate_aar)])):
+            for i, rate in enumerate(rateplan(saldo[ordning.id], rate_aar, [ordningens_afkast(ordning, s + j) for j in range(rate_aar)])):
                 plan.rater[s + i] = rate
         elif beregnet_type == "livsvarig":
             horisont = max(antagelser.livsvarig_min_aar, antagelser.livsvarig_horisont_alder - s)
-            plan.livsvarig = livsvarig_ydelse(saldo[ordning.id], horisont, afkast)
+            plan.livsvarig = livsvarig_ydelse(saldo[ordning.id], horisont, livsvarig_afkast(ordning, s, horisont))
         elif form == "portioner":
-            portion_afkast = [afkast_i(s + j) for j in range(ordning.udbetaling_aar)]
+            portion_afkast = [ordningens_afkast(ordning, s + j) for j in range(ordning.udbetaling_aar)]
             for i, brutto_portion in enumerate(portioner(saldo[ordning.id], ordning.udbetaling_aar, portion_afkast)):
                 plan.engangs[s + i] = engangs_netto(ordning.type, brutto_portion, o, ordning.afgift_betalt)
             o.v("ordning.kapitalpension.seneste_aar_efter_udbetalingsalder")
