@@ -61,7 +61,10 @@ def _sammenlign_beregning(browser_svar, cpython_svar):
     _naer(b, c)
 
 
-@pytest.mark.parametrize("guide", [GUIDE, PARTNER_GUIDE], ids=["enlig", "partner"])
+BRANCHE_GUIDE = {**GUIDE, "antagelser": {**GUIDE["antagelser"], "beregningsgrundlag": "branchestandard"}}  # 035, SC-006
+
+
+@pytest.mark.parametrize("guide", [GUIDE, PARTNER_GUIDE, BRANCHE_GUIDE], ids=["enlig", "partner", "branchestandard"])
 def test_beregning_som_cpython(side, guide):
     svar = side.evaluate("([g, d]) => kald('beregn', g, d)", [json.dumps(guide), IDAG])
     _sammenlign_beregning(svar, app.beregn(json.dumps(guide), IDAG))

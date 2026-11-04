@@ -33,6 +33,8 @@ inventar = [
   "Afrunding og præcision",
   "PDF-aflæsning",
   "Forsikringer fra PensionsInfo efter skat",
+  "Branchestandard: prognose som pensionsselskaberne regner",
+  "Branchestandardens metode: tre trin",
   "Dit år",
   "Præsentation: hovedtal, kort, graf, tidslinje, opsparingsgraf, faner, statusikoner og farver",
   "Nominelle beløb og dagens kroner, måned og år, alder og kalenderår",
@@ -68,6 +70,26 @@ advarsler = []
 niveau1 = "Beløbene kommer fra din rapport fra PensionsInfo. De er det, der ville blive udbetalt i dag. Nogle beløb er skattefri. Andre betaler en afgift. Det trækker vi fra. Får dine efterladte et beløb, der beskattes som indkomst, ved vi ikke, hvad de betaler. Så viser vi beløbet før skat. Mister du arbejdsevnen, regner vi skatten, som om dækningen er din eneste indkomst."
 niveau2 = "Rapporten giver hver dækning en skattekode. Afgiftspligtige beløb ved død betaler afgift, før de udbetales; vi trækker den fra. Skattefri beløb er de samme efter skat. Skattepligtige beløb beskattes som indkomst hos den, der får dem. For dine efterladte afhænger skatten af deres øvrige indkomst, så vi viser beløbet før skat. En dækning ved tab af arbejdsevne erstatter din løn, så vi regner skatten af dækningen alene med din kommune og kirkeskat. Er der flere dækninger, beskattes de samlet. Beløbene indgår ikke i dit faste beløb."
 niveau3 = "Skattekode A: afgift efter pensionsbeskatningsloven § 25, stk. 1, nr. 1 og 6 (kapitalpension og kapitalforsikring ved død) og § 29, stk. 1 (rateordning omregnet til engangsbeløb). Lavere satser for visse indbetalinger før 1980 (§ 14 A) er ikke modelleret. Kode F: skatte- og afgiftsfri. Kode S: personlig indkomst. Tab af arbejdsevne regnes som årets eneste personlige indkomst uden arbejdsmarkedsbidrag (pensionsudbetalinger er ikke bidragspligtige). Registerposten har en sekundær kilde, indtil lovteksten er verificeret."
+
+[[emne]]
+id = "branchestandard"
+titel = "Beregnet som pensionsselskaberne"
+inventar = ["Branchestandard: prognose som pensionsselskaberne regner"]
+registerposter = ["branchestandard.*"]
+advarsler = []
+niveau1 = "Dit pensionsselskab regner efter fælles regler for hele branchen. Det kan vi også. Så kan du sammenligne vores tal med selskabets. Du kan også bruge dine egne tal for afkast og inflation. Det er godt, hvis du vil se, hvad der sker, når du er mere forsigtig. Reglerne er ikke lov. De er en aftale i branchen."
+niveau2 = "Med branchens regler bruger vi de samme forventninger til afkast, udsving og inflation som selskaberne. Dem fastsætter et uafhængigt råd hvert halve år. Vi viser tre tal: hvis afkastet bliver højt, som ventet eller lavt. Med dine egne tal bruger vi ét afkast og én inflation for alle år. Så viser vi kun ét tal. Skat, folkepension og tillæg regnes ens i begge tilfælde."
+niveau3 = "Forsikring & Pension, Henstilling om pensionsprognoser (LP-information 20/20, opdateret oktober 2020), punkt 5–7. Henstillingen binder pensionsselskaberne gennem brancheorganisationen; den er en branchestandard og ikke lov. Vi følger metoden for markedsrente. For gennemsnitsrente bruger vi selskabets egen prognose. Se emnet om metoden for trinene, formlerne og forenklingerne. Vælger du egne antagelser, regner kernen som før featuren med ét afkast efter PAL-skat og én inflation."
+
+[[emne]]
+id = "branchestandard_metode"
+titel = "Sådan regner branchen: tre trin"
+inventar = ["Branchestandardens metode: tre trin"]
+registerposter = ["raadet.*"]
+advarsler = []
+niveau1 = "Ingen ved, hvordan aktier og renter udvikler sig. Derfor viser vi tre tal. Det midterste er det, vi venter. Det høje og det lave viser et godt og et dårligt forløb. Kun få gange vil det gå bedre end det høje tal. Kun få gange vil det gå værre end det lave. Alle tre tal er efter skat."
+niveau2 = "Vi regner i tre trin. Først regner vi, hvor stor opsparingen kan blive, hvis afkastet svinger, som rådet forventer. Det giver et gennemsnit og et godt og et dårligt udfald. Så finder vi det afkast år for år, der netop giver hvert af de tre udfald. Til sidst regner vi pensionen på hvert forløb for sig med skat, omkostninger, folkepension og tillæg. Derfor er det lave tal efter skat ikke bare det lave tal før skat gange en fast skat."
+niveau3 = "Henstillingen punkt 7 og appendix 1. Trin 1: M(tₙ) = M(tₙ₋₁)·F(tₙ₋₁)·e^(μΔt) + I(tₙ) og V(tₙ) = F(tₙ₋₁)²·e^(2μΔt)·((V(tₙ₋₁) + M(tₙ₋₁)²)·e^(σ²Δt) − M(tₙ₋₁)²), uden omkostninger og PAL-skat; F er udbetalingsfaktoren. Fraktilen er exp(b·N⁻¹(p) + a − b²/2) med a = ln M og b² = ln(1 + V·e^(−2a)) (log-normal approksimation, Munk). Trin 2: stien fra s til t er (depotₜ − præmieₜ)/(depotₛ·Fₛ) − 1; løber depotet tør, bruges seneste beregnelige afkast. Trin 3: fremregning med PAL-skat, omkostninger og kernens skat og ydelser på hver sti. Porteføljen: μ = ln(1 + Σ wᵢ·nettoafkastᵢ) og σ = √(wᵀSw) med Rådet for Afkastforventningers forudsætninger for år 1–5, 6–10 og 11 og frem; fra år 11 er der tre aktivklasser, og tilknytningen af de ti klasser er en antagelse. Trin 1–2 genskaber henstillingens taleksempel (bilag 2). Forenklinger: aktieandelen er et skøn kalibreret mod selskabets prognose, og én inflation for hele forløbet."
 
 [[emne]]
 id = "aar"

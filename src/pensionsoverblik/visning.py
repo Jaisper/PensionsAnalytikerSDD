@@ -213,6 +213,9 @@ def byg_visning(res: Fremskrivning) -> dict:
         return {"noegle": n, "titel": KORT[n]["titel"], "maaned": forskel[n]}
 
     hovedtal = _hovedtal(res)
+    # 035: udbetaling ved højt og lavt afkast (branchestandarden), regnet af kernen på hvert forløb.
+    hovedtal["prognose"] = ({navn: _hovedtal(f)["maaned"] for navn, f in res.prognose.items()}
+                            if res.prognose else None)
     fra = res.jaevn_fra_alder or res.aar[0].alder
     i_fra = aldre.index(fra) if fra in aldre else 0
     # De største kilder i perioden med det faste beløb: gennemsnit pr. måned i dagens kroner, afrundet
@@ -248,6 +251,9 @@ def byg_visning(res: Fremskrivning) -> dict:
             "realfaktor": [1.0] * foran + [a.realfaktor for a in res.aar],
         },
         "formue": _formue(res),
+        "grundlag": {"type": res.antagelser.beregningsgrundlag,
+                     "saet": register.post(res.satsaar, "raadet.saet").vaerdi["navn"]
+                     if res.antagelser.beregningsgrundlag == "branchestandard" else None},
         "forenklinger": _forenklinger(res),
         "generelle_advarsler": generelle,
         "antagelser": {**asdict(res.antagelser), "satsregulering": res.antagelser.effektiv_satsregulering,

@@ -53,8 +53,15 @@ def side(browser, base_url):
     page.on("pageerror", lambda e: page.fejl.append(str(e)))
     page.goto(base_url)
     page.evaluate("motorKlar")
+    # Testene før 035 er skrevet til egne antagelser (afkast- og inflationsskyderne). Branchestandarden,
+    # som er guidens standard, testes for sig (test_branchestandard.py).
+    vaelg_grundlag(page, "egne")
     yield page
     ctx.close()
+
+
+def vaelg_grundlag(page, grundlag):
+    page.evaluate("g => { document.querySelector(`input[name=grundlag][value=${g}]`).checked = true; visGrundlag(); }", grundlag)
 
 
 @pytest.fixture

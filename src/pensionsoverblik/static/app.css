@@ -60,7 +60,7 @@ a { color: var(--petrol-700); }
 .logo { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.25rem; color: var(--petrol-900); text-decoration: none; }
 .logo__maerke { width: 26px; height: 26px; border-radius: 50% 50% 50% 6px; background: linear-gradient(135deg, var(--petrol-700), var(--sand-500)); }
 .menu { list-style: none; display: flex; gap: 24px; margin: 0; padding: 0; }
-.menu a { color: var(--petrol-900); font-weight: 600; text-decoration: none; }
+.menu a { color: var(--petrol-900); font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; min-height: 44px; }  /* WCAG 2.5.8 */
 .menu a:hover { text-decoration: underline; }
 .topbjaelke .knap--primaer { margin-left: auto; }
 
@@ -160,6 +160,10 @@ body[data-plan=""] .hero__tal #hovedtal { display: block; font-size: .55em; whit
 .hero__aendring { font-weight: 700; color: var(--sand-300); min-height: 1.5em; }
 .hero__spaend { max-width: 440px; opacity: .92; margin-top: 4px; }
 .hero__loen { max-width: 440px; opacity: .92; margin-top: 4px; }
+/* Feature 035: beregningsgrundlaget og skifteren lige under beløbet. */
+.hero__grundlag { max-width: 440px; opacity: .92; margin: 0 0 8px; }
+.hero__grundlag .knap--tekst { color: var(--hvid); display: block; }  /* egen linje: ikke inline i teksten (axe target-size) */
+body[data-plan=""] #hovedtal-grundlag { display: none; }
 .hero__spaend a { color: var(--hvid); }
 .hero__plan { max-width: 440px; margin-top: 8px; }
 .hero__plan p { margin: 4px 0; }

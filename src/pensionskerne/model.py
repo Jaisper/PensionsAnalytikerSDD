@@ -58,6 +58,11 @@ class Ordning:
     afgift_betalt: bool = False         # kapitalpension, hvor afgiften er betalt (fx omlagt 2013–2014): skattefri (009)
     udbetalingsform: str = "engangs"    # kapitalpension: engangs | portioner | ratepension | livsvarig (009)
     fra_loen: bool = False              # får pensionen fra lønsedlen (017c); indbetalingen er så en fordelingsnøgle
+    # Branchestandarden (035): afkast efter PAL-skat og investeringsomkostninger pr. kalenderår for netop
+    # denne ordning (overstyrer `Antagelser`), og et fast gebyr pr. år i dagens kroner i opsparingen.
+    afkast_forloeb: Mapping[int, float] = field(default_factory=dict)
+    gebyr_pr_aar: float = 0.0
+    aktieandel: float | None = None     # porteføljens aktieandel (035); None = registrets standardprofil
 
 
 @dataclass(frozen=True)
@@ -163,6 +168,9 @@ class Antagelser:
     # Afkast efter PAL-skat pr. kalenderår (023a); mangler et år, bruges `afkast_efter_pal`.
     afkast_forloeb: Mapping[int, float] = field(default_factory=dict)
     forbrugsprofil: Forbrugsprofil = field(default_factory=Forbrugsprofil)  # 033
+    # Beregningsgrundlag (035): "egne" = ét afkast og én inflation som ovenfor; "branchestandard" = F&P's
+    # henstilling om pensionsprognoser med Rådet for Afkastforventningers forudsætninger og tre forløb.
+    beregningsgrundlag: Literal["egne", "branchestandard"] = "egne"
 
     def afkast_i_aar(self, kalenderaar: int) -> float:
         return self.afkast_forloeb.get(kalenderaar, self.afkast_efter_pal)
@@ -308,6 +316,9 @@ class Fremskrivning:
     formue_start: float = 0.0           # opsparingen i dag (013)
     jaevn_fra_alder: int | None = None  # første år i udjævningen (017: stopalderen); None = første række
     forbrug_baand: tuple[tuple[int, int], ...] = ()  # forbrugsprofilens bånd i egne aldre (033)
+    # Branchestandarden (035): forløbene ved højt og lavt afkast ("hoej", "lav"). Resultatet selv er
+    # forløbet ved forventet afkast. None med egne antagelser, eller når spændet ikke er beregnet.
+    prognose: Mapping[str, "Fremskrivning"] | None = None
 
     def formue_primo(self) -> dict[int, float]:
         """Opsparingen pr. 1. januar pr. alder: ultimo året før, og i dag startsaldoen (013)."""

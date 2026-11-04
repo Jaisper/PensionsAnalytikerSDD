@@ -507,6 +507,7 @@ function guideSvar() {
       afkast_efter_pal: +$("#afkast").value / 100,
       inflation: +$("#inflation").value / 100,
       folkepension_opsaettelse_aar: +$("#opsaettelse").value,
+      beregningsgrundlag: $("input[name=grundlag]:checked").value,  // 035
     },
   };
 }
@@ -1107,6 +1108,34 @@ function flytFormularTilGuide() {
   tilstand.panel = false;
 }
 
+/* ── Beregningsgrundlag (feature 035) ───────────────────────────────────── */
+const branche = () => $("input[name=grundlag]:checked")?.value === "branchestandard";
+
+function visGrundlag() {
+  // Egne afkast og inflation gælder kun med egne antagelser.
+  $("#egne-forventninger").hidden = branche();
+  $("#r-egne").hidden = branche();
+  $("#r-branche").hidden = !branche();
+}
+
+function skiftGrundlag() {
+  const ny = branche() ? "egne" : "branchestandard";
+  $$("input[name=grundlag]").forEach((r) => (r.checked = r.value === ny));
+  tilstand.aktuelleSvar.antagelser.beregningsgrundlag = ny;
+  visGrundlag();
+  genberegn();
+}
+
+function tegnGrundlag(v) {
+  const g = v.grundlag;
+  const knap = el("button", { type: "button", class: "knap knap--tekst", id: "skift-grundlag",
+    tekst: g.type === "branchestandard" ? "Brug mine egne antagelser" : "Regn som pensionsselskaberne" });
+  knap.addEventListener("click", skiftGrundlag);
+  $("#hovedtal-grundlag").replaceChildren(g.type === "branchestandard"
+    ? `Udbetaling ved forventet afkast, regnet som pensionsselskaberne (Rådet for Afkastforventninger, ${g.saet}). `
+    : `Regnet med dine egne antagelser: afkast ${procent(v.antagelser.afkast_efter_pal)} og inflation ${procent(v.antagelser.inflation)}. `, knap);
+}
+
 function synkroniserFormular() {
   // Tidslinjen ændrer start, periode og opsættelse — formularen viser altid det samme.
   const s = tilstand.aktuelleSvar;
@@ -1129,6 +1158,9 @@ function synkroniserFormular() {
   $("#afkast-v").textContent = procent(s.antagelser.afkast_efter_pal);
   $("#inflation").value = s.antagelser.inflation * 100;
   $("#inflation-v").textContent = procent(s.antagelser.inflation);
+  const grundlag = s.antagelser.beregningsgrundlag || "egne";
+  $$("input[name=grundlag]").forEach((r) => (r.checked = r.value === grundlag));
+  visGrundlag();
   $("#stop-alder").value = s.person.loen?.stop_alder ?? "";
   if (pp) $("#p-stop-alder").value = pp.loen?.stop_alder ?? "";
   tegnOrdninger();
@@ -1284,7 +1316,10 @@ async function aabnGemt() {
     const aarlig = beloeb(data.felter[`${pre}loen`]);
     if (aarlig && !data.felter[`${pre}loen-maaned`]) data.felter[`${pre}loen-maaned`] = kr(aarlig / 12);
   }
+  // Gemt før 035: regnet med egne antagelser (US1-3).
+  if (!("radio:grundlag" in data.felter)) data.felter["radio:grundlag"] = "egne";
   saetGuideFelter(data.felter);
+  visGrundlag();
   tilstand.ordninger = data.ordninger || [];
   tilstand.partnerOrdninger = data.partnerOrdninger || [];
   tilstand.forsikringer = data.forsikringer || [];
@@ -1415,7 +1450,9 @@ function tegnHovedtalForklaring() {
   if (n !== "niveau1") tekst.push(e.niveau2);
   if (h.senere) tekst.push(`Fra ${h.senere.fra_alder} år stiger beløbet til ca. ${kr(h.senere.maaned)} kr.`);
   if (n === "niveau3") {
-    tekst.push(e.niveau3, `Afkast ${procent(v.antagelser.afkast_efter_pal)} efter PAL-skat og inflation ${procent(v.antagelser.inflation)}. `
+    tekst.push(e.niveau3, (v.grundlag.type === "branchestandard"
+      ? `Branchestandard: Rådet for Afkastforventningers forudsætninger (${v.grundlag.saet}) og inflation ${procent(v.antagelser.inflation)}. `
+      : `Afkast ${procent(v.antagelser.afkast_efter_pal)} efter PAL-skat og inflation ${procent(v.antagelser.inflation)}. `)
       + `Opsparingens renter, skat og formue blev regnet igennem ${h.forklaring.iterationer} ${h.forklaring.iterationer === 1 ? "gang" : "gange"}.`);
   }
   boks.replaceChildren(...afsnit(...tekst));
@@ -2192,14 +2229,23 @@ function tegnUsikkerhed() {
   const tal = raekker.filter((r) => r.plan_slut_alder === null && !r.stress).map((r) => r.vaerdi).filter((x) => x !== null && x !== undefined);
   const min = Math.min(...tal);
   const max = Math.max(...tal);
-  linje.replaceChildren(`Hvis afkast og inflation bliver anderledes: mellem ${kr(min)} og ${kr(max)} kr. `,
-    el("a", { href: "#usikkerhed", tekst: "Se hvordan" }));
+  const prognose = hvem === "samlet" ? null : tilstand.v?.hovedtal?.prognose;
+  if (tilstand.v?.grundlag?.type === "branchestandard") {
+    // 035: branchens benævnelser (henstillingen pkt. 6.1), efter skat.
+    linje.replaceChildren(prognose
+      ? `Udbetaling ved højt afkast: ca. ${kr(prognose.hoej)} kr. Ved lavt afkast: ca. ${kr(prognose.lav)} kr. Om måneden efter skat. `
+      : "Udbetalingen ved højt og lavt afkast står ved hver af jer. ", el("a", { href: "#usikkerhed", tekst: "Se hvordan" }));
+  } else {
+    linje.replaceChildren(`Hvis afkast og inflation bliver anderledes: mellem ${kr(min)} og ${kr(max)} kr. `,
+      el("a", { href: "#usikkerhed", tekst: "Se hvordan" }));
+  }
   $("#usikkerhed").hidden = false;
   $("#usikkerhed-tabel").replaceChildren(el("table", {},
     el("caption", { class: "sr-only", tekst: "Det faste beløb om måneden efter skat i dagens kroner ved andet afkast og anden inflation" }),
     el("thead", {}, el("tr", {}, ...["Scenarie", "Afkast", "Inflation", "Planen rækker til", "Fast beløb om måneden"].map((x) => el("th", { scope: "col", tekst: x })))),
     el("tbody", {}, raekker.map((r) => el("tr", {}, el("th", { scope: "row", tekst: r.titel }),
-      el("td", { tekst: afkastTekst(r) }), el("td", { tekst: procent(r.inflation) }),
+      el("td", { tekst: tilstand.v?.grundlag?.type === "branchestandard" ? "Som selskaberne" : afkastTekst(r) }),
+      el("td", { tekst: tilstand.v?.grundlag?.type === "branchestandard" ? "Som selskaberne" : procent(r.inflation) }),
       el("td", { tekst: `${r.plan_slut_alder ?? normalSlut} år` }),
       el("td", { tekst: r.vaerdi === null || r.vaerdi === undefined ? "–" : `${kr(r.vaerdi)} kr.` }))))));
   // Lever du længere end planen (019): kun for én person, ikke under "Samlet".
@@ -2462,6 +2508,7 @@ function tegnPerson(v, foersteGang) {
   $("#resultat-titel").textContent = partner ? "Din partner kan forvente ca." : "Du kan forvente ca.";
   const h = v.hovedtal;
   skrivHovedtal(h.maaned);
+  tegnGrundlag(v);
   $("#hovedtal-forklaring").textContent = h.type === "jaevn"
     ? (partner
       ? `Det faste beløb, din partner kan bruge hver måned fra ${h.fra_alder} år ved selv at udjævne (den stiplede linje i grafen). I dagens kroner.`
@@ -2626,6 +2673,7 @@ function forbind() {
   $("#pdf-fil").addEventListener("change", () => aflaesPdf("dig"));
   $("#p-pdf-fil").addEventListener("change", () => aflaesPdf("partner"));
   $$("input[name=civilstand], input[name=partnerdata]").forEach((r) => r.addEventListener("change", opdaterPartnerFelter));
+  $$("input[name=grundlag]").forEach((r) => r.addEventListener("change", visGrundlag));  // 035
   opdaterPartnerFelter();
   $("#p-tilfoej-ordning").addEventListener("click", () => tilfoejOrdning($("#p-ny-type").value, "partner"));
   const faner = $$('#person-faner [role="tab"]');

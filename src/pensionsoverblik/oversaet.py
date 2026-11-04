@@ -16,6 +16,8 @@ from pensionskerne import (
 PARTNER_AAR = range(2000, 2101)
 
 
+BEREGNINGSGRUNDLAG = ("egne", "branchestandard")  # 035
+
 def _kraev(data: dict, noegle: str, felt: str) -> Any:
     if not isinstance(data, dict) or data.get(noegle) in (None, ""):
         raise UgyldigtInput(felt, "Feltet skal udfyldes")
@@ -76,6 +78,10 @@ def til_kerne(data: dict) -> tuple[Pensionsprofil, Antagelser]:
 
     a = data.get("antagelser") or {}
     standard = Antagelser()
+    # 035: et input uden feltet (gemt før featuren) regnes med egne antagelser (US1-3).
+    grundlag = a.get("beregningsgrundlag") or standard.beregningsgrundlag
+    if grundlag not in BEREGNINGSGRUNDLAG:
+        raise UgyldigtInput("antagelser.beregningsgrundlag", "Vælg branchestandard eller egne antagelser")
     antagelser = Antagelser(
         afkast_efter_pal=_tal(a.get("afkast_efter_pal"), "antagelser.afkast_efter_pal", standard.afkast_efter_pal),
         inflation=_tal(a.get("inflation"), "antagelser.inflation", standard.inflation),
@@ -90,6 +96,7 @@ def til_kerne(data: dict) -> tuple[Pensionsprofil, Antagelser]:
         # 033: procent pr. bånd i forhold til de første år; tom = fladt.
         forbrugsprofil=Forbrugsprofil(tuple(_tal(x, "antagelser.forbrugsprofil")
                                             for x in (a.get("forbrugsprofil") or []))),
+        beregningsgrundlag=grundlag,
     )
     return profil, antagelser
 

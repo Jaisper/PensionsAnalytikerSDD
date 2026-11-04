@@ -405,6 +405,11 @@ def scenarier(guide_json: str) -> list[dict]:
     standard = Antagelser()
     afkast = float(a.get("afkast_efter_pal", standard.afkast_efter_pal))
     inflation = float(a.get("inflation", standard.inflation))
+    levetid = [{"noegle": f"levetid_{alder}", "titel": f"Planen rækker til {alder} år", "afkast": afkast,
+                "inflation": inflation, "plan_slut_alder": alder} for alder in LEVETIDER]
+    if a.get("beregningsgrundlag") == "branchestandard":
+        # 035: branchestandarden har sit eget spænd (højt og lavt afkast); kun levetiden er et andet spørgsmål.
+        return levetid
     return [{"noegle": noegle, "titel": titel,
              "afkast": round(max(0.0, afkast + ra * AFKAST_SPAEND), 6),
              "inflation": round(max(0.0, inflation + ri * INFLATION_SPAEND), 6), "plan_slut_alder": None}

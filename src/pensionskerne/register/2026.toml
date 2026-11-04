@@ -541,3 +541,151 @@ enhed = "tabel"
 kilde = "Ældre Sagen: 'Pensionsudbetalingsalder for aftale oprettet før 1. maj 2007: 60 år'. Bekræftet af en rigtig PensionsInfo-rapport (født 1971: 'kan tidligst udbetales fra 60 år'). Primærkilde (PBL § 1 A) mangler stadig. Selskabets oplyste alder overstyrer altid reglen"
 status = "sekundaer"
 vaerdi = { alder = 60.0 }
+
+# ── Branchestandard: Rådet for Afkastforventninger (feature 035) ─────────────
+#
+# Forudsætningerne til pensionsprognoser efter F&P's henstilling (LP-information 20/20, pkt. 7.2).
+# Et nyt sæt (1. april og 1. oktober) erstatter posterne med ny kilde og dato. Afkastene er
+# nominelle bruttoafkast før investeringsomkostninger; investeringsomkostningerne trækkes fra pr.
+# aktivklasse (henstillingen appendix 1). Rækkefølgen af aktivklasser er den samme i alle lister.
+
+[[post]]
+id = "raadet.saet"
+enhed = "tabel"
+kilde = "Rådet for Afkastforventninger, afkastforventninger.dk: 'Afkastforventninger 1. halvår 2027', regneark afkastforventninger-1-halvar-2027.xlsx, offentliggjort 2.11.2026"
+status = "verificeret"
+vaerdi = { navn = "1. halvår 2027", udgivet = "2026-11-02" }
+
+[[post]]
+id = "raadet.aktivklasser"
+enhed = "tabel"
+kilde = "Rådet for Afkastforventninger, 1. halvår 2027 (regnearket, fanerne '1-5 år', '6-10 år' og '1-10 år')"
+status = "verificeret"
+vaerdi = ["Stats- og realkreditobligationer", "Investment-grade obligationer", "High-yield obligationer", "Emerging markets statsobligationer", "Globale aktier (developed markets)", "Emerging markets aktier", "Private equity", "Infrastruktur", "Ejendomme", "Hedgefonde"]
+
+[[post]]
+id = "raadet.afkast.aar_1_5"
+enhed = "tabel"
+kilde = "Rådet for Afkastforventninger, 1. halvår 2027, fanen '1-5 år', kolonnen 'Afkast'. Anvendes på år 1–5 i fremskrivningen (henstillingen pkt. 7.2)"
+status = "verificeret"
+vaerdi = [0.034, 0.040, 0.043, 0.045, 0.066, 0.079, 0.093, 0.064, 0.051, 0.049]
+
+[[post]]
+id = "raadet.afkast.aar_6_10"
+enhed = "tabel"
+kilde = "Rådet for Afkastforventninger, 1. halvår 2027, fanen '6-10 år', kolonnen 'Afkast'. Anvendes på år 6–10 (henstillingen pkt. 7.2)"
+status = "verificeret"
+vaerdi = [0.036, 0.043, 0.056, 0.052, 0.077, 0.092, 0.117, 0.070, 0.064, 0.054]
+
+[[post]]
+id = "raadet.afkast.aar_1_10"
+enhed = "tabel"
+kilde = "Rådet for Afkastforventninger, 1. halvår 2027, fanen '1-10 år', kolonnen 'Afkast'. Henstillingen bruger 1–5 og 6–10; 1–10 er med til sammenligning"
+status = "verificeret"
+vaerdi = [0.035, 0.042, 0.050, 0.048, 0.071, 0.085, 0.104, 0.067, 0.057, 0.051]
+
+[[post]]
+id = "raadet.standardafvigelse"
+enhed = "tabel"
+kilde = "Rådet for Afkastforventninger, 1. halvår 2027, fanen 'Standardafv. og korr.' (år 1–10)"
+status = "verificeret"
+vaerdi = [0.043, 0.065, 0.092, 0.089, 0.165, 0.211, 0.210, 0.158, 0.124, 0.099]
+
+[[post]]
+id = "raadet.korrelation"
+enhed = "tabel"
+kilde = "Rådet for Afkastforventninger, 1. halvår 2027, fanen 'Standardafv. og korr.', korrelationer fastsat 1. halvår 2027 (øvre trekant i regnearket, her spejlet)"
+status = "verificeret"
+vaerdi = [
+  [1.0, 0.6, 0.3, 0.4, 0.1, 0.0, 0.0, 0.0, -0.1, 0.0],
+  [0.6, 1.0, 0.7, 0.5, 0.3, 0.3, 0.3, 0.2, 0.1, 0.2],
+  [0.3, 0.7, 1.0, 0.7, 0.7, 0.6, 0.6, 0.3, 0.3, 0.5],
+  [0.4, 0.5, 0.7, 1.0, 0.5, 0.6, 0.4, 0.3, 0.2, 0.4],
+  [0.1, 0.3, 0.7, 0.5, 1.0, 0.7, 0.8, 0.4, 0.4, 0.7],
+  [0.0, 0.3, 0.6, 0.6, 0.7, 1.0, 0.6, 0.3, 0.3, 0.5],
+  [0.0, 0.3, 0.6, 0.4, 0.8, 0.6, 1.0, 0.4, 0.4, 0.6],
+  [0.0, 0.2, 0.3, 0.3, 0.4, 0.3, 0.4, 1.0, 0.4, 0.3],
+  [-0.1, 0.1, 0.3, 0.2, 0.4, 0.3, 0.4, 0.4, 1.0, 0.3],
+  [0.0, 0.2, 0.5, 0.4, 0.7, 0.5, 0.6, 0.3, 0.3, 1.0],
+]
+
+[[post]]
+id = "raadet.investeringsomkostninger.aar_1_10"
+enhed = "tabel"
+kilde = "Rådet for Afkastforventninger, 1. halvår 2027, fanen 'Inv.omk.' (år 1–10). Anvendes hvert år de første 10 år (henstillingen pkt. 7.2)"
+status = "verificeret"
+vaerdi = [0.0022, 0.0034, 0.0061, 0.0044, 0.0045, 0.0066, 0.0022, 0.0022, 0.0022, 0.0022]
+
+[[post]]
+id = "raadet.lang.aktivklasser"
+enhed = "tabel"
+kilde = "Rådet for Afkastforventninger, 1. halvår 2027, fanen '11- år': tre aktivklasser for år 11 og frem"
+status = "verificeret"
+vaerdi = ["Obligationer", "Illikvide aktiver", "Aktier"]
+
+[[post]]
+id = "raadet.lang.afkast"
+enhed = "tabel"
+kilde = "Rådet for Afkastforventninger, 1. halvår 2027, fanen '11- år', kolonnen 'Afkast'"
+status = "verificeret"
+vaerdi = [0.035, 0.065, 0.065]
+
+[[post]]
+id = "raadet.lang.standardafvigelse"
+enhed = "tabel"
+kilde = "Rådet for Afkastforventninger, 1. halvår 2027, fanen '11- år', kolonnen 'Standardafvigelse'"
+status = "verificeret"
+vaerdi = [0.08, 0.12, 0.18]
+
+[[post]]
+id = "raadet.lang.korrelation"
+enhed = "tabel"
+kilde = "Rådet for Afkastforventninger, 1. halvår 2027, fanen '11- år' (øvre trekant, her spejlet)"
+status = "verificeret"
+vaerdi = [
+  [1.0, 0.0, 0.0],
+  [0.0, 1.0, 0.3],
+  [0.0, 0.3, 1.0],
+]
+
+[[post]]
+id = "raadet.lang.investeringsomkostninger"
+enhed = "tabel"
+kilde = "Rådet for Afkastforventninger, 1. halvår 2027, fanen 'Inv.omk.', 'År 11-'"
+status = "verificeret"
+vaerdi = [0.0022, 0.0022, 0.0045]
+
+[[post]]
+id = "raadet.lang.tilknytning"
+enhed = "tabel"
+kilde = "Antagelse (feature 035): Rådet giver kun tre aktivklasser fra år 11. De fire obligationsklasser henføres til 'Obligationer', de to aktieklasser til 'Aktier' og private equity, infrastruktur, ejendomme og hedgefonde til 'Illikvide aktiver', som i Rådets egen gruppering. Henstillingen pkt. 7.2 overlader indplaceringen til selskabet"
+status = "sekundaer"
+vaerdi = { "Stats- og realkreditobligationer" = "Obligationer", "Investment-grade obligationer" = "Obligationer", "High-yield obligationer" = "Obligationer", "Emerging markets statsobligationer" = "Obligationer", "Globale aktier (developed markets)" = "Aktier", "Emerging markets aktier" = "Aktier", "Private equity" = "Illikvide aktiver", "Infrastruktur" = "Illikvide aktiver", "Ejendomme" = "Illikvide aktiver", "Hedgefonde" = "Illikvide aktiver" }
+
+[[post]]
+id = "raadet.inflation"
+enhed = "tabel"
+kilde = "Rådet for Afkastforventninger, 1. halvår 2027, fanen 'Inflation': 1,8 % for år 1–5 og 6–10, 2,0 % på langt sigt (år 11-)"
+status = "verificeret"
+vaerdi = { aar_1_5 = 0.018, aar_6_10 = 0.018, aar_11 = 0.02 }
+
+[[post]]
+id = "branchestandard.fraktiler"
+enhed = "tabel"
+kilde = "F&P, Henstilling om pensionsprognoser (LP-information 20/20), pkt. 7.1: udbetaling ved lavt afkast = 5 pct.-fraktilen, ved højt afkast = 95 pct.-fraktilen"
+status = "verificeret"
+vaerdi = [0.05, 0.95]
+
+[[post]]
+id = "branchestandard.standardprofil"
+enhed = "tabel"
+kilde = "Antagelse (feature 035): standardprofilen 'mellem risiko' med livscyklus-nedtrapning, når porteføljen ikke kendes. Punkter (år til første udbetaling, aktieandel), lineært imellem: 70 % aktier 15 år eller mere før, 40 % ved første udbetaling og 30 % 10 år inde i udbetalingen. Niveauet svarer til typiske mellemrisikoprofiler i markedsrente; henstillingen pkt. 7.2 kræver selskabets faktiske strategiske portefølje, som vi ikke kender. Erstattes af et skøn kalibreret mod selskabets prognose, hvor det findes"
+status = "sekundaer"
+vaerdi = [[15, 0.70], [0, 0.40], [-10, 0.30]]
+
+[[post]]
+id = "branchestandard.blanding"
+enhed = "tabel"
+kilde = "Antagelse (feature 035): porteføljen er en blanding af Rådets 'Globale aktier (developed markets)' og 'Stats- og realkreditobligationer'; aktieandelen er det eneste valg. Henstillingen pkt. 7.2 overlader indplaceringen i aktivklasser til selskabet"
+status = "sekundaer"
+vaerdi = { aktier = "Globale aktier (developed markets)", obligationer = "Stats- og realkreditobligationer" }

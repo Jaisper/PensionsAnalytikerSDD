@@ -106,6 +106,8 @@ def test_uden_valgt_stopalder_foelger_punktet_foerste_udbetaling(uden_stopalder)
 def test_axe(med_loen):
     med_loen.add_script_tag(url="https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.9.1/axe.min.js")
     med_loen.locator(PUNKT).click()
+    # Med noderne i fejlen, så en fejl, der kun ses på CI (andre skrifttyper), kan findes.
     fejl = med_loen.evaluate("async () => (await axe.run(document, {runOnly: "
-                             "['wcag2a','wcag2aa','wcag21aa','wcag22aa']})).violations.map(v => v.id)")
+                             "['wcag2a','wcag2aa','wcag21aa','wcag22aa']})).violations"
+                             ".map(v => v.id + ': ' + v.nodes.map(n => n.target.join(' ')).join(', '))")
     assert fejl == []

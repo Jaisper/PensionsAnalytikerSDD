@@ -95,7 +95,9 @@ def _beregn(pi: float, ki: float, kommuneskat: float, kirkeskat: float, o: Regel
     uudnyttet = max(0.0, pf - max(0.0, grundlag)) * bund_sats + max(0.0, pf - skattepligtig) * kommune_sats
     # Ægtefællens uudnyttede skatteværdi nedsætter skatterne efter § 9 — højst til 0.
     nedsaettelse = min(overfoert, max(0.0, flad - personfradrag))
-    ki_over = max(0.0, ki - o.v("skat.kapitalindkomst.bundfradrag") - ekstra_ki_bundfradrag) if ki > 0 else 0.0
+    # Under 1 kr. er regnestøj (en tømt buffer); den giver ingen skat og skal ikke spores, så sporingen er
+    # ens i CPython og Pyodide (SC-006).
+    ki_over = max(0.0, ki - o.v("skat.kapitalindkomst.bundfradrag") - ekstra_ki_bundfradrag) if ki >= 1 else 0.0
     progressiv, nedslag = progressiv_skat(pi, kommuneskat, o, ki_over)
     total = max(0.0, flad - personfradrag - nedsaettelse + progressiv - nedslag)
     # Fordelingen pr. type (020): hvert trin rammer grundlaget over trinnets grænse; summen er
