@@ -171,6 +171,11 @@ class Antagelser:
     # Beregningsgrundlag (035): "egne" = ét afkast og én inflation som ovenfor; "branchestandard" = F&P's
     # henstilling om pensionsprognoser med Rådet for Afkastforventningers forudsætninger og tre forløb.
     beregningsgrundlag: Literal["egne", "branchestandard"] = "egne"
+    # 035c: borgeren har selv angivet afkastet; så følger bufferen det også med branchestandarden.
+    afkast_angivet: bool = False
+    # Bufferens og opsparingens afkast efter PAL-skat, når det ikke er `afkast_efter_pal` (035c:
+    # branchestandarden uden eget afkast bruger Rådets obligationsafkast). None = som pensionen.
+    buffer_afkast_efter_pal: float | None = None
 
     def afkast_i_aar(self, kalenderaar: int) -> float:
         return self.afkast_forloeb.get(kalenderaar, self.afkast_efter_pal)

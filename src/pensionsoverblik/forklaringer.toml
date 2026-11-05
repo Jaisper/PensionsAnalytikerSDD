@@ -76,10 +76,10 @@ id = "branchestandard"
 titel = "Beregnet som pensionsselskaberne"
 inventar = ["Branchestandard: prognose som pensionsselskaberne regner"]
 registerposter = ["branchestandard.*"]
-advarsler = []
+advarsler = ["BUFFER_AFKAST_BRANCHE"]
 niveau1 = "Dit pensionsselskab regner efter fælles regler for hele branchen. Det kan vi også. Så kan du sammenligne vores tal med selskabets. Du kan også bruge dine egne tal for afkast og inflation. Det er godt, hvis du vil se, hvad der sker, når du er mere forsigtig. Reglerne er ikke lov. De er en aftale i branchen."
 niveau2 = "Med branchens regler bruger vi de samme forventninger til afkast, udsving og inflation som selskaberne. Dem fastsætter et uafhængigt råd hvert halve år. Vi viser tre tal: hvis afkastet bliver højt, som ventet eller lavt. Med dine egne tal bruger vi ét afkast og én inflation for alle år. Så viser vi kun ét tal. Skat, folkepension og tillæg regnes ens i begge tilfælde."
-niveau3 = "Forsikring & Pension, Henstilling om pensionsprognoser (LP-information 20/20, opdateret oktober 2020), punkt 5–7. Henstillingen binder pensionsselskaberne gennem brancheorganisationen; den er en branchestandard og ikke lov. Vi følger metoden for markedsrente. For gennemsnitsrente bruger vi selskabets egen prognose. Se emnet om metoden for trinene, formlerne og forenklingerne. Vælger du egne antagelser, regner kernen som før featuren med ét afkast efter PAL-skat og én inflation."
+niveau3 = "Forsikring & Pension, Henstilling om pensionsprognoser (LP-information 20/20, opdateret oktober 2020), punkt 5–7. Henstillingen binder pensionsselskaberne gennem brancheorganisationen; den er en branchestandard og ikke lov. Vi følger metoden for markedsrente. For gennemsnitsrente bruger vi selskabets egen prognose. Se emnet om metoden for trinene, formlerne og forenklingerne. Vælger du egne antagelser, regner kernen som før featuren med ét afkast efter PAL-skat og én inflation. Bufferen og opsparing uden for pension er ikke omfattet af henstillingen: uden eget afkast vokser de med Rådets langsigtede afkast for obligationer efter investeringsomkostninger og PAL-skat; har du selv angivet et afkast, vokser de med det."
 
 [[emne]]
 id = "branchestandard_metode"

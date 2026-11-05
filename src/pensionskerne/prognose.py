@@ -17,7 +17,7 @@ from datetime import date
 from statistics import NormalDist
 from typing import Callable, Sequence
 
-from .model import Antagelser, Fremskrivning, Ordning, Pensionsprofil
+from .model import Advarsel, Antagelser, Fremskrivning, Ordning, Pensionsprofil
 from .register.opslag import Regelopslag
 
 
@@ -207,6 +207,14 @@ def ordningens_stier(ordning: Ordning, profil: Pensionsprofil, beregningsdato: d
     return {"hoej": efter_pal(stier.hoej), "forventet": efter_pal(stier.forventet), "lav": efter_pal(stier.lav)}
 
 
+def buffer_afkast(o: Regelopslag) -> float:
+    """Bufferens afkast efter PAL-skat med branchestandarden (035c): Rådets langsigtede afkast for
+    bufferens aktivklasse minus investeringsomkostningerne."""
+    klasser = o.v("raadet.lang.aktivklasser")
+    i = klasser.index(o.v("branchestandard.buffer_aktivklasse"))
+    return (o.v("raadet.lang.afkast")[i] - o.v("raadet.lang.investeringsomkostninger")[i]) * (1 - o.v("pal.sats"))
+
+
 def beregn_branchestandard(profil: Pensionsprofil, antagelser: Antagelser, satsaar: int, beregningsdato: date,
                            beregn: Callable[..., Fremskrivning], *, buffer_start: Fremskrivning | None = None,
                            med_spaend: bool = True) -> Fremskrivning:
@@ -217,22 +225,37 @@ def beregn_branchestandard(profil: Pensionsprofil, antagelser: Antagelser, satsa
     inflation = Regelopslag(satsaar, beregningsdato.year, 0.0).v("raadet.inflation")["aar_11"]
     o = Regelopslag(satsaar, beregningsdato.year, inflation)
     stier = {x.id: ordningens_stier(x, profil, beregningsdato, o, antagelser) for x in profil.ordninger}
-    egne = replace(antagelser, beregningsgrundlag="egne", inflation=inflation, satsregulering=None)
+    # 035c: uden eget afkast følger bufferen Rådets afkast; med eget afkast følger den det.
+    raadets = None if antagelser.afkast_angivet else buffer_afkast(o)
+    egne = replace(antagelser, beregningsgrundlag="egne", inflation=inflation, satsregulering=None,
+                   buffer_afkast_efter_pal=raadets)
 
     def forloeb(navn: str, start: Fremskrivning | None) -> Fremskrivning:
         ordninger = tuple(replace(x, afkast_forloeb=stier[x.id][navn]) for x in profil.ordninger)
         return beregn(replace(profil, ordninger=ordninger), egne, satsaar, beregningsdato, buffer_start=start)
 
+    res = forloeb("forventet", buffer_start)
     o.marker("forenkling:branchestandard_en_inflation")
-    if profil.opsparing:
-        o.marker("forenkling:branchestandard_opsparing_fast_afkast")
+    advarsler: tuple[Advarsel, ...] = ()
+    if profil.opsparing or any(e.i_buffer for e in res.engangsbeloeb):
+        if raadets is None:
+            o.marker("forenkling:branchestandard_opsparing_fast_afkast")
+        else:
+            procent = f"{raadets * 100:.1f}".replace(".", ",")
+            advarsler = (Advarsel(
+                "BUFFER_AFKAST_BRANCHE",
+                "Engangsbeløb og opsparing i din buffer vokser med Rådet for Afkastforventningers forventede "
+                f"afkast for obligationer: ca. {procent} % om året efter skat på pension. Vil du bruge dit eget "
+                "afkast, kan du angive det under dine egne estimater.",
+                registerposter=("raadet.lang.afkast", "raadet.lang.investeringsomkostninger",
+                                "branchestandard.buffer_aktivklasse")),)
 
     def med_spor(f: Fremskrivning, prognose: dict[str, Fremskrivning] | None = None) -> Fremskrivning:
         forenklinger = tuple(x for x in o.flag if x not in f.aar[0].flag) if f.aar else ()
         aar = ((replace(f.aar[0], flag=f.aar[0].flag + forenklinger),) + f.aar[1:]) if f.aar else f.aar
         return replace(f, aar=aar, antagelser=replace(f.antagelser, beregningsgrundlag="branchestandard"),
-                       prognose=prognose, sporing_samlet=tuple(dict.fromkeys(f.sporing_samlet + tuple(o.brugt))))
+                       prognose=prognose, advarsler=f.advarsler + advarsler,
+                       sporing_samlet=tuple(dict.fromkeys(f.sporing_samlet + tuple(o.brugt))))
 
-    res = forloeb("forventet", buffer_start)
     prognose = {navn: med_spor(forloeb(navn, res)) for navn in ("hoej", "lav")} if med_spaend else None
     return med_spor(res, prognose)

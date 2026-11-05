@@ -352,12 +352,13 @@ def beregn(
     # trækker den på kontoen). Opsparing i planen indsættes i bufferen primo første udbetalingsår i
     # sit eget lag; urørt opsparing vokser videre, og skatten af dens afkast betales af udbetalingen.
     pal = samlet.v("pal.sats")
-    rente_buffer = afkast / (1 - pal)
+    buffer_afkast = antagelser.buffer_afkast_efter_pal  # 035c: eget afkast for bufferen
+    rente_buffer = (afkast if buffer_afkast is None else buffer_afkast) / (1 - pal)
     samlet.antagelse("buffer_afkast_som_pension", rente_buffer)
 
     def rente_i(alder: int) -> float:
-        """Bufferens og opsparingens afkast før skat i året (023a)."""
-        return afkast_i(alder) / (1 - pal)
+        """Bufferens og opsparingens afkast før skat i året (023a; 035c: bufferens eget afkast)."""
+        return (afkast_i(alder) if buffer_afkast is None else buffer_afkast) / (1 - pal)
 
     ask_sats = samlet.v("ask.sats") if any(a.type == "ask" for a in profil.opsparing) else 0.0
 
