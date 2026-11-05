@@ -70,6 +70,14 @@ tillidsfaktor og en test.
   post med kilde. Det gælder kun branchestandardens livsvarige forløb. Med `egne` er
   horisonten uændret (SC-001).
 
+### Session 2026-11-05
+
+- Q: Skal borgeren vælge beregningsgrundlag i guiden? → A: Nej (produktejer, 035b). Der regnes altid som
+  pensionsselskaberne. Afkast og inflation i guiden er valgfrie egne estimater, og ved resultatet skiftes
+  der mellem branchestandarden og de egne estimater. Gemte input åbnes også med branchestandarden; deres
+  afkast og inflation er egne estimater. Kernens standard er fortsat `egne` (SC-001), så indgangslaget
+  får altid grundlaget fra brugerfladen.
+
 ## Porteføljen: kalibrering mod selskabets prognose
 
 Selskabets prognose i rapporten er beregnet efter henstillingen med selskabets faktiske
@@ -119,8 +127,8 @@ Over hovedtallet står "Beregnet som pensionsselskaberne (branchestandard)" med 
 1. **Given** standardvalget, **Then** er hovedtallet beregnet med Rådets forudsætninger og står i
    nutidskroner efter skat.
 2. **Given** skift til egne antagelser, **Then** er resultatet identisk med i dag (SC-001).
-3. **Given** et gemt input fra før featuren, **Then** åbnes det med egne antagelser og de gemte
-   tal.
+3. **Given** et gemt input fra før featuren, **Then** åbnes det med branchestandarden, og de gemte
+   tal for afkast og inflation er egne estimater, som skifteren bruger (035b).
 
 ---
 

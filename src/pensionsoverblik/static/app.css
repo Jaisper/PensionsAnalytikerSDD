@@ -160,6 +160,9 @@ body[data-plan=""] .hero__tal #hovedtal { display: block; font-size: .55em; whit
 .hero__aendring { font-weight: 700; color: var(--sand-300); min-height: 1.5em; }
 .hero__spaend { max-width: 440px; opacity: .92; margin-top: 4px; }
 .hero__loen { max-width: 440px; opacity: .92; margin-top: 4px; }
+/* Feature 035b: de egne estimater er en valgfri gruppe i guidens trin 5. */
+#egne-forventninger { margin: 16px 0 32px; }
+#egne-forventninger h3 { margin: 0 0 4px; }
 /* Feature 035: beregningsgrundlaget og skifteren lige under beløbet. */
 .hero__grundlag { max-width: 440px; opacity: .92; margin: 0 0 8px; }
 .hero__grundlag .knap--tekst { color: var(--hvid); display: block; }  /* egen linje: ikke inline i teksten (axe target-size) */

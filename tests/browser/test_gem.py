@@ -25,6 +25,9 @@ def aabn(side, sti, kode=KODE):
 
 
 def test_gem_og_aabn_giver_samme_resultat(resultat, ny_side):
+    # 035b: en åbnet fil starter som pensionsselskaberne, så resultatet skiftes dertil, før det gemmes.
+    resultat.evaluate("skiftGrundlag()")
+    resultat.wait_for_function("() => tilstand.v.grundlag.type === 'branchestandard'")
     foer = resultat.evaluate("tilstand.aktuelleSvar")
     hovedtal = resultat.evaluate("tilstand.v.hovedtal")
     sti = gem(resultat)
