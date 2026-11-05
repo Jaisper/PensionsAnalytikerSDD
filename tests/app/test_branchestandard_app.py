@@ -53,3 +53,25 @@ def test_levetidsscenarie_med_branchestandard():
     s = next(x for x in app.scenarier(json.dumps(med(GUIDE, "branchestandard"))) if x["noegle"] == "levetid_95")
     r = app.scenarie(json.dumps(med(GUIDE, "branchestandard")), IDAG, s["afkast"], s["inflation"], s["plan_slut_alder"])
     assert r["ok"] and r["data"]["dig"] > 0
+
+
+# ── 035c: bufferens afkast ───────────────────────────────────────────────────
+
+ALDERS = {"id": "o2", "type": "aldersopsparing", "saldo": 300000, "aarlig_indbetaling": 0, "udbetaling_start_alder": 67}
+
+
+def med_buffer(guide, **antagelser):
+    g = med(guide, "branchestandard")
+    return {**g, "ordninger": g["ordninger"] + [ALDERS], "antagelser": {**g["antagelser"], **antagelser}}
+
+
+def test_besked_om_bufferens_afkast_ved_beloebet():
+    v = regn(med_buffer(GUIDE))
+    assert "BUFFER_AFKAST_BRANCHE" in {a["kode"] for a in v["hovedtal_advarsler"]}
+    assert v["antagelser"]["buffer_afkast_efter_pal"] is not None
+
+
+def test_eget_afkast_ingen_besked():
+    v = regn(med_buffer(GUIDE, afkast_angivet=True))
+    assert "BUFFER_AFKAST_BRANCHE" not in {a["kode"] for a in v["hovedtal_advarsler"]}
+    assert v["antagelser"]["afkast_angivet"] is True and v["antagelser"]["buffer_afkast_efter_pal"] is None

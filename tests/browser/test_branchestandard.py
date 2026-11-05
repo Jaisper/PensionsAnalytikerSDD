@@ -77,3 +77,24 @@ def test_axe(branche):
                       "['wcag2a','wcag2aa','wcag21aa','wcag22aa']})).violations.map(v => v.id)")
     assert fejl == []
     assert s.fejl == []
+
+
+def test_bufferens_afkast(side, tmp_path):
+    """035c: uden eget afkast står bufferens afkast som en forudsætning ved beløbet; med eget afkast ikke."""
+    from tests.app.pensionsinfo_syntetisk import RAPPORT_PDF
+
+    pdf = tmp_path / "rapport.pdf"
+    pdf.write_bytes(RAPPORT_PDF)
+    vaelg_grundlag(side, "branchestandard")
+    koer_guide(side, pdf)
+    vent_paa_planen(side)
+    if side.evaluate("tilstand.v.hovedtal_advarsler.some(a => a.kode === 'BUFFER_AFKAST_BRANCHE')"):
+        assert "Bufferens afkast" in side.text_content("#hovedtal-advarsler")
+    assert side.evaluate("tilstand.aktuelleSvar.antagelser.afkast_angivet") is False
+
+
+def test_skyderen_markerer_eget_afkast(side):
+    side.evaluate("visTrin(5)")
+    side.locator("#afkast").fill("5")
+    side.locator("#afkast").dispatch_event("input")
+    assert side.evaluate("document.querySelector('#afkast-angivet').checked")

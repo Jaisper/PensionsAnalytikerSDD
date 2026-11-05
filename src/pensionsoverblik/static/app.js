@@ -509,6 +509,7 @@ function guideSvar() {
       inflation: +$("#inflation").value / 100,
       folkepension_opsaettelse_aar: +$("#opsaettelse").value,
       beregningsgrundlag: tilstand.grundlag,  // 035
+      afkast_angivet: $("#afkast-angivet").checked,  // 035c
     },
   };
 }
@@ -1156,6 +1157,7 @@ function synkroniserFormular() {
   $("#opsaettelse-v").textContent = s.antagelser.folkepension_opsaettelse_aar ? `${s.antagelser.folkepension_opsaettelse_aar} år` : "Nej";
   $("#afkast").value = s.antagelser.afkast_efter_pal * 100;
   $("#afkast-v").textContent = procent(s.antagelser.afkast_efter_pal);
+  $("#afkast-angivet").checked = !!s.antagelser.afkast_angivet;
   $("#inflation").value = s.antagelser.inflation * 100;
   $("#inflation-v").textContent = procent(s.antagelser.inflation);
   tilstand.grundlag = s.antagelser.beregningsgrundlag || "branchestandard";
@@ -2688,6 +2690,7 @@ function forbind() {
     ["p-opsaettelse", (v) => (+v ? `${v} år` : "Nej")]]) {
     $(`#${id}`).addEventListener("input", (e) => { $(`#${id}-v`).textContent = fmt(e.target.value); });
   }
+  $("#afkast").addEventListener("input", () => { $("#afkast-angivet").checked = true; });  // 035c
   $("#tilfoej-ordning").addEventListener("click", () => tilfoejOrdning($("#ny-type").value));
   for (const pre of ["", "p-"]) $(`#${pre}loen-maaned`).addEventListener("input", () => tegnPensionsRapport(pre));
 
@@ -2749,7 +2752,11 @@ function forbind() {
     opdater(+e.target.value);
     genberegn();
   });
-  skyder("r-afkast", (v) => { tilstand.aktuelleSvar.antagelser.afkast_efter_pal = v / 100; synkroniserFormular(); }, (v) => `${decimal(v)} %`);
+  skyder("r-afkast", (v) => {
+    tilstand.aktuelleSvar.antagelser.afkast_efter_pal = v / 100;
+    tilstand.aktuelleSvar.antagelser.afkast_angivet = true;  // 035c
+    synkroniserFormular();
+  }, (v) => `${decimal(v)} %`);
   skyder("r-inflation", (v) => { tilstand.aktuelleSvar.antagelser.inflation = v / 100; synkroniserFormular(); }, (v) => `${decimal(v)} %`);
   $("#forbrug-soeg-knap").addEventListener("click", soegMedForbrug);
   $("#forbrug-flad").addEventListener("click", () => {

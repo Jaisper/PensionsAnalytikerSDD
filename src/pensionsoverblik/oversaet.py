@@ -97,6 +97,7 @@ def til_kerne(data: dict) -> tuple[Pensionsprofil, Antagelser]:
         forbrugsprofil=Forbrugsprofil(tuple(_tal(x, "antagelser.forbrugsprofil")
                                             for x in (a.get("forbrugsprofil") or []))),
         beregningsgrundlag=grundlag,
+        afkast_angivet=bool(a.get("afkast_angivet", False)),  # 035c
     )
     return profil, antagelser
 

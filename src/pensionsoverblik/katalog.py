@@ -76,6 +76,7 @@ ADVARSLER: dict[str, dict[str, str]] = {
     "OPSAT_ANDRE_FORMER": {"placering": "folkepension", "ikon": "≈", "titel": "Andre udbetalingsformer"},
     "MELLEMSKAT_INTERVAL": {"placering": "graf", "ikon": "!", "titel": "Høj skat i nogle år"},
     "BUFFER_SOM_OPSPARING": {"placering": "hovedtal", "ikon": "≈", "titel": "Bufferen er opsparing"},
+    "BUFFER_AFKAST_BRANCHE": {"placering": "hovedtal", "ikon": "≈", "titel": "Bufferens afkast"},  # 035c
     "OPSPARING_FOER_UDBETALING": {"placering": "hovedtal", "ikon": "≈", "titel": "Opsparingen frem til udbetaling"},
     "INDKOMSTHUL": {"placering": "graf", "ikon": "!", "titel": "Ingen indkomst i nogle år"},
     "AKTIEINDKOMST_OVER_GRAENSE": {"placering": "generel", "ikon": "!", "titel": "Stort salg af aktier"},

@@ -689,3 +689,10 @@ enhed = "tabel"
 kilde = "Antagelse (feature 035): porteføljen er en blanding af Rådets 'Globale aktier (developed markets)' og 'Stats- og realkreditobligationer'; aktieandelen er det eneste valg. Henstillingen pkt. 7.2 overlader indplaceringen i aktivklasser til selskabet"
 status = "sekundaer"
 vaerdi = { aktier = "Globale aktier (developed markets)", obligationer = "Stats- og realkreditobligationer" }
+
+[[post]]
+id = "branchestandard.buffer_aktivklasse"
+enhed = "tabel"
+kilde = "Antagelse (feature 035c): med branchestandarden og uden eget afkast vokser bufferen (engangsbeløb og opsparing uden for pension) med Rådet for Afkastforventningers langsigtede afkast for obligationer efter investeringsomkostninger. Kernen beskriver bufferen som 'bank eller obligationer'. Henstillingen gælder kun pensionsprognoser"
+status = "sekundaer"
+vaerdi = "Obligationer"

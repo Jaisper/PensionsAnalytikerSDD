@@ -78,6 +78,12 @@ tillidsfaktor og en test.
   afkast og inflation er egne estimater. Kernens standard er fortsat `egne` (SC-001), så indgangslaget
   får altid grundlaget fra brugerfladen.
 
+- Q: Hvilket afkast får bufferen (engangsbeløb og opsparing uden for pension) med branchestandarden?
+  → A: (produktejer, 035c) Uden eget afkast: Rådets langsigtede afkast for obligationer efter
+  investeringsomkostninger og PAL-skat, det samme i alle tre forløb, og borgeren oplyses om det ved beløbet,
+  når der er noget i bufferen. Har borgeren selv angivet et afkast, følger bufferen det både med
+  branchestandarden og med egne estimater.
+
 ## Porteføljen: kalibrering mod selskabets prognose
 
 Selskabets prognose i rapporten er beregnet efter henstillingen med selskabets faktiske
