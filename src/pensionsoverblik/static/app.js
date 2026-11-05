@@ -78,6 +78,7 @@ const tilstand = {
   aktuelleSvar: null,  // svarene inkl. ændringer fra skyderne
   sidsteGyldige: null,
   panel: false,        // guidens formular står i datapanelet på resultatsiden
+  grundlag: "branchestandard",  // 035b: altid som pensionsselskaberne; egne estimater vælges ved resultatet
   v: null,             // seneste visningsmodel // seneste svar, der kunne beregnes (skydere vender tilbage hertil ved fejl)
   forrigeHovedtal: null, graf: null,
   tlRaekker: null, valgtRaekke: null, prAar: null,  // tidslinjen (006)
@@ -507,7 +508,7 @@ function guideSvar() {
       afkast_efter_pal: +$("#afkast").value / 100,
       inflation: +$("#inflation").value / 100,
       folkepension_opsaettelse_aar: +$("#opsaettelse").value,
-      beregningsgrundlag: $("input[name=grundlag]:checked").value,  // 035
+      beregningsgrundlag: tilstand.grundlag,  // 035
     },
   };
 }
@@ -1109,18 +1110,17 @@ function flytFormularTilGuide() {
 }
 
 /* ── Beregningsgrundlag (feature 035) ───────────────────────────────────── */
-const branche = () => $("input[name=grundlag]:checked")?.value === "branchestandard";
+const branche = () => tilstand.grundlag === "branchestandard";
 
 function visGrundlag() {
-  // Egne afkast og inflation gælder kun med egne antagelser.
-  $("#egne-forventninger").hidden = branche();
+  // Skyderne for afkast og inflation gælder kun dine egne estimater.
   $("#r-egne").hidden = branche();
   $("#r-branche").hidden = !branche();
 }
 
 function skiftGrundlag() {
   const ny = branche() ? "egne" : "branchestandard";
-  $$("input[name=grundlag]").forEach((r) => (r.checked = r.value === ny));
+  tilstand.grundlag = ny;
   tilstand.aktuelleSvar.antagelser.beregningsgrundlag = ny;
   visGrundlag();
   genberegn();
@@ -1129,11 +1129,11 @@ function skiftGrundlag() {
 function tegnGrundlag(v) {
   const g = v.grundlag;
   const knap = el("button", { type: "button", class: "knap knap--tekst", id: "skift-grundlag",
-    tekst: g.type === "branchestandard" ? "Brug mine egne antagelser" : "Regn som pensionsselskaberne" });
+    tekst: g.type === "branchestandard" ? "Brug mine egne estimater" : "Regn som pensionsselskaberne" });
   knap.addEventListener("click", skiftGrundlag);
   $("#hovedtal-grundlag").replaceChildren(g.type === "branchestandard"
     ? `Udbetaling ved forventet afkast, regnet som pensionsselskaberne (Rådet for Afkastforventninger, ${g.saet}). `
-    : `Regnet med dine egne antagelser: afkast ${procent(v.antagelser.afkast_efter_pal)} og inflation ${procent(v.antagelser.inflation)}. `, knap);
+    : `Regnet med dine egne estimater: afkast ${procent(v.antagelser.afkast_efter_pal)} og inflation ${procent(v.antagelser.inflation)}. `, knap);
 }
 
 function synkroniserFormular() {
@@ -1158,8 +1158,7 @@ function synkroniserFormular() {
   $("#afkast-v").textContent = procent(s.antagelser.afkast_efter_pal);
   $("#inflation").value = s.antagelser.inflation * 100;
   $("#inflation-v").textContent = procent(s.antagelser.inflation);
-  const grundlag = s.antagelser.beregningsgrundlag || "egne";
-  $$("input[name=grundlag]").forEach((r) => (r.checked = r.value === grundlag));
+  tilstand.grundlag = s.antagelser.beregningsgrundlag || "branchestandard";
   visGrundlag();
   $("#stop-alder").value = s.person.loen?.stop_alder ?? "";
   if (pp) $("#p-stop-alder").value = pp.loen?.stop_alder ?? "";
@@ -1316,9 +1315,9 @@ async function aabnGemt() {
     const aarlig = beloeb(data.felter[`${pre}loen`]);
     if (aarlig && !data.felter[`${pre}loen-maaned`]) data.felter[`${pre}loen-maaned`] = kr(aarlig / 12);
   }
-  // Gemt før 035: regnet med egne antagelser (US1-3).
-  if (!("radio:grundlag" in data.felter)) data.felter["radio:grundlag"] = "egne";
   saetGuideFelter(data.felter);
+  // 035b: altid som pensionsselskaberne; de gemte afkast og inflation er egne estimater.
+  tilstand.grundlag = "branchestandard";
   visGrundlag();
   tilstand.ordninger = data.ordninger || [];
   tilstand.partnerOrdninger = data.partnerOrdninger || [];
@@ -2673,7 +2672,6 @@ function forbind() {
   $("#pdf-fil").addEventListener("change", () => aflaesPdf("dig"));
   $("#p-pdf-fil").addEventListener("change", () => aflaesPdf("partner"));
   $$("input[name=civilstand], input[name=partnerdata]").forEach((r) => r.addEventListener("change", opdaterPartnerFelter));
-  $$("input[name=grundlag]").forEach((r) => r.addEventListener("change", visGrundlag));  // 035
   opdaterPartnerFelter();
   $("#p-tilfoej-ordning").addEventListener("click", () => tilfoejOrdning($("#p-ny-type").value, "partner"));
   const faner = $$('#person-faner [role="tab"]');
@@ -2703,6 +2701,8 @@ function forbind() {
     $("#resultat").hidden = true; $("#guide").hidden = false; $("#menu").hidden = true; $("#ny-beregning").hidden = true;
     flytFormularTilGuide();
     tilstand.hvem = "dig";
+    tilstand.grundlag = "branchestandard";  // 035b
+    visGrundlag();
     visTrin(1);
   });
   for (const navn of ["data", "graf"]) {

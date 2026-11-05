@@ -25,15 +25,15 @@ def branche(side, tmp_path):
     return side
 
 
-def test_branchestandard_er_guidens_standard(side):
-    assert side.evaluate("document.querySelector('input[name=grundlag][value=branchestandard]').defaultChecked")
-
-
-def test_egne_forventninger_vises_kun_med_egne(side):
-    vaelg_grundlag(side, "branchestandard")
-    assert side.locator("#egne-forventninger").is_hidden()
-    vaelg_grundlag(side, "egne")
-    assert side.evaluate("!document.querySelector('#egne-forventninger').hidden")
+def test_altid_som_pensionsselskaberne(ny_side):
+    """035b: intet valg i guiden; afkast og inflation er valgfrie egne estimater."""
+    s = ny_side
+    s.goto(s.base_url)
+    s.evaluate("motorKlar")
+    assert s.evaluate("tilstand.grundlag") == "branchestandard"
+    assert s.locator("input[name=grundlag]").count() == 0
+    assert "Dine egne estimater (valgfrit)" in s.text_content("#egne-forventninger")
+    assert s.evaluate("!document.querySelector('#egne-forventninger').hidden")
 
 
 def test_tre_tal_med_branchens_benaevnelser(branche):
@@ -54,8 +54,8 @@ def test_afkastskyderne_er_skjult(branche):
 
 def test_skift_til_egne_antagelser(branche):
     s = branche
-    s.get_by_role("button", name="Brug mine egne antagelser").click()
-    s.wait_for_function("() => /dine egne antagelser/.test(document.querySelector('#hovedtal-grundlag').textContent)")
+    s.get_by_role("button", name="Brug mine egne estimater").click()
+    s.wait_for_function("() => /dine egne estimater/.test(document.querySelector('#hovedtal-grundlag').textContent)")
     s.wait_for_function("() => /Hvis afkast og inflation/.test(document.querySelector('#hovedtal-spaend').textContent)")
     assert s.locator("#r-egne").is_visible()
     s.get_by_role("button", name="Regn som pensionsselskaberne").click()
