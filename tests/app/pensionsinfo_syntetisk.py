@@ -124,6 +124,16 @@ FLERE = ([(60, 28, "Pension - flere oplysninger", 14), (65, 81, "Leverandør, af
          + [(92, 560, "S Skattepligtig F Skatte- og afgiftsfri A Afgiftspligtig", 5.5)])
 
 RAPPORT_PDF = lav_pdf_placeret([FORSIDE, INDHOLD, AFTALER, SCENARIE, FLERE, BILAG])
+
+# Nogle selskaber oplyser opsparing og indbetaling pr. produkt i kolonnerne "Indbetaling" og
+# "Opsparing" (set i en lang rapport, 2026). Så skal saldoen ikke fordeles skønsmæssigt.
+FLERE_MED_SALDO = (FLERE
+    + [(312, 200, "Testselskab har oplyst en fremtidig årlig", 5.5), (312, 207, "indbetaling til pensionen på 70.000 kr.", 5.5),
+       (470, 200, "Investeringsformen for opsparingen er", 5.5), (470, 207, "markedsrentepension.", 5.5),
+       (470, 217, "Pr. 01.10.2026 udgør opsparingen 1.400.000 kr.", 5.5),
+       (312, 250, "Der indbetales ikke på dækningen.", 5.5),
+       (470, 250, "Pr. 01.10.2026 udgør opsparingen 600.000 kr.", 5.5)])
+RAPPORT_MED_SALDO_PDF = lav_pdf_placeret([FORSIDE, INDHOLD, AFTALER, SCENARIE, FLERE_MED_SALDO, BILAG])
 RAPPORT_UDEN_INDHOLD_PDF = lav_pdf_placeret([FORSIDE, AFTALER, SCENARIE, FLERE])
 
 

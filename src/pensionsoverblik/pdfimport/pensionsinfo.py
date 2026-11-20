@@ -37,6 +37,9 @@ PRODUKTLINJE = re.compile(r"^([SAF]) (.+?) ((?:\d{1,3}(?:\.\d{3})* kr\. ?)+)(.*)
 TIDLIGST = re.compile(r"tidligst udbetales (?:fra|ved) (\d+) år")
 AFTALT = re.compile(r"kommer til udbetaling (?:fra|ved) (\d+) år")
 PERIODE = re.compile(r"Udbetales i (\d+) år")
+# Opsparing og indbetaling pr. produkt på "Pension - flere oplysninger" (ikke alle selskaber oplyser dem).
+PRODUKT_SALDO = re.compile(r"udgør opsparingen (\d{1,3}(?:\.\d{3})*) kr")
+PRODUKT_INDBETALING = re.compile(r"årlig indbetaling til pensionen på (\d{1,3}(?:\.\d{3})*) kr")
 GRUPPER = {
     "Folkepension": "folkepension",
     "På én gang": "engang",
@@ -138,6 +141,8 @@ class _Produkt:
     aftalt: int | None = None
     saldo: int | None = None
     indbetaling: int | None = None
+    oplyst_saldo: int | None = None        # pr. produkt fra "flere oplysninger"
+    oplyst_indbetaling: int | None = None  # pr. produkt, før AM-bidrag som aftalens
     noter: list[str] = field(default_factory=list)
 
 
@@ -250,6 +255,8 @@ def _flere_oplysninger(sider) -> list[dict]:
         ord_ = side.extract_words()
         udb = next((w for w in ord_ if w["text"] == "Udbetaling"), None)
         ind = next((w for w in ord_ if w["text"] == "Indbetaling"), None)
+        ops = next((w for w in ord_ if w["text"] == "Opsparing" and ind and w["x0"] > ind["x0"]), None)
+        oevr = next((w for w in ord_ if w["text"] == "Øvrigt" and ops and w["x0"] > ops["x0"]), None)
         if not udb or not ind:
             continue
         venstre = side.crop((0, udb["bottom"] + 2, udb["x0"] - 2, side.height)).extract_text_lines(y_tolerance=1)
@@ -264,12 +271,26 @@ def _flere_oplysninger(sider) -> list[dict]:
             udbetaling = side.crop((udb["x0"] - 2, top - 2, ind["x0"] - 2, bund - 2)).extract_text(y_tolerance=1) or ""
             udbetaling = re.sub(r"\s+", " ", udbetaling)
             t, a = TIDLIGST.search(udbetaling), AFTALT.search(udbetaling)
+            saldo = indbetaling = None
+            if ops:
+                def kolonne(x0, x1):
+                    tekst = side.crop((x0 - 2, top - 2, x1 - 2, bund - 2)).extract_text(y_tolerance=1) or ""
+                    return re.sub(r"\s+", " ", tekst)
+                ind_tekst = kolonne(ind["x0"], ops["x0"])
+                if m := PRODUKT_INDBETALING.search(ind_tekst):
+                    indbetaling = _kr(m.group(1))
+                elif "indbetales ikke" in ind_tekst:
+                    indbetaling = 0
+                if m := PRODUKT_SALDO.search(kolonne(ops["x0"], oevr["x0"] if oevr else side.width)):
+                    saldo = _kr(m.group(1))
             blokke.append({
                 "selskab": venstre[i - 1]["text"].strip(),
                 "aftalenr": _normaliser_nr(re.sub(r"\s+[SAF]$", "", venstre[i]["text"].strip())),
                 "type": " ".join(type_linjer).replace("Ophørende", "").strip(),
                 "tidligste": int(t.group(1)) if t else None,
                 "aftalt": int(a.group(1)) if a else None,
+                "saldo": saldo,
+                "indbetaling": indbetaling,
             })
     return blokke
 
@@ -312,8 +333,24 @@ def _vaegt(p: _Produkt) -> float:
 
 
 def _fordel(aftale: _Aftale, produkter: list[_Produkt], scenariealder: int, rateloft: int, am_bidrag: float) -> None:
-    """Fordeler aftalens saldo og indbetaling på produkterne. Skøn markeres på produktet."""
+    """Fordeler aftalens saldo og indbetaling på produkterne. Skøn markeres på produktet. Oplyser
+    rapporten saldo og indbetaling pr. produkt, bruges de i stedet (for hvert felt, når alle har det)."""
     indbetaling = None if aftale.indbetaling is None else round(aftale.indbetaling * (1 - am_bidrag))
+    if len(produkter) > 1 and all(p.oplyst_saldo is not None for p in produkter):
+        oplyst_ind = all(p.oplyst_indbetaling is not None for p in produkter)
+        for p in produkter:
+            p.saldo = p.oplyst_saldo
+            if oplyst_ind:
+                p.indbetaling = round(p.oplyst_indbetaling * (1 - am_bidrag))
+                if p.indbetaling:
+                    p.noter.append("Indbetalingen er omregnet til beløbet efter arbejdsmarkedsbidrag (8 %).")
+        if oplyst_ind:
+            return
+        saldi = {id(p): p.saldo for p in produkter}
+        _fordel(_Aftale(aftale.nr, aftale.indbetaling, None), produkter, scenariealder, rateloft, am_bidrag)
+        for p in produkter:
+            p.saldo = saldi[id(p)]
+        return
     if len(produkter) == 1:
         p = produkter[0]
         p.saldo, p.indbetaling = aftale.saldo, indbetaling
@@ -371,6 +408,7 @@ class PensionsInfoAflaeser:
             d = next((d for d in detaljer if d["aftalenr"] == p.aftalenr and _type_noegle(d["type"]) == _type_noegle(p.type_tekst)), None)
             if d:
                 p.tidligste, p.aftalt = d["tidligste"], d["aftalt"]
+                p.oplyst_saldo, p.oplyst_indbetaling = d["saldo"], d["indbetaling"]
 
         pr_aftale: dict[str, list[_Produkt]] = defaultdict(list)
         for p in private:

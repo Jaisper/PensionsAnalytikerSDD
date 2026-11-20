@@ -8,7 +8,7 @@ import pytest
 from pensionsoverblik.pdfimport.aflaeser import vaelg_aflaeser
 from pensionsoverblik.pdfimport.pensionsinfo import PensionsInfoAflaeser
 from pensionsoverblik.pdfimport.tekst import foedselsdato_fra_rapport, udtraek_sider
-from tests.app.pensionsinfo_syntetisk import RAPPORT_PDF, RAPPORT_UDEN_INDHOLD_PDF
+from tests.app.pensionsinfo_syntetisk import RAPPORT_MED_SALDO_PDF, RAPPORT_PDF, RAPPORT_UDEN_INDHOLD_PDF
 
 AFLAESER = PensionsInfoAflaeser(rateloft=68_700, am_bidrag=0.08)
 
@@ -62,6 +62,18 @@ def test_saldo_og_indbetaling_fordeles_paa_produkter_under_samme_aftale(aflaesni
     # indbetaling 100.000 før AM-bidrag → 92.000; ratepension op til loftet, resten livsvarig
     assert (rate.aarlig_indbetaling, liv.aarlig_indbetaling) == (68_700, 23_300)
     assert any("skønsmæssigt" in n for n in rate.noter)
+
+
+def test_saldo_og_indbetaling_pr_produkt_bruges_naar_rapporten_oplyser_dem():
+    # Lange rapporter (2026): "Pension - flere oplysninger" har opsparing og indbetaling pr. produkt.
+    a = AFLAESER.aflaes(RAPPORT_MED_SALDO_PDF)
+    rate = _ordning(a, "5555555555", "ratepension")
+    liv = _ordning(a, "5555555555", "livsvarig")
+    assert (rate.saldo, liv.saldo) == (1_400_000, 600_000)
+    # før AM-bidrag som aftalens indbetaling → 92 %; "Der indbetales ikke" er 0 kr.
+    assert (rate.aarlig_indbetaling, liv.aarlig_indbetaling) == (64_400, 0)
+    assert not any("skønsmæssigt" in n for n in rate.noter + liv.noter)
+    assert _ordning(a, "1234567890", "kapitalpension").saldo == 800_000   # aftalens saldo som før
 
 
 def test_aftale_uden_prognose_bliver_ukendt(aflaesning):
