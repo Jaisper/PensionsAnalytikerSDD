@@ -96,20 +96,21 @@ class Optimering:
 
 # ── Mål ─────────────────────────────────────────────────────────────────────────────────────────
 
-def _jaevn_real(res: Fremskrivning) -> list[float]:
+def _jaevn_real(res: Fremskrivning) -> list[float | None]:
     """Det jævne niveau pr. år i dagens kroner i forhold til forbrugsprofilen (033): beløbet delt med
-    årets vægt, altså det, året svarer til i første bånd. Uden profil er vægten 1."""
-    return [j.jaevn / j.vaegt * a.realfaktor for j, a in zip(res.jaevn.aar, res.aar)]
+    årets vægt, altså beløbet ved 100 %. Uden profil er vægten 1. År på 0 % har intet niveau (None, 033b)."""
+    return [j.jaevn / j.vaegt * a.realfaktor if j.vaegt > 0 else None for j, a in zip(res.jaevn.aar, res.aar)]
 
 
 def fast_niveau(res: Fremskrivning, vindue: range) -> float:
     """Det faste beløb hele perioden (kr./md., dagens kroner): det laveste jævne beløb i vinduet, i
-    forhold til forbrugsprofilen (033) — med en faldende profil beløbet i første bånd."""
+    forhold til forbrugsprofilen (033) — beløbet ved 100 %. År på 0 % tæller ikke med (033b)."""
     if res.jaevn:
         pr_alder = dict(zip((a.alder for a in res.aar), _jaevn_real(res)))
     else:
         pr_alder = {a.alder: a.netto_real for a in res.aar}
-    return min(pr_alder.get(alder, 0.0) for alder in vindue) / MAANEDER
+    niveauer = [x for x in (pr_alder.get(alder, 0.0) for alder in vindue) if x is not None]
+    return min(niveauer, default=0.0) / MAANEDER
 
 
 def vindue(res: Fremskrivning) -> range:
@@ -123,7 +124,9 @@ def slutniveau(res: Fremskrivning) -> float:
     niveau; uden jævn udbetaling det første hele folkepensionsår."""
     if res.jaevn:
         fra = vindue(res).start  # arbejdsår (017) tæller ikke med
-        real = [x for x, a in zip(_jaevn_real(res), res.aar) if a.alder >= fra]
+        real = [x for x, a in zip(_jaevn_real(res), res.aar) if a.alder >= fra and x is not None]
+        if not real:
+            return 0.0
         ref = max([0] + [i for i in range(1, len(real)) if real[i] > real[i - 1] + MAANEDER])
         return real[ref] / MAANEDER
     foerste_hele = next((a for a in res.aar if a.alder > res.folkepensionsalder), res.aar[-1])
@@ -135,7 +138,7 @@ def spring(res: Fremskrivning, vindue: range) -> float:
     Bruges kun ved uafgjort: det flade forløb vinder over det med mest senere (valgt 2026-10-28)."""
     if not res.jaevn:
         return 0.0
-    real = [x for x, a in zip(_jaevn_real(res), res.aar) if a.alder in vindue]
+    real = [x for x, a in zip(_jaevn_real(res), res.aar) if a.alder in vindue and x is not None]
     return (max(real) - min(real)) / MAANEDER if real else 0.0
 
 

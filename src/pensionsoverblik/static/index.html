@@ -474,20 +474,18 @@
               <div class="niveauvaelger" data-niveauvaelger="aar"></div>
               <div class="forklaring__tekst" id="aar-forklaring-tekst"></div>
             </section>
-            <!-- Feature 033: faldende udbetalinger, en equalizer pr. bånd på fem år fra stopalderen -->
+            <!-- Feature 033/033b: en equalizer pr. bånd på fem år fra stopalderen, 0–150 % -->
             <section class="forbrug" id="forbrug" aria-labelledby="forbrug-titel" hidden>
-              <h3 id="forbrug-titel">Mere i de første år?</h3>
-              <p class="felt__hjaelp" id="forbrug-hjaelp">Mange bruger mest i årene lige efter pensionen. Sænk de senere perioder, så får du mere fra starten. Procenten er i forhold til de første år. Vi bruger stadig alle pengene og låner aldrig af senere år. Beløbene opdateres, mens du justerer.</p>
+              <h3 id="forbrug-titel">Din fordeling over tid</h3>
+              <p class="felt__hjaelp" id="forbrug-hjaelp">Mange bruger mest i årene lige efter pensionen. Skru hver periode op eller ned fra 0 til 150 %. 100 % er det faste beløb. Bruger du mindre i én periode, bliver der mere til de andre. Vi låner aldrig af senere år. Beløbene opdateres, mens du justerer.</p>
               <div class="forbrug__baand" id="forbrug-baand" role="group" aria-labelledby="forbrug-titel" aria-describedby="forbrug-hjaelp forbrug-kroner"></div>
-              <p class="felt__hjaelp" id="forbrug-kroner">Beløbene er pr. måned efter skat i dagens kroner, også når grafen viser årets kroner. Så kan du sammenligne perioderne direkte: 80 % betyder 80 % af det, pengene kan købe i de første år.</p>
+              <p class="felt__hjaelp" id="forbrug-kroner">Beløbene er pr. måned efter skat i dagens kroner, også når grafen viser årets kroner. Så kan du sammenligne perioderne direkte: 80 % betyder 80 % af det faste beløb. 0 % betyder ikke, at du intet får: folkepension og livrenter bliver ved med at komme. Vi lægger dem bare til side til en senere periode.</p>
               <p class="felt__hjaelp" id="forbrug-note" role="status" hidden></p>
-              <div class="forbrug__soeg" id="forbrug-soeg" hidden>
-                <p>Når du er færdig med at justere, så find den plan, der passer bedst til din fordeling. Den kan rykke dine udbetalinger frem, så du har flere penge i de første år.</p>
-                <button type="button" class="knap knap--primaer" id="forbrug-soeg-knap">Find bedste plan med denne fordeling</button>
-              </div>
               <button type="button" class="knap knap--tekst" id="forbrug-flad" hidden>Samme beløb hele livet</button>
             </section>
             <div class="optimering">
+              <!-- 033b: én knap. Er fordelingen ændret, søger den fra din egen plan med den nye fordeling. -->
+              <p class="optimering__note" id="optimer-note" role="status" hidden>Du har ændret fordelingen. Når du er færdig, så tryk "Find bedste plan". Så finder vi den plan, der passer bedst til din fordeling. Den kan rykke dine udbetalinger frem.</p>
               <div class="optimering__top">
                 <button type="button" class="knap knap--sekundaer" id="optimer-knap">Find bedste plan</button>
                 <p class="felt__hjaelp">Vi afprøver, hvornår og hvor længe dine ordninger kan udbetales, og finder det højeste faste beløb, du kan leve af hele perioden – efter skat og uden nye huller i din indkomst.</p>

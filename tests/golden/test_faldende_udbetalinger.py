@@ -98,25 +98,52 @@ def test_uden_vaegt_er_alt_som_foer():
     assert uden == flad
 
 
-profiler = st.lists(st.sampled_from([x / 20 for x in range(10, 21)]), min_size=1, max_size=30).map(
+def test_baand_paa_nul_faar_intet_og_pengene_venter():
+    # 033b: [300, 0, 0] med vægte 0, 1, 1: år 0 får intet, c = 300 / 2 = 150 → 0, 150, 150.
+    jaevn, buffer = niveauer([300, 0, 0], [0.0, 1.0, 1.0])
+    assert jaevn == [0, 150, 150]
+    assert buffer == [300, 150, 0]
+
+
+def test_stigende_baand_faar_mere():
+    # 033b: [350, 0, 0] med vægte 1, 1, 1,5: c = 350 / 3,5 = 100 → 100, 100, 150.
+    jaevn, buffer = niveauer([350, 0, 0], [1.0, 1.0, 1.5])
+    assert jaevn == [100, 100, 150]
+    assert buffer == [250, 150, 0]
+
+
+def test_sidste_baand_paa_nul_laaner_ikke():
+    # 033b: [100, 100, 100] med vægte 1, 1, 0: pengene i det sidste år kan ikke bruges før (010), så de
+    # bliver stående som formue.
+    jaevn, buffer = niveauer([100, 100, 100], [1.0, 1.0, 0.0])
+    assert jaevn == [100, 100, 0]
+    assert buffer == [0, 0, 100]
+
+
+# Faldende profiler (033) og vilkårlige profiler fra 0 til 150 % med et sidste bånd over 0 (033b).
+faldende_profiler = st.lists(st.sampled_from([x / 20 for x in range(10, 21)]), min_size=1, max_size=30).map(
     lambda xs: [1.0] + sorted(xs, reverse=True)[1:])
+frie_profiler = st.lists(st.sampled_from([x / 20 for x in range(0, 31)]), min_size=1, max_size=30)
 
 
-@given(st.lists(st.floats(min_value=0, max_value=500_000), min_size=1, max_size=30), profiler,
+@given(st.lists(st.floats(min_value=0, max_value=500_000), min_size=1, max_size=30),
+       st.one_of(faldende_profiler, frie_profiler),
        st.floats(min_value=0, max_value=0.08), st.floats(min_value=0, max_value=0.05))
-@settings(max_examples=150, deadline=None)
+@settings(max_examples=200, deadline=None)
 def test_egenskab_aldrig_laan_og_ender_i_nul(netto, profil, rente, inflation):
     vaegt = (profil + [profil[-1]] * len(netto))[:len(netto)]
+    vaegt[-1] = vaegt[-1] or 0.05  # står det sidste år på 0 %, bliver pengene stående (test ovenfor)
     j = beregn_jaevn(raekker(netto), {}, rente, inflation, 2030, vaegt=vaegt)
     g = 1 + inflation
-    normeret = [a.jaevn / g ** i / vaegt[i] for i, a in enumerate(j.aar)]
+    normeret = [a.jaevn / g ** i / vaegt[i] for i, a in enumerate(j.aar) if vaegt[i] > 0]
     tol = 1e-6 * (1 + max(netto))
     assert all(a.buffer_rest >= -tol for a in j.aar)
+    assert all(a.jaevn == 0 for i, a in enumerate(j.aar) if vaegt[i] == 0)
     assert all(normeret[i + 1] >= normeret[i] - tol for i in range(len(normeret) - 1))
     assert j.aar[-1].buffer_rest == pytest.approx(0, abs=1e-6 * (1 + sum(netto)))
 
 
-@given(st.lists(st.floats(min_value=0, max_value=500_000), min_size=1, max_size=30), profiler)
+@given(st.lists(st.floats(min_value=0, max_value=500_000), min_size=1, max_size=30), faldende_profiler)
 @settings(max_examples=100, deadline=None)
 def test_egenskab_foerste_aar_mindst_som_det_flade(netto, profil):
     # US1 scenarie 3: en profil, der ikke stiger, giver mindst lige så meget i det første år.
@@ -190,13 +217,12 @@ def test_husstandens_startaar_gaelder():
     assert v[74] == 1.0 and v[75] == 0.5
 
 
-# ── Validering (FR-005) ────────────────────────────────────────────────────────
+# ── Validering (FR-001, FR-005; 033b) ──────────────────────────────────────────
 
 @pytest.mark.parametrize("procenter", [
-    (0.9, 0.8),          # første bånd skal være 100 %
-    (1.0, 0.45),         # under 50 %
-    (1.0, 0.8, 0.9),     # må ikke stige
-    (1.0, 1.05),         # over 100 %
+    (1.0, -0.05),        # under 0 %
+    (1.0, 1.55),         # over 150 %
+    (0.0, 0.0, 0.0),     # mindst ét bånd over 0 %
 ])
 def test_ugyldig_profil(procenter):
     with pytest.raises(UgyldigtInput) as e:
@@ -204,10 +230,49 @@ def test_ugyldig_profil(procenter):
     assert e.value.felt == "antagelser.forbrugsprofil"
 
 
-def test_gyldig_profil():
-    valider(profil(), Antagelser(forbrugsprofil=FALDENDE), 2026, BEREGNINGSDATO)
-    valider(replace(profil(), loen=Loen(480_000, stop_alder=60)), Antagelser(forbrugsprofil=FALDENDE), 2026,
-            BEREGNINGSDATO)
+@pytest.mark.parametrize("procenter", [
+    FALDENDE.procenter,
+    (0.9, 0.8),                    # første bånd kan ændres (033b)
+    (1.0, 0.8, 0.9),               # og senere bånd kan stige
+    (1.5, 0.0, 1.2, 0.45, 1.0),    # 0–150 % i vilkårlig rækkefølge
+])
+def test_gyldig_profil(procenter):
+    ant = Antagelser(forbrugsprofil=Forbrugsprofil(procenter))
+    valider(profil(), ant, 2026, BEREGNINGSDATO)
+    valider(replace(profil(), loen=Loen(480_000, stop_alder=60)), ant, 2026, BEREGNINGSDATO)
+
+
+FRI = Forbrugsprofil((1.2, 1.0, 0.0, 1.5, 1.0))  # 033b: op, ned og et bånd uden udbetaling
+
+
+def test_fri_profil_i_hele_beregningen():
+    res = beregn(profil(), Antagelser(forbrugsprofil=FRI), 2026, BEREGNINGSDATO)
+    v = {j.alder: j.vaegt for j in res.jaevn.aar}
+    assert v[65] == 1.2 and v[70] == 1.0 and v[75] == 0.0 and v[80] == 1.5 and v[85] == 1.0
+    r = real(res)
+    assert all(r[a] == 0 for a in range(75, 80))                       # 75–79 får intet
+    normeret = [r[a] / v[a] for a in sorted(r) if a >= 65 and v[a] > 0]
+    assert all(y >= x - 12 for x, y in zip(normeret, normeret[1:]))   # ikke-faldende i forhold til profilen
+    assert all(j.buffer_rest >= -12 for j in res.jaevn.aar)
+    assert res.jaevn.aar[-1].buffer_rest == pytest.approx(0, abs=12)
+    assert r[80] == pytest.approx(1.5 / 1.2 * r[65], rel=0.02)        # forholdet mellem båndene holdes
+
+
+def test_optimeringens_maal_springer_baand_paa_nul_over():
+    from pensionskerne.optimering import fast_niveau, slutniveau, spring, vindue
+    res = beregn(profil(), Antagelser(forbrugsprofil=FRI), 2026, BEREGNINGSDATO)
+    maal = fast_niveau(res, vindue(res))
+    assert maal == pytest.approx(real(res)[65] / 1.2 / 12)            # beløbet ved 100 %
+    assert slutniveau(res) > 0 and spring(res, vindue(res)) >= 0
+
+
+def test_forudsaetning_med_fri_profil():
+    res = beregn(profil(), Antagelser(forbrugsprofil=FRI), 2026, BEREGNINGSDATO)
+    besked = next(a.besked for a in res.advarsler if a.kode == "FORBRUGSPROFIL")
+    assert "120 % fra 65, 100 % fra 70, 0 % fra 75, 150 % fra 80, 100 % fra 85" in besked
+    stigende = beregn(profil(), Antagelser(forbrugsprofil=Forbrugsprofil((1.0, 1.0, 1.2))), 2026,
+                      BEREGNINGSDATO)
+    assert "120 % fra 75" in next(a.besked for a in stigende.advarsler if a.kode == "FORBRUGSPROFIL")
 
 
 def test_husstanden_deler_profilen_fra_den_foerste_der_stopper():

@@ -28,7 +28,7 @@ def test_partneren_deler_profilen():
 
 
 def test_feltfejl_peger_paa_profilen():
-    r = app.beregn(json.dumps(med_profil(GUIDE, [1.0, 1.2])), IDAG)
+    r = app.beregn(json.dumps(med_profil(GUIDE, [1.0, 1.6])), IDAG)  # over 150 % (033b)
     assert not r["ok"] and r["fejl"]["felt"] == "antagelser.forbrugsprofil"
 
 
@@ -44,6 +44,16 @@ def test_visningen_har_baandene_med_beloeb():
     assert flad["hovedtal"]["maaned"] <= v["hovedtal"]["maaned"] <= f["baand"][0]["maaned"]
     assert f["baand"][-1]["maaned"] < flad["forbrug"]["baand"][-1]["maaned"]
     assert any(a["kode"] == "FORBRUGSPROFIL" for a in v["hovedtal_advarsler"])
+
+
+def test_baand_paa_nul_og_over_100_vises():
+    # 033b: hovedtallet er beløbet ved 100 %; et bånd på 0 % viser intet beløb, og visningen fejler ikke.
+    v = app.beregn(json.dumps(med_profil(med_loen(GUIDE), [1.0, 0.0, 1.5, 1.0, 1.0])), IDAG)["data"]
+    f = v["forbrug"]
+    assert [b["procent"] for b in f["baand"]][:3] == [100, 0, 150] and not f["flad"]
+    assert f["baand"][1]["maaned"] == 0
+    assert v["hovedtal"]["maaned"] > 0
+    assert f["baand"][2]["maaned"] > f["baand"][0]["maaned"]  # 150 % (pengene kan komme i trin, 010)
 
 
 def test_flad_profil_viser_baand_med_100_procent():

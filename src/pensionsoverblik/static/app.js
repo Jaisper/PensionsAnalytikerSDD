@@ -85,7 +85,7 @@ const tilstand = {
   forslag: null,       // forslag fra "Find bedste plan" (007): { d, noegle }
   soeger: false,       // den bedste plan søges, så hovedtallet er en tekst (032)
   soegNoegle: null,
-  soegIgen: false,     // søg den bedste plan igen efter næste beregning (033: "Find bedste plan med denne fordeling")
+  soegIgen: false,     // søg den bedste plan igen efter næste beregning (033: "Find bedste plan" efter en ny fordeling)
   forbrugStart: null,  // borgerens egen plan, før profilen blev ændret (033): { egen, noegle }
 };
 
@@ -2377,10 +2377,11 @@ async function tegnForsikringer(liste) {
 }
 
 /* ── Feature 033: faldende udbetalinger ───────────────────────────────────
-   Én skyder pr. bånd fra kernen. Procenten er i forhold til de første år, i trin på 5 fra 50 til 100,
-   og et bånd kan ikke ligge over det foregående. Profilen er fælles for husstanden. Kun visning:
-   båndene og beløbene kommer fra kernen. */
-const FORBRUG_MIN = 50;
+   Én skyder pr. bånd fra kernen. Procenten er i forhold til det faste beløb, i trin på 5 fra 0 til 150,
+   og hver skyder justeres for sig, også den første (033b). Profilen er fælles for husstanden. Kun
+   visning: båndene og beløbene kommer fra kernen. */
+const FORBRUG_MIN = 0;
+const FORBRUG_MAKS = 150;
 
 function baandNavn(b, sidste) {
   if (sidste && b.fra >= 85) return `${b.fra} år og derover`;
@@ -2399,7 +2400,7 @@ function utenProfil(svar) {
 
 function saetForbrug(procenter) {
   // Beløbene regnes med det samme for den viste plan. Den bedste plan søges først, når borgeren er færdig
-  // og trykker "Find bedste plan med denne fordeling" (033). Vi husker borgerens egen plan fra før.
+  // og trykker "Find bedste plan" (033, 033b). Vi husker borgerens egen plan fra før.
   if (!tilstand.forbrugStart) {
     tilstand.forbrugStart = { egen: tilstand.planer ? structuredClone(tilstand.planer.egen) : null,
       noegle: utenProfil(tilstand.aktuelleSvar) };
@@ -2408,8 +2409,20 @@ function saetForbrug(procenter) {
   if (procenter.every((x) => x === 100)) delete a.forbrugsprofil;
   else a.forbrugsprofil = procenter.map((x) => x / 100);
   $("#forbrug-flad").hidden = !a.forbrugsprofil;
-  $("#forbrug-soeg").hidden = false;
+  visFordelingAendret();
   genberegn();
+}
+
+function visFordelingAendret() {
+  // 033b: én knap. Er fordelingen ændret, står det ved "Find bedste plan", og knappen bliver primær.
+  const aendret = !!tilstand.forbrugStart;
+  $("#optimer-note").hidden = !aendret;
+  $("#optimer-knap").classList.toggle("knap--primaer", aendret);
+  $("#optimer-knap").classList.toggle("knap--sekundaer", !aendret);
+}
+
+function findBedstePlanKnap() {
+  if (tilstand.forbrugStart) soegMedForbrug(); else findBedstePlan();
 }
 
 function soegMedForbrug() {
@@ -2423,7 +2436,7 @@ function soegMedForbrug() {
   tilstand.forbrugStart = null;
   tilstand.planer = null;
   tilstand.aktuelleSvar = svar;
-  $("#forbrug-soeg").hidden = true;
+  visFordelingAendret();
   synkroniserFormular();
   tegnTidslinje(tilstand.v);
   tilstand.soegIgen = true;
@@ -2433,15 +2446,17 @@ function soegMedForbrug() {
 function tegnForbrug(v) {
   const f = v.forbrug;
   $("#forbrug").hidden = !f;
+  visFordelingAendret();
   if (!f) return;
   $("#forbrug-flad").hidden = f.flad;
-  $("#forbrug-soeg").hidden = !tilstand.forbrugStart;
   // Kommer der flere penge ind senere, end fordelingen bruger, stiger beløbet igen (ingen lån, 010).
-  const stiger = f.flad ? null : f.baand.find((b, i) => i > 0 && b.maaned && f.baand[i - 1].maaned
-    && b.maaned > f.baand[i - 1].maaned + 100);
+  // Målt ved 100 %, så et bånd, borgeren selv har sat op, ikke tæller (033b).
+  const ved100 = (b) => (b.maaned && b.procent ? (b.maaned * 100) / b.procent : null);
+  const stiger = f.flad ? null : f.baand.find((b, i) => i > 0 && ved100(b) && ved100(f.baand[i - 1])
+    && ved100(b) > ved100(f.baand[i - 1]) + 100);
   $("#forbrug-note").hidden = !stiger;
   $("#forbrug-note").textContent = stiger
-    ? `Fra ${stiger.fra} år kommer der flere penge ind, end din fordeling bruger. Vi låner aldrig af senere år, så beløbet stiger igen dér. "Find bedste plan med denne fordeling" kan måske rykke dine udbetalinger frem.`
+    ? `Fra ${stiger.fra} år kommer der flere penge ind, end din fordeling bruger. Vi låner aldrig af senere år, så beløbet stiger igen dér. "Find bedste plan" kan måske rykke dine udbetalinger frem.`
     : "";
   const ramme = $("#forbrug-baand");
   const partner = tilstand.husstand && tilstand.hvem === "dig" ? tilstand.husstand.partner.forbrug : null;
@@ -2454,7 +2469,7 @@ function tegnForbrug(v) {
       s.value = b.procent;
       s.setAttribute("aria-valuetext", forbrugTekst(b));
       k.querySelector("output").textContent = `${b.procent} %`;
-      k.querySelector(".forbrug__kr").textContent = b.maaned ? `${kr(b.maaned)} kr.` : "–";
+      k.querySelector(".forbrug__kr").textContent = b.maaned == null ? "–" : `${kr(b.maaned)} kr.`;
     });
     return;
   }
@@ -2464,25 +2479,20 @@ function tegnForbrug(v) {
     const navn = baandNavn(b, i === f.baand.length - 1);
     const p = partner?.baand[i];
     const pNavn = p ? `partner ${baandNavn(p, i === f.baand.length - 1)}` : null;
-    const skyder = el("input", { type: "range", id, min: FORBRUG_MIN, max: 100, step: 5, value: b.procent,
-      disabled: i === 0, "aria-label": pNavn ? `${navn} (${pNavn})` : navn, "aria-valuetext": forbrugTekst(b) });
-    if (i === 0) skyder.title = "De første år er udgangspunktet";
+    const skyder = el("input", { type: "range", id, min: FORBRUG_MIN, max: FORBRUG_MAKS, step: 5, value: b.procent,
+      "aria-label": pNavn ? `${navn} (${pNavn})` : navn, "aria-valuetext": forbrugTekst(b) });
     skyder.addEventListener("input", () => {
+      // Hver skyder for sig (033b). Kernen kræver mindst ét bånd over 0 %.
       const skydere = $$("#forbrug-baand input");
-      const procenter = skydere.map((x) => +x.value);
-      procenter[i] = Math.min(procenter[i], procenter[i - 1] ?? 100);
-      for (let j = i + 1; j < procenter.length; j++) procenter[j] = Math.min(procenter[j], procenter[i]);
-      skydere.forEach((x, j) => {
-        x.value = procenter[j];
-        x.closest(".forbrug__kolonne").querySelector("output").textContent = `${procenter[j]} %`;
-      });
-      saetForbrug(procenter);
+      if (skydere.every((x) => +x.value === 0)) skyder.value = 5;
+      skyder.closest(".forbrug__kolonne").querySelector("output").textContent = `${skyder.value} %`;
+      saetForbrug(skydere.map((x) => +x.value));
     });
     return el("div", { class: "forbrug__kolonne" },
       el("label", { for: id }, navn, pNavn ? el("span", { class: "forbrug__partner", tekst: `(${pNavn})` }) : null),
       skyder,
       el("output", { for: id, tekst: `${b.procent} %` }),
-      el("span", { class: "forbrug__kr", tekst: b.maaned ? `${kr(b.maaned)} kr.` : "–" }));
+      el("span", { class: "forbrug__kr", tekst: b.maaned == null ? "–" : `${kr(b.maaned)} kr.` }));
   }));
 }
 
@@ -2664,7 +2674,7 @@ function vaelgFane(hvem, fokus = false) {
 /* ── Opsætning ─────────────────────────────────────────────────────────── */
 function forbind() {
   startMotor();
-  $("#optimer-knap").addEventListener("click", findBedstePlan);
+  $("#optimer-knap").addEventListener("click", findBedstePlanKnap);
   $("#motor-igen").addEventListener("click", () => { startMotor(); hentKommuner(); });
   hentKommuner();
   visTrin(1, false);
@@ -2751,7 +2761,6 @@ function forbind() {
   });
   skyder("r-afkast", (v) => { tilstand.aktuelleSvar.antagelser.afkast_efter_pal = v / 100; synkroniserFormular(); }, (v) => `${decimal(v)} %`);
   skyder("r-inflation", (v) => { tilstand.aktuelleSvar.antagelser.inflation = v / 100; synkroniserFormular(); }, (v) => `${decimal(v)} %`);
-  $("#forbrug-soeg-knap").addEventListener("click", soegMedForbrug);
   $("#forbrug-flad").addEventListener("click", () => {
     $$("#forbrug-baand input").forEach((x) => { x.value = 100; });
     saetForbrug($$("#forbrug-baand input").map(() => 100));

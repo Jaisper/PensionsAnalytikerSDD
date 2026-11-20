@@ -45,6 +45,21 @@ har.
 - Q: Partner? → A: **Én profil for husstanden.** Båndene regnes i kalenderår fra det år, den første i
   husstanden stopper, og vises med begges aldre.
 
+### Session 2026-11-20 (033b)
+
+- Q: Skal skyderne kun kunne falde? → A: **Nej (produktejer).** Alle skydere går fra 0 % til 150 %,
+  standard 100 %, og de justeres uafhængigt op og ned. Også første bånd. Erstatter "Procent af de
+  første år" og FR-005's krav om fald og et låst første bånd.
+- Q: Hvad er 100 % så i forhold til? → A: **Det faste beløb (niveauet c).** Hovedtallet og den bedste
+  plan bruger c, altså beløbet i et bånd på 100 %. Et bånd på 120 % får 1,2 · c, og et på 0 % får intet
+  udbetalt; dets penge bliver i bufferen til senere bånd. Ingen lån (010): kan pengene i et bånd ikke
+  bruges senere (fx 0 % i det sidste bånd), bliver de stående som formue.
+- Q: Kan alle bånd stå på 0 %? → A: Nej. Mindst ét bånd skal være over 0 %.
+- Q: To knapper ("Find bedste plan" og "Find bedste plan med denne fordeling") er forvirrende. → A:
+  **Én knap, "Find bedste plan" (produktejer).** Er fordelingen ændret, søger den fra borgerens egen
+  plan med den nye fordeling (US2 scenarie 2), og en kort note ved knappen siger det. Ellers virker
+  den som i 007.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Mere i de første år (Priority: P1)
@@ -77,7 +92,8 @@ flade beløb.
 1. **Given** en faldende profil, **Then** finder den bedste plan det højeste beløb i første bånd,
    hvor alle senere bånd holder deres procent.
 2. **When** borgeren ændrer profilen, **Then** regnes beløbene med det samme for den viste plan, og
-   knappen "Find bedste plan med denne fordeling" vises. **When** borgeren trykker på den, **Then**
+   der står ved "Find bedste plan", at fordelingen er ændret (033b: én knap i stedet for en ekstra
+   "Find bedste plan med denne fordeling"). **When** borgeren trykker på den, **Then**
    søges den bedste plan fra borgerens egen plan med den nye profil. "Brug min egen plan" er stadig
    borgerens egen plan. (Først søgte vi automatisk ved hver ændring; det var uroligt, og det var
    uklart, hvad man skulle gøre.)
@@ -96,17 +112,18 @@ flade beløb.
 
 ## Requirements *(mandatory)*
 
-- **FR-001**: Kernen MUST tage en profil: en procent pr. bånd, første bånd 100 %. Uden profil er
-  forløbet fladt.
+- **FR-001**: Kernen MUST tage en profil: en procent pr. bånd fra 0 % til 150 %, mindst ét over 0 %
+  (033b). 100 % er det faste beløb c. Uden profil er forløbet fladt.
 - **FR-002**: Udjævningen (`jaevn.py`) MUST vægte hvert år med båndets procent, så niveauet i år t er
   c · vægt(t) i dagens kroner. Kravene fra 010 gælder uændret: ingen lån, ingen negativ buffer, og
   bufferen ender i 0.
 - **FR-003**: Båndene MUST regnes fra stopalderen (`stopalder`, 030), i bånd på fem år op til 85 og
   et sidste bånd til planens slutning. Arbejdsår før stopalderen udjævnes som i dag.
-- **FR-004**: Optimeringen MUST bruge beløbet i første bånd (niveauet c) som mål. Ved uafgjort
-  gælder 007's regel om det flade forløb, målt i forhold til profilen.
-- **FR-005**: Skyderne MUST gå fra 50 % til 100 % i trin på 5 procentpoint og må ikke stige fra bånd
-  til bånd. Første bånd er låst på 100 %.
+- **FR-004**: Optimeringen MUST bruge niveauet c (beløbet ved 100 %) som mål. År med 0 % tæller ikke
+  med. Ved uafgjort gælder 007's regel om det flade forløb, målt i forhold til profilen.
+- **FR-005** (033b): Alle skydere MUST gå fra 0 % til 150 % i trin på 5 procentpoint, starte på 100 %
+  og kunne justeres uafhængigt af hinanden, også første bånd. (Før 033b: 50–100 %, første bånd låst
+  og ingen stigning.)
 - **FR-006**: Equalizeren MUST kunne betjenes med tastatur og skærmlæser (WCAG 2.2 AA). Hver
   skyder har et navn med båndets aldre og sin værdi i procent og kr. pr. måned.
 - **FR-007**: Profilen er kun en fordeling over tid. Den MUST NOT ændre udbetalingerne fra
@@ -122,7 +139,6 @@ flade beløb.
 - En foruddefineret faldende profil (fx "Typisk forbrug") med kilde. Kræver en kilde om forbrug
   efter pensionering (Princip III) og kan komme senere.
 - Profil i procent af nettolønnen.
-- Stigende profiler (fx til plejehjem). FR-005 tillader kun fald.
 
 ## Success Criteria *(mandatory)*
 

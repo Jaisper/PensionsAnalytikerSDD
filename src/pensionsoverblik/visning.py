@@ -35,9 +35,9 @@ def _hovedtal(res: Fremskrivning) -> dict:
         # samme, som "Find bedste plan" bruger. Niveauet stiger kun, når et engangsbeløb lander
         # (det lånes ikke på forhånd); et senere spring oplyses som "senere". Med løn tæller kun
         # årene fra stopalderen (017). Med en forbrugsprofil (033) måles i forhold til profilen, så
-        # hovedtallet er beløbet i første bånd; "senere" er årets faktiske beløb.
+        # hovedtallet er beløbet ved 100 %; "senere" er årets faktiske beløb. År på 0 % tæller ikke (033b).
         fra = res.jaevn_fra_alder or res.aar[0].alder
-        par = [(j, a) for j, a in zip(res.jaevn.aar, res.aar) if a.alder >= fra]
+        par = [(j, a) for j, a in zip(res.jaevn.aar, res.aar) if a.alder >= fra and j.vaegt > 0]
         real = [j.jaevn / j.vaegt * a.realfaktor / MAANEDER for j, a in par]
         ref = max([0] + [i for i in range(1, len(real)) if real[i] > real[i - 1] + 1])
         senere = {"maaned": round(par[ref][0].jaevn * par[ref][1].realfaktor / MAANEDER, -2),

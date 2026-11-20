@@ -43,7 +43,7 @@ BUFFER_MAKS_ITERATIONER = 12
 BAAND_AAR = 5
 SIDSTE_BAAND_FRA = 85
 KORTESTE_BAAND = 3  # et kortere bånd før 85 lægges sammen med det foregående
-FORBRUG_MIN = 0.5  # et senere bånd må højst falde til halvdelen af det første (FR-005)
+FORBRUG_MIN, FORBRUG_MAKS = 0.0, 1.5  # et bånd fra 0 % til 150 % af det faste beløb (FR-005, 033b)
 
 
 def baand(start_alder: int, slut_alder: int) -> tuple[tuple[int, int], ...]:
@@ -104,9 +104,14 @@ def beregn_jaevn(
                 faktor /= 1 + renter[k - 1]
             nv_ind += indbetaling[k] * faktor
             nv_vaekst += w[k] * vaekst ** (k - i) * faktor
+            if nv_vaekst <= 0:
+                continue  # kun år på 0 % indtil nu (033b): ingen udbetaling at sætte et niveau efter
             c = nv_ind / nv_vaekst
             if c <= bedste_c + 1e-12 * max(1.0, abs(c)):  # sidste minimum: så lange segmenter som muligt
                 bedste_c, bedste_k = min(c, bedste_c), k
+        if math.isinf(bedste_c):
+            # Resten af årene er på 0 % (033b): intet udbetales, og pengene bliver stående (ingen lån).
+            bedste_c, bedste_k = 0.0, n - 1
         for t in range(i, bedste_k + 1):
             niveau[t] = bedste_c * w[t] * vaekst ** (t - i)
             buffer = (buffer + indbetaling[t] - niveau[t]) * (1 + renter[t])

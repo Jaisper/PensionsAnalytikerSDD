@@ -1,6 +1,6 @@
 """Feature 033 — equalizeren for faldende udbetalinger. Den syntetiske rapport med løn og stopalder 64:
 båndene er 64–68, 69–73, 74–78, 79–84 og 85+. Beløbene regnes med det samme, og den bedste plan søges
-først, når borgeren trykker "Find bedste plan med denne fordeling"."""
+først, når borgeren trykker "Find bedste plan" (033b: én knap, med en note, når fordelingen er ændret)."""
 import pytest
 
 from tests.browser.test_stopalder_graf import med_loen  # noqa: F401 (fixture)
@@ -31,10 +31,12 @@ def saet(side, i, vaerdi):
     vent_paa_ny_beregning(side)
 
 
-def test_et_baand_pr_periode_og_det_foerste_er_laast(med_loen):
+def test_et_baand_pr_periode_fra_0_til_150(med_loen):
     skydere = med_loen.locator(SKYDERE)
     assert skydere.count() == 5
-    assert skydere.first.is_disabled()
+    assert not skydere.first.is_disabled()                   # også første bånd kan justeres (033b)
+    assert all(skydere.nth(i).get_attribute("min") == "0" and skydere.nth(i).get_attribute("max") == "150"
+               for i in range(5))
     navne = [skydere.nth(i).get_attribute("aria-label") for i in range(5)]
     assert navne[0].startswith("64–68 år") and navne[-1].startswith("85 år og derover")
     assert all(skydere.nth(i).input_value() == "100" for i in range(5))
@@ -59,25 +61,41 @@ def test_saenk_et_baand_med_tastaturet(med_loen):
     assert "fra 85" in med_loen.inner_text("#hovedtal-forklaring")
 
 
-def test_baandene_kan_ikke_stige(med_loen):
-    saet(med_loen, 2, "70")                                   # 74–78 til 70 %: senere bånd følger med ned
-    assert procenter(med_loen) == [1, 1, 0.7, 0.7, 0.7]
-    saet(med_loen, 3, "90")                                   # 79–84 kan ikke komme over 74–78
-    assert procenter(med_loen) == [1, 1, 0.7, 0.7, 0.7]
-    assert med_loen.locator(SKYDERE).nth(3).input_value() == "70"
+def test_baandene_justeres_hver_for_sig(med_loen):
+    # 033b: op og ned, uafhængigt af hinanden og også første bånd.
+    saet(med_loen, 2, "70")
+    assert procenter(med_loen) == [1, 1, 0.7, 1, 1]
+    saet(med_loen, 3, "150")
+    saet(med_loen, 0, "120")
+    assert procenter(med_loen) == [1.2, 1, 0.7, 1.5, 1]
+    saet(med_loen, 1, "0")
+    assert procenter(med_loen) == [1.2, 0, 0.7, 1.5, 1]
+    assert med_loen.locator(".forbrug__kr").nth(1).inner_text() == "0 kr."
+    assert med_loen.fejl == []
+
+
+def test_mindst_et_baand_over_nul(med_loen):
+    for i in range(5):
+        skyder = med_loen.locator(SKYDERE).nth(i)
+        skyder.fill("0")
+        skyder.dispatch_event("input")
+    assert med_loen.locator(SKYDERE).nth(4).input_value() == "5"
+    assert procenter(med_loen) == [0, 0, 0, 0, 0.05]
 
 
 def test_knappen_soeger_den_bedste_plan_fra_egen_plan(med_loen):
     egen_foer = med_loen.evaluate("tilstand.planer && structuredClone(tilstand.planer.egen.ordninger)")
-    knap = med_loen.get_by_role("button", name="Find bedste plan med denne fordeling")
-    assert knap.is_hidden()
+    knap = med_loen.get_by_role("button", name="Find bedste plan", exact=True)
+    note = med_loen.locator("#optimer-note")
+    assert knap.count() == 1 and knap.is_visible()             # 033b: kun én knap
+    assert note.is_hidden()
     nr = med_loen.evaluate("autoNr")
     saet(med_loen, 3, "85")
     saet(med_loen, 4, "70")
     assert med_loen.evaluate("autoNr") == nr                  # ingen søgning, mens borgeren justerer
-    assert knap.is_visible()
+    assert note.is_visible() and "knap--primaer" in knap.get_attribute("class")
     efter_soegning(med_loen, knap.click)
-    assert knap.is_hidden()
+    assert note.is_hidden()
     assert procenter(med_loen) == [1, 1, 1, 0.85, 0.7]
     planer = med_loen.evaluate("tilstand.planer")
     if planer is not None:
@@ -109,7 +127,7 @@ def test_note_naar_et_baand_alligevel_stiger(med_loen):
     assert note.is_visible() == bool(stiger)
     if stiger:
         assert f"Fra {stiger[0]['fra']} år" in note.inner_text()
-        assert "Find bedste plan med denne fordeling" in note.inner_text()
+        assert '"Find bedste plan"' in note.inner_text()
     assert "Med din fordeling over tid er beløbet" in med_loen.inner_text("#hovedtal-forklaring")
 
 

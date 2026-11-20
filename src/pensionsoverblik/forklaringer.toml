@@ -53,13 +53,13 @@ niveau3 = "Forbrugsudjævning med likviditetsbegrænsning, segment for segment: 
 
 [[emne]]
 id = "forbrugsprofil"
-titel = "Mere i de første år"
+titel = "Din fordeling over tid"
 inventar = ["Faldende udbetalinger (forbrugsprofil)"]
 registerposter = []
 advarsler = ["FORBRUGSPROFIL"]
-niveau1 = "Du kan vælge at bruge mere i de første år og mindre senere. Du sætter en procent for hver periode på fem år. Den er i forhold til de første år. Vi bruger stadig alle pengene. Vi låner aldrig af senere år. Det er dit eget valg, ikke en regel."
-niveau2 = "Tiden, efter du stopper, deles i perioder på fem år og en sidste periode fra 85 år. Den første periode får det fulde beløb. Sænker du en senere periode, får den den andel af beløbet i de første år. Vi finder det højeste beløb i de første år, hvor alle perioder holder deres andel, og opsparingen aldrig går i minus. Kommer pengene først senere, kan beløbet stadig stige i trin. Bruger du mere tidligt, bliver opsparingen mindre. Det kan give lidt mere i pensionstillæg og ældrecheck, fordi formuen og renterne bliver mindre."
-niveau3 = "Udjævningen vægter hvert år med periodens andel w: nævneren bliver nutidsværdien af w gange den voksende annuitet, og niveauet i år t er c gange w. Kravene til c er de samme som uden profil: ingen lån, ingen negativ opsparing, og c falder aldrig. Optimeringen maksimerer c. Profilen er en modelantagelse, som borgeren selv vælger; der er ingen lovregel for forbrug efter pensionen. For et par regnes perioderne fra det år, den første stopper."
+niveau1 = "Du kan vælge at bruge mere i nogle år og mindre i andre. Du sætter en procent for hver periode på fem år, op eller ned. Hundrede procent er det faste beløb. Vi bruger stadig alle pengene. Vi låner aldrig af senere år. Det er dit eget valg, ikke en regel."
+niveau2 = "Tiden, efter du stopper, deles i perioder på fem år og en sidste periode fra 85 år. Hver periode får sin procent af det faste beløb. Nul procent betyder ikke, at du intet får. Folkepension og livrenter bliver ved med at komme, men vi lægger dem til side til en senere periode. Vi finder det højeste faste beløb, hvor alle perioder holder deres andel, og opsparingen aldrig går i minus. Står den sidste periode på nul, bliver dens penge stående, fordi vi ikke låner. Kommer pengene først senere, kan beløbet stadig stige i trin. Bruger du mere tidligt, bliver opsparingen mindre. Det kan give lidt mere i pensionstillæg og ældrecheck, fordi formuen og renterne bliver mindre."
+niveau3 = "Udjævningen vægter hvert år med periodens andel w: nævneren bliver nutidsværdien af w gange den voksende annuitet, og niveauet i år t er c gange w. w går fra nul til halvanden. Kravene til c er de samme som uden profil: ingen lån, ingen negativ opsparing, og c falder aldrig. År med w lig nul får intet og indgår ikke i c. Optimeringen maksimerer c. Profilen er en modelantagelse, som borgeren selv vælger; der er ingen lovregel for forbrug efter pensionen. For et par regnes perioderne fra det år, den første stopper."
 
 [[emne]]
 id = "forsikringer"

@@ -728,14 +728,15 @@ def beregn(
         forskyd = forbrug.start_kalenderaar - profil.foedselsdato.year - forbrug.start_alder
         forbrug_baand = tuple((fra + forskyd, til + forskyd)
                               for fra, til in baand(forbrug.start_alder, tabel_slut - forskyd))
-    if any(x < 1.0 for x in forbrug.procenter):
+    if any(x != 1.0 for x in forbrug.procenter):
+        # Hvert skift i profilen; første bånd kun, når det ikke er 100 % (033b: op, ned og 0 %).
         procent = list(forbrug.procenter) + [forbrug.procenter[-1]] * len(forbrug_baand)
         trin = [f"{round(procent[i] * 100)} % fra {fra}" for i, (fra, _) in enumerate(forbrug_baand)
-                if i > 0 and procent[i] < procent[i - 1]]
+                if procent[i] != (procent[i - 1] if i > 0 else 1.0)]
         advarsler.append(Advarsel(
             "FORBRUGSPROFIL",
-            "Du har valgt at bruge mindre i senere år: " + ", ".join(trin)
-            + " af beløbet i de første år. Det er dit eget valg, ikke en regel.",
+            "Du har valgt din egen fordeling over tid: " + ", ".join(trin)
+            + " af det faste beløb. Det er dit eget valg, ikke en regel.",
         ))
 
     # ── 4. Advarsler ─────────────────────────────────────────────────────────
