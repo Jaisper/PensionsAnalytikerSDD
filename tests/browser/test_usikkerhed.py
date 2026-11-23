@@ -27,10 +27,9 @@ def test_spaend_og_tabel(resultat):
     resultat.click("#hovedtal-spaend a")
     assert resultat.locator("#usikkerhed").get_attribute("open") is not None
     raekker = resultat.locator("#usikkerhed-tabel tbody tr")
-    assert raekker.count() == 11                # dit valg, seks (018), to levetider (019) og to forløb (023a)
+    assert raekker.count() == 9                 # dit valg, seks (018) og to levetider (019)
     assert "Planen rækker til 95 år" in resultat.inner_text("#usikkerhed-tabel")
-    daarlig = resultat.locator("#usikkerhed-tabel tbody tr", has_text="Dårlige år først").inner_text()
-    assert "derefter" in daarlig                # 023a: årenes afkast og så det normale
+    assert "år først" not in resultat.inner_text("#usikkerhed-tabel")  # 023a-rækkerne er udgået
     assert "Lever du længere" in resultat.inner_text("#usikkerhed-efter")
     assert "Dit valg" in raekker.nth(0).inner_text()
     assert resultat.fejl == []
@@ -50,7 +49,7 @@ def test_ny_beregning_afbryder_de_gamle_scenarier(resultat):
     resultat.evaluate("regnUsikkerhed()")
     vent_paa_spaend(resultat)
     assert resultat.evaluate("usikkerhedNr") == nr + 2
-    assert len(resultat.evaluate("tilstand.usikkerhed")) == 10  # 018, levetid (019) og forløb (023a)
+    assert len(resultat.evaluate("tilstand.usikkerhed")) == 8  # 018 og levetid (019)
 
 
 def test_spaendet_foelger_fanen(side, tmp_path):

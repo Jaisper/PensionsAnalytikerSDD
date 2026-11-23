@@ -20,10 +20,12 @@ def test_forloebet_oversaettes():
     assert til_kerne(GUIDE)[1].afkast_forloeb == {}
 
 
-def test_scenarierne_har_daarlige_og_gode_aar_foerst():
-    s = {x["noegle"]: x for x in app.scenarier(json.dumps(GUIDE))}
-    assert s["daarlige_aar_foerst"]["stress"] == -1 and s["gode_aar_foerst"]["stress"] == 1
-    assert s["daarlige_aar_foerst"]["afkast"] == GUIDE["antagelser"]["afkast_efter_pal"]
+def test_scenarierne_har_ikke_daarlige_og_gode_aar_foerst():
+    # Udgået i tabellen 2026-11-23 (produktejer): gode år kan ikke hæve de første år (010), så rækkerne
+    # så skæve ud og forvirrede. Afkast pr. år (023a) og stresstesten i `scenarie` er bevaret.
+    s = app.scenarier(json.dumps(GUIDE))
+    assert not any(x.get("stress") for x in s)
+    assert not any(x["noegle"] in ("daarlige_aar_foerst", "gode_aar_foerst") for x in s)
 
 
 def test_daarlige_aar_foerst_rammer_de_to_foerste_aar_fra_startalderen():
