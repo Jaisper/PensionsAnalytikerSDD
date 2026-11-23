@@ -427,8 +427,8 @@ inventar = ["Præsentation: hovedtal, kort, graf, tidslinje, opsparingsgraf, fan
 registerposter = []
 advarsler = []
 niveau1 = "Fanen Dig viser dig. Fanen Partner viser din partner. Fanen Samlet viser jer begge lagt sammen."
-niveau2 = "I hver fane kan du flytte den persons ordninger. Under Samlet er tallene summen af jeres faste beløb pr. kalenderår. Jeres pensionstillæg og ældrecheck er regnet sammen, som loven siger."
-niveau3 = "Hver person har sin egen fremskrivning og udjævning. Koblingerne (indtægtsgrundlag, formue og overførsler mellem ægtefæller) løses ved fastpunkt-iteration mellem de to."
+niveau2 = "Hver fane viser én persons plan. Det, du ændrer under en fane, gælder kun den person: hvornår ordningerne udbetales, fordelingen over tid og det forventede afkast. Inflationen er fælles for jer. Under Samlet er tallene summen af jeres faste beløb pr. kalenderår. Jeres pensionstillæg og ældrecheck er regnet sammen, som loven siger."
+niveau3 = "Hver person har sin egen fremskrivning og udjævning, sin egen fordeling over tid (bånd fra egen stopalder) og sit eget afkast og grundlag. Inflationen er husstandens. Koblingerne (indtægtsgrundlag, formue og overførsler mellem ægtefæller) løses ved fastpunkt-iteration mellem de to."
 
 [[emne]]
 id = "laes_statusikoner"
