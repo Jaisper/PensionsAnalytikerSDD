@@ -1907,9 +1907,11 @@ function placerBjaelker() {
   if (!v || !tilstand.tlRaekker) return;
   const aldre = v.graf.aldre;
   const graf = tilstand.graf;
-  const spor = $(".tl-spor");
+  // Personens egen tidslinje: efter fanen "Samlet" findes også husstandens (skjult) først i siden.
+  const spor = $("#tidslinje .tl-spor");
   if (!spor) return;
   const bredde = spor.getBoundingClientRect().width;
+  if (!bredde) return;  // skjult; placeres, når tidslinjen vises (grafens onResize eller panelet)
   let x0, prAar;
   if (graf?.scales?.x && aldre.length > 1) {
     const ramme = graf.canvas.getBoundingClientRect();
