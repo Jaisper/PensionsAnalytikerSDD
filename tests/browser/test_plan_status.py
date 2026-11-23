@@ -141,3 +141,112 @@ def test_axe_og_360_med_aendret_plan(bedste_plan):
     s.set_viewport_size({"width": 360, "height": 800})
     s.wait_for_function("() => document.documentElement.scrollWidth <= 360", timeout=5000)
     assert s.fejl == []
+
+
+# ── Tidslinjen: bjælkerne må aldrig gå ud over sporet (fundet i produktion 2026-11-23) ──
+
+BJAELKER_UDENFOR = """() => [...document.querySelectorAll('.tl-raekke')].flatMap((r) => {
+  const spor = r.querySelector('.tl-spor').getBoundingClientRect();
+  return [...r.querySelectorAll('.tl-bjaelke, .tl-greb')].map((b) => b.getBoundingClientRect())
+    .filter((b) => b.width && (b.right > spor.right + 1 || b.left < spor.left - 1))
+    .map((b) => `${r.dataset.id}: ${Math.round(b.left)}–${Math.round(b.right)} uden for ${Math.round(spor.left)}–${Math.round(spor.right)}`);
+})"""
+
+
+@pytest.mark.parametrize("bredde", [1280, 1640])
+def test_bjaelkerne_holder_sig_i_sporet(bedste_plan, bredde):
+    s = bedste_plan
+    s.set_viewport_size({"width": bredde, "height": 900})
+    s.wait_for_timeout(300)
+    assert s.evaluate(BJAELKER_UDENFOR) == []
+    daarlig_plan(s)
+    find_bedste_plan(s)
+    s.wait_for_timeout(300)
+    assert s.evaluate(BJAELKER_UDENFOR) == []
+
+
+@pytest.mark.parametrize("bredde", [1280, 1640])
+def test_bjaelkerne_holder_sig_i_sporet_for_et_par(side, tmp_path, bredde):
+    from tests.browser.conftest import vent_paa_planen
+    from tests.browser.test_partner import til_resultat_som_par
+    side.set_viewport_size({"width": bredde, "height": 900})
+    til_resultat_som_par(side, tmp_path)
+    vent_paa_planen(side, timeout=120000)
+    side.wait_for_timeout(300)
+    assert side.evaluate(BJAELKER_UDENFOR) == []
+    side.locator("#person-faner [data-hvem=partner]").click()
+    side.wait_for_timeout(500)
+    assert side.evaluate(BJAELKER_UDENFOR) == []
+
+
+def test_bjaelkerne_foelger_med_naar_vinduet_aendrer_bredde(bedste_plan):
+    s = bedste_plan
+    s.set_viewport_size({"width": 1900, "height": 900})
+    s.wait_for_timeout(500)
+    s.set_viewport_size({"width": 1100, "height": 900})
+    s.wait_for_timeout(500)
+    assert s.evaluate(BJAELKER_UDENFOR) == []
+
+
+def test_bjaelkerne_holder_sig_i_sporet_selv_med_forkert_grafskala(bedste_plan):
+    # Uanset årsagen (grafen bredere end sporet, forældet skala): bjælkerne bliver i sporet.
+    s = bedste_plan
+    s.evaluate("""() => { const x = tilstand.graf.scales.x, f = x.getPixelForValue.bind(x);
+                          x.getPixelForValue = (i) => f(i) * 1.4; placerBjaelker(); }""")
+    s.wait_for_timeout(400)  # bjælkerne animeres (transition .15s)
+    assert s.evaluate(BJAELKER_UDENFOR) == []
+
+
+GRAF_SKALA_PASSER = """() => { const g = tilstand.graf, n = tilstand.v.graf.aldre.length;
+  const graf = (g.scales.x.getPixelForValue(n - 1) - g.scales.x.getPixelForValue(0)) / (n - 1);
+  return Math.abs(graf - tilstand.prAar) < 0.5 && g.data.labels.length === n; }"""
+
+
+@pytest.mark.parametrize("hvem", [0, 1])
+def test_bjaelkerne_foelger_grafen_for_et_par_med_forskellig_alder(side, tmp_path, hvem):
+    # Set i produktion: grafikken er fin alene, men forkert under partneren (forskellige aldre).
+    from tests.browser.conftest import vent_paa_planen
+    from tests.browser.test_partner import faner
+    from tests.app.pensionsinfo_syntetisk import RAPPORT_PDF
+    pdf = tmp_path / "rapport.pdf"
+    pdf.write_bytes(RAPPORT_PDF)
+    side.set_input_files("#pdf-fil", str(pdf))
+    side.wait_for_selector("#pdf-status p")
+    side.fill("#kommune", "Aarhus")
+    side.check("input[name=civilstand][value=gift]")
+    side.check("input[name=partnerdata][value=fuld]")
+    side.click("#naeste")
+    for felt in side.query_selector_all("#ordninger input[id$='-udbetaling_start_alder']"):
+        if not felt.input_value():
+            felt.fill("70")
+    side.click("#naeste")
+    side.set_input_files("#p-pdf-fil", str(pdf))
+    side.wait_for_selector("#p-pdf-status p")
+    side.fill("#p-foedselsdato", "1972-02-26")                    # partneren er yngre
+    for felt in side.query_selector_all("#p-ordninger input[id$='-udbetaling_start_alder']"):
+        if not felt.input_value():
+            felt.fill("70")
+    for _ in range(3):
+        side.click("#naeste")
+    side.wait_for_selector("#resultat:not([hidden])")
+    vent_paa_planen(side, timeout=120000)
+    faner(side).nth(hvem).click()
+    side.wait_for_timeout(600)
+    assert side.evaluate(BJAELKER_UDENFOR) == []
+    assert side.evaluate(GRAF_SKALA_PASSER)
+
+
+@pytest.mark.parametrize("hvem", [0, 1])
+def test_bjaelkerne_efter_fanen_samlet(side, tmp_path, hvem):
+    # Fundet med brugerens måling (spor: 0): efter fanen "Samlet" findes en skjult .tl-spor først i siden,
+    # og bjælkerne blev placeret efter den.
+    from tests.browser.conftest import vent_paa_planen
+    from tests.browser.test_partner import faner, til_resultat_som_par
+    til_resultat_som_par(side, tmp_path)
+    vent_paa_planen(side, timeout=120000)
+    faner(side).nth(2).click()
+    side.wait_for_timeout(300)
+    faner(side).nth(hvem).click()
+    side.wait_for_timeout(600)
+    assert side.evaluate(BJAELKER_UDENFOR) == []
+    assert side.evaluate(GRAF_SKALA_PASSER)

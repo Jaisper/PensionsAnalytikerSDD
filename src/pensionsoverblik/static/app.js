@@ -1907,16 +1907,21 @@ function placerBjaelker() {
   if (!v || !tilstand.tlRaekker) return;
   const aldre = v.graf.aldre;
   const graf = tilstand.graf;
-  const spor = $(".tl-spor");
+  // Personens egen tidslinje: efter fanen "Samlet" findes også husstandens (skjult) først i siden.
+  const spor = $("#tidslinje .tl-spor");
   if (!spor) return;
   const bredde = spor.getBoundingClientRect().width;
+  if (!bredde) return;  // skjult; placeres, når tidslinjen vises (grafens onResize eller panelet)
   let x0, prAar;
   if (graf?.scales?.x && aldre.length > 1) {
     const ramme = graf.canvas.getBoundingClientRect();
     const forskydning = ramme.left - spor.getBoundingClientRect().left;
     prAar = (graf.scales.x.getPixelForValue(aldre.length - 1) - graf.scales.x.getPixelForValue(0)) / (aldre.length - 1);
     x0 = forskydning + graf.scales.x.getPixelForValue(0) - prAar / 2;
-  } else {
+  }
+  // Passer grafens akse ikke i sporet (fx en forældet skala eller en graf, der er bredere end sporet), bruges
+  // sporets egen skala. Bjælkerne må aldrig gå ud over sporet (fundet i produktion 2026-11-23).
+  if (!(prAar > 0) || x0 < -1 || x0 + aldre.length * prAar > bredde + 1) {
     prAar = bredde / aldre.length;
     x0 = 0;
   }
