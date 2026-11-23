@@ -78,11 +78,11 @@ const tilstand = {
   aktuelleSvar: null,  // svarene inkl. ændringer fra skyderne
   sidsteGyldige: null,
   panel: false,        // guidens formular står i datapanelet på resultatsiden
-  grundlag: "branchestandard",  // 035b: altid som pensionsselskaberne; egne estimater vælges ved resultatet
+  grundlag: "branchestandard",  // 035b/036: som pensionsselskaberne, medmindre egne forventninger er valgt i guiden
   v: null,             // seneste visningsmodel // seneste svar, der kunne beregnes (skydere vender tilbage hertil ved fejl)
   forrigeHovedtal: null, graf: null,
   tlRaekker: null, valgtRaekke: null, prAar: null,  // tidslinjen (006)
-  forslag: null,       // forslag fra "Find bedste plan" (007): { d, noegle }
+  forslagVist: null,   // seneste søgnings resultat til forklaringen (020c)
   soeger: false,       // den bedste plan søges, så hovedtallet er en tekst (032)
   soegNoegle: null,
   soegIgen: false,     // søg den bedste plan igen efter næste beregning (033: "Find bedste plan" efter en ny fordeling)
@@ -1119,11 +1119,25 @@ function visGrundlag() {
 }
 
 function skiftGrundlag() {
+  // 036: et skift søger ikke den bedste plan igen; statuslinjen siger, at planen er fundet med de andre.
   const ny = branche() ? "egne" : "branchestandard";
   tilstand.grundlag = ny;
   tilstand.aktuelleSvar.antagelser.beregningsgrundlag = ny;
+  saetEgneValg(ny === "egne");
   visGrundlag();
   genberegn();
+}
+
+/* Feature 036: "Jeg vil bruge mine egne forventninger" i guiden. Uden afkrydsning regnes som pensionsselskaberne. */
+function saetEgneValg(egne) {
+  $("#egne-valg").checked = egne;
+  $("#egne-forventninger").hidden = !egne;
+}
+
+function grundlagFraGuide() {
+  tilstand.grundlag = $("#egne-valg").checked ? "egne" : "branchestandard";
+  saetEgneValg(tilstand.grundlag === "egne");
+  visGrundlag();
 }
 
 function tegnGrundlag(v) {
@@ -1159,6 +1173,7 @@ function synkroniserFormular() {
   $("#inflation").value = s.antagelser.inflation * 100;
   $("#inflation-v").textContent = procent(s.antagelser.inflation);
   tilstand.grundlag = s.antagelser.beregningsgrundlag || "branchestandard";
+  saetEgneValg(tilstand.grundlag === "egne");
   visGrundlag();
   $("#stop-alder").value = s.person.loen?.stop_alder ?? "";
   if (pp) $("#p-stop-alder").value = pp.loen?.stop_alder ?? "";
@@ -1316,9 +1331,8 @@ async function aabnGemt() {
     if (aarlig && !data.felter[`${pre}loen-maaned`]) data.felter[`${pre}loen-maaned`] = kr(aarlig / 12);
   }
   saetGuideFelter(data.felter);
-  // 035b: altid som pensionsselskaberne; de gemte afkast og inflation er egne estimater.
-  tilstand.grundlag = "branchestandard";
-  visGrundlag();
+  // 036: med egne forventninger, hvis de var valgt; gemt før 036 som pensionsselskaberne (035b).
+  grundlagFraGuide();
   tilstand.ordninger = data.ordninger || [];
   tilstand.partnerOrdninger = data.partnerOrdninger || [];
   tilstand.forsikringer = data.forsikringer || [];
@@ -1788,7 +1802,6 @@ function opdaterRaekke(r) {
 function saetVaerdi(r, k, ny, regn) {
   const n = Math.min(k.maks, Math.max(k.min, Math.round(ny)));
   if (n === k.hent()) return false;
-  if (tilstand.forslag) fjernForslag();
   k.saet(n);
   synkroniserFormular();
   opdaterRaekke(r);
@@ -1843,53 +1856,10 @@ function forbindKontrol(kontrol, r, k) {
 }
 
 /* ── Feature 007: find bedste plan ─────────────────────────────────────── */
-/* Kernen afprøver kombinationer i workeren og foreslår det højeste faste beløb hele perioden.
-   Forslaget vises med spøgelsesbjælker og ændres først, når borgeren trykker "Anvend". */
+/* Kernen afprøver kombinationer i workeren og finder det højeste faste beløb hele perioden. Siden 036
+   bruges den bedste plan med det samme, både ved start og fra knappen (007b), og kan fortrydes. */
 const svarNoegle = () => JSON.stringify(tilstand.aktuelleSvar);
 const stortTal = (n) => (n >= 1e6 ? `${String(+(n / 1e6).toFixed(1)).replace(".", ",")} mio.` : kr(n));
-
-function fjernForslag() {
-  tilstand.forslag = null;
-  const boks = $("#forslag");
-  boks.hidden = true;
-  boks.replaceChildren();
-  $$(".tl-spoegelse").forEach((e) => e.remove());
-}
-
-async function findBedstePlan() {
-  fjernForslag();
-  const knap = $("#optimer-knap");
-  const noegle = svarNoegle();
-  const boks = $("#forslag");
-  const fremdrift = el("progress", { max: 1, value: 0, "aria-label": "Afprøver kombinationer" });
-  // Søgningen kan tage over 10 sekunder med mange ordninger: borgeren skal kunne afbryde den.
-  // Kernen kører i workeren og kan ikke stoppes midtvejs, så workeren genstartes; planen er uændret.
-  const afbryd = el("button", { type: "button", class: "knap knap--tekst", id: "optimer-afbryd", tekst: "Afbryd" });
-  let afbrudt = false;
-  afbryd.addEventListener("click", () => {
-    afbrudt = true;
-    startMotor();
-    hentKommuner();
-    fjernForslag();
-    knap.disabled = false;
-    knap.focus();
-  });
-  boks.replaceChildren(el("p", { tekst: "Afprøver kombinationer …" }), fremdrift, afbryd);
-  boks.hidden = false;
-  knap.disabled = true;
-  try {
-    const hvem = tilstand.hvem === "partner" ? "partner" : "dig";
-    const r = await kaldMedFremdrift("optimer", [noegle, idag(), hvem], (andel) => { fremdrift.value = andel; });
-    if (afbrudt || svarNoegle() !== noegle) return;  // afbrudt, eller planen er ændret, mens vi søgte
-    if (!r.ok) { boks.replaceChildren(el("p", { class: "forslag__resultat", tekst: r.fejl.besked })); return; }
-    visForslag(r.data, noegle);
-  } catch {
-    if (afbrudt) return;
-    boks.replaceChildren(el("p", { class: "forslag__resultat", tekst: "Vi kunne ikke søge efter en bedre plan lige nu. Prøv igen." }));
-  } finally {
-    if (!afbrudt) knap.disabled = false;
-  }
-}
 
 const FORM_TEKST = {
   engangs: () => "ét beløb",
@@ -1903,42 +1873,6 @@ function aendringTekst(a, engang) {
   if (a.felt === "varighed") return `varighed ${a.fra} → ${a.til} år`;
   if (a.felt === "opsaettelse") return `udskyd ${a.fra} → ${a.til} år`;
   return `${engang ? "udbetales som" : "start"} ${a.fra} → ${a.til} år`;
-}
-
-function visForslag(d, noegle) {
-  const afproevet = d.udtoemmende
-    ? `Vi har afprøvet alle ${kr(d.mulige)} mulige kombinationer.`
-    : `Vi har afprøvet ${kr(d.evalueret)} af ${stortTal(d.mulige)} mulige kombinationer – de mest lovende, men ikke alle.`;
-  const boks = $("#forslag");
-  tilstand.forslagVist = d;
-  if (!d.forbedret) {
-    boks.replaceChildren(
-      el("p", { class: "forslag__resultat", tekst: "Din plan er allerede den bedste, vi kan finde." }),
-      el("p", { class: "felt__hjaelp", tekst: afproevet }),
-      optimeringForklaring(d));
-    return;
-  }
-  const pr = new Map();
-  for (const a of d.aendringer) pr.set(a.id, [...(pr.get(a.id) || []), a]);
-  const linjer = [...pr].map(([id, aendringer]) => {
-    const o = aktivSvar().ordninger.find((x) => x.id === id);
-    const titel = o ? ordningstitel(o) : "Folkepension";
-    return el("li", {}, el("strong", { tekst: `${titel}: ` }), aendringer.map((a) => aendringTekst(a, o && ENGANGSTYPER.has(o.type))).join(", "));
-  });
-  const anvend = el("button", { type: "button", class: "knap knap--primaer", tekst: "Anvend" });
-  const behold = el("button", { type: "button", class: "knap knap--tekst", tekst: "Behold min plan" });
-  anvend.addEventListener("click", anvendForslag);
-  behold.addEventListener("click", fjernForslag);
-  boks.replaceChildren(
-    el("h3", { class: "forslag__resultat", tekst: `Forslag: ${kr(d.efter - d.foer)} kr. mere om måneden` }),
-    el("p", { tekst: `Fast beløb hele perioden: ${kr(d.efter)} kr. i stedet for ${kr(d.foer)} kr. Efter skat og i dagens kroner. De stiplede bjælker viser forslaget.` }),
-    el("ul", { class: "forslag__liste" }, linjer),
-    el("p", { class: "felt__hjaelp", tekst: afproevet }),
-    el("p", { class: "felt__hjaelp forslag__forbehold", tekst: emne("forbehold")?.niveau1 ?? "" }),
-    optimeringForklaring(d),
-    el("div", { class: "forslag__knapper" }, anvend, behold));
-  tilstand.forslag = { d, noegle };
-  placerBjaelker();
 }
 
 // Feature 020c: sådan har vi fundet forslaget, på det valgte niveau, med søgningens omfang (Princip V).
@@ -1963,36 +1897,6 @@ function tegnOptimeringForklaring(boks, d) {
   }
   tekster.push(emne("forbehold")[n]);
   $(".laes__tekst", boks).replaceChildren(...afsnit(...tekster));
-}
-
-function anvendForslag() {
-  const { d } = tilstand.forslag;
-  const s = aktivSvar();
-  for (const [id, felter] of Object.entries(d.plan.ordninger)) Object.assign(s.ordninger.find((o) => o.id === id), felter);
-  s.antagelser.folkepension_opsaettelse_aar = d.plan.folkepension_opsaettelse_aar;
-  fjernForslag();
-  synkroniserFormular();
-  tegnTidslinje(tilstand.v);
-  genberegn();
-  $("#hovedtal").scrollIntoView?.({ block: "center" });
-}
-
-function forslagSpaend(r, v, plan) {
-  // Forslagets første og sidste alder for rækken — null, hvis forslaget ikke ændrer den.
-  const sidste = v.graf.aldre.at(-1);
-  if (r.id === "folkepension") {
-    const ops = plan.folkepension_opsaettelse_aar;
-    return ops === r.kontroller.start.hent() ? null : [v.graenser.folkepensionsalder + ops, sidste];
-  }
-  const p = plan.ordninger[r.id];
-  if (!p) return null;
-  const start = p.udbetaling_start_alder;
-  const form = p.udbetalingsform ?? r.form;
-  const aar = p.udbetaling_aar ?? r.kontroller.varighed?.hent();
-  if (start === r.kontroller.start.hent() && aar === r.kontroller.varighed?.hent() && form === r.form) return null;
-  if (form === "portioner" || form === "ratepension" || (!form && r.kontroller.varighed)) return [start, start + aar - 1];
-  if (form === "engangs" || (!form && r.engang)) return [start, start];
-  return [start, sidste];
 }
 
 const PUNKT_PX = 24;  // engangsbeløb og greb: mindst 24×24 px (WCAG 2.5.8)
@@ -2039,15 +1943,6 @@ function placerBjaelker() {
     const til = placer(b, start, slut, r.engang);
     const greb = $(".tl-greb", raekke);
     if (greb) greb.style.left = `${x0 + til * prAar - PUNKT_PX / 2}px`;
-    // Spøgelse: forslagets placering (feature 007).
-    const forslag = tilstand.forslag?.d.forbedret ? forslagSpaend(r, v, tilstand.forslag.d.plan) : null;
-    let spoegelse = $(".tl-spoegelse", raekke);
-    if (!forslag) { spoegelse?.remove(); return; }
-    if (!spoegelse) {
-      spoegelse = el("div", { class: `tl-spoegelse${r.engang ? " tl-spoegelse--engang" : ""}`, style: `--farve: var(${r.farve})`, "aria-hidden": "true" });
-      $(".tl-spor", raekke).prepend(spoegelse);
-    }
-    placer(spoegelse, forslag[0], forslag[1], r.engang);
   });
 }
 
@@ -2097,7 +1992,6 @@ function planKlar() {
 
 async function findBedstePlanAutomatisk() {
   const nr = ++autoNr;
-  tilstand.planer = null;
   document.body.dataset.plan = "";  // "klar", når den bedste plan er fundet og vist
   tilstand.soeger = true;
   $("#hovedtal").textContent = "Finder bedste plan …";
@@ -2105,6 +1999,12 @@ async function findBedstePlanAutomatisk() {
   const fremdrift = el("progress", { max: 1, value: 0, "aria-label": "Finder den bedste plan" });
   linje.replaceChildren(fremdrift);  // teksten står i hovedtallet (032)
   linje.hidden = false;
+  // 036: statuslinjen med fremdrift og Afbryd. Kernen kan ikke stoppes midtvejs, så workeren genstartes.
+  const fremdrift2 = el("progress", { max: 1, value: 0, "aria-label": "Afprøver kombinationer" });
+  const afbryd = el("button", { type: "button", class: "knap knap--tekst", id: "optimer-afbryd", tekst: "Afbryd" });
+  afbryd.addEventListener("click", afbrydSoegning);
+  tegnPlanStatus();
+  $("#plan-status-mere").replaceChildren(fremdrift2, afbryd);
   const egen = structuredClone(tilstand.aktuelleSvar);
   tilstand.soegNoegle = JSON.stringify(egen);
   const egenMaaned = +$("#hovedtal").dataset.vaerdi;
@@ -2114,21 +2014,23 @@ async function findBedstePlanAutomatisk() {
     const hvem = tilstand.husstand ? ["dig", "partner"] : ["dig"];
     for (const [i, h] of hvem.entries()) {
       const r = await kaldMedFremdrift("optimer", [JSON.stringify(bedste), idag(), h],
-        (andel) => { fremdrift.value = (i + andel) / hvem.length; });
+        (andel) => { fremdrift.value = fremdrift2.value = (i + andel) / hvem.length; });
       if (nr !== autoNr) return;
+      if (r.ok && i === 0) tilstand.forslagVist = r.data;  // forklaringen (020c)
       if (r.ok && r.data.forbedret) {
         anvendPlan(bedste, h, r.data.plan);
         aendringer.push(...r.data.aendringer.map((a) => ({ ...a, hvem: h })));
       }
     }
   } catch {
-    if (nr === autoNr) { linje.hidden = true; planKlar(); }
+    if (nr === autoNr) { linje.hidden = true; planKlar(); tegnPlanLinje(); }
     return;
   }
   if (nr !== autoNr || svarNoegle() !== JSON.stringify(egen)) return;  // planen er ændret imens
   if (!aendringer.length) {
-    linje.replaceChildren(el("p", { tekst: "Din plan er allerede den bedste, vi kan finde." }));
+    tilstand.planer = { egen, bedste: egen, egenMaaned, aendringer: [], vist: "bedste", ingenForbedring: true };
     planKlar();
+    tegnPlanLinje();
     return;
   }
   tilstand.planer = { egen, bedste, egenMaaned, aendringer, vist: "bedste" };
@@ -2144,18 +2046,94 @@ function skiftPlan(hvilken) {
   genberegn();
 }
 
+function afbrydSoegning() {
+  autoNr++;
+  startMotor();
+  hentKommuner();
+  $("#hovedtal-plan").hidden = true;
+  planKlar();
+  tegnPlanLinje();
+  regnUsikkerhed();  // scenarierne blev afbrudt med workeren
+  $("#optimer-knap").focus();
+}
+
+/* ── Feature 036: status for planen ────────────────────────────────────── */
+// Tilstanden udledes af den viste plan sammenlignet med planerne fra seneste søgning, så den er rigtig efter
+// enhver ændring: bjælker, fordeling, data, afkast eller grundlag. Tal og grafer regnes stadig med det samme.
+const GRUNDLAG_NAVN = { branchestandard: "pensionsselskabernes forventninger", egne: "dine egne forventninger" };
+
+function udenGrundlag(svar) {
+  const s = structuredClone(svar);
+  delete s.antagelser.beregningsgrundlag;
+  return JSON.stringify(s);
+}
+
+function planTilstand() {
+  if (tilstand.soeger) return "soeger";
+  const p = tilstand.planer;
+  if (!p) return "ingen";
+  const n = svarNoegle();
+  if (n === JSON.stringify(p.bedste)) return p.ingenForbedring ? "allerede" : "bedste";
+  if (n === JSON.stringify(p.egen)) return "egen";
+  const u = udenGrundlag(tilstand.aktuelleSvar);
+  return u === udenGrundlag(p.bedste) || u === udenGrundlag(p.egen) ? "grundlag" : "aendret";
+}
+
+function tegnPlanStatus() {
+  const t = planTilstand();
+  const p = tilstand.planer;
+  const igen = t === "aendret" || t === "grundlag";
+  const knap = $("#optimer-knap");
+  knap.textContent = igen ? "Find bedste plan igen" : "Find bedste plan";
+  knap.classList.toggle("knap--primaer", igen);
+  knap.classList.toggle("knap--sekundaer", !igen);
+  knap.disabled = t === "soeger";
+  const mere = p && p.bedsteMaaned > p.egenMaaned ? `${kr(p.bedsteMaaned - p.egenMaaned)} kr.` : "mere";
+  const tekst = {
+    soeger: "Finder bedste plan …",
+    ingen: "",
+    bedste: "✓ Du ser den bedste plan, vi har fundet.",
+    allerede: "✓ Din plan er allerede den bedste, vi kan finde.",
+    egen: `Du ser din egen plan. Den bedste plan, vi har fundet, giver ${mere === "mere" ? "mere" : `${mere} mere`} om måneden.`,
+    grundlag: `Planen er fundet med ${GRUNDLAG_NAVN[p?.bedste.antagelser.beregningsgrundlag] ?? "andre forventninger"}. `
+      + `Nu regner du med ${GRUNDLAG_NAVN[tilstand.grundlag]}, så den er måske ikke længere den bedste. `
+      + 'Tryk "Find bedste plan igen" for at finde den bedste plan med dem.',
+    aendret: tilstand.forbrugStart
+      ? "Du har ændret fordelingen. Tallene er regnet med den, men planen er ikke længere den bedste, vi har fundet. "
+        + 'Når du er færdig, så tryk "Find bedste plan igen". Så finder vi den plan, der passer bedst til din fordeling.'
+      : "Du har ændret planen. Tallene er regnet med dine ændringer, men planen er ikke længere den bedste, vi har fundet. "
+        + 'Tryk "Find bedste plan igen", når du er færdig.',
+  }[t];
+  const status = $("#plan-status");
+  status.dataset.tilstand = t;
+  if (status.textContent !== tekst) status.textContent = tekst;
+  if (t === "soeger") return;  // fremdrift og Afbryd står i #plan-status-mere
+  const mereBoks = $("#plan-status-mere");
+  const d = ["bedste", "egen", "allerede"].includes(t) ? tilstand.forslagVist : null;
+  if (mereBoks.dataset.d === (d ? JSON.stringify(d) : "") && !$("#optimer-afbryd")) return;  // fold-ud bevarer sin tilstand
+  mereBoks.dataset.d = d ? JSON.stringify(d) : "";
+  mereBoks.replaceChildren(...(d ? [optimeringForklaring(d)] : []));
+}
+
 function tegnPlanLinje() {
   // Beløbet (032) vises, så snart der er et nyt resultat for en anden plan end den, vi søger fra:
   // den bedste plan, eller fordi borgeren har ændret planen imens (så kasseres søgningen).
   if (tilstand.soeger && svarNoegle() !== tilstand.soegNoegle) planKlar();
+  tegnPlanStatus();
+  if (tilstand.soeger) return;  // fremdriften står i linjen (032)
   const p = tilstand.planer;
   const linje = $("#hovedtal-plan");
-  const noegle = svarNoegle();
-  if (!p || (noegle !== JSON.stringify(p.egen) && noegle !== JSON.stringify(p.bedste))) {
-    if (p) { tilstand.planer = null; linje.hidden = true; }  // borgeren har ændret planen
+  const t = planTilstand();
+  if (!p || tilstand.hvem !== "dig") { linje.hidden = true; return; }  // beløbene er dine
+  if (t === "aendret" || t === "grundlag" || t === "allerede") {
+    linje.replaceChildren(el("p", { tekst: {
+      aendret: 'Du har ændret planen, så den er ikke længere den bedste, vi har fundet. Se "Find bedste plan" under grafen.',
+      grundlag: 'Planen er fundet med andre forventninger, så den er måske ikke længere den bedste. Se "Find bedste plan" under grafen.',
+      allerede: "Din plan er allerede den bedste, vi kan finde.",
+    }[t] }));
+    linje.hidden = false;
     return;
   }
-  if (tilstand.hvem !== "dig") { linje.hidden = true; return; }  // beløbene er dine
   const maaned = +$("#hovedtal").dataset.vaerdi;
   if (p.vist === "bedste") p.bedsteMaaned = maaned;
   const liste = el("ul", { class: "forslag__liste" }, p.aendringer.map((a) => {
@@ -2174,7 +2152,7 @@ function tegnPlanLinje() {
     el("details", {}, el("summary", { tekst: "Det har vi ændret" }), liste),
     knap);
   linje.hidden = false;
-  planKlar();
+  tegnPlanStatus();  // bedsteMaaned er sat
 }
 
 /* ── Usikkerhed om afkast og inflation (feature 018) ──────────────────── */
@@ -2415,14 +2393,11 @@ function saetForbrug(procenter) {
 
 function visFordelingAendret() {
   // 033b: én knap. Er fordelingen ændret, står det ved "Find bedste plan", og knappen bliver primær.
-  const aendret = !!tilstand.forbrugStart;
-  $("#optimer-note").hidden = !aendret;
-  $("#optimer-knap").classList.toggle("knap--primaer", aendret);
-  $("#optimer-knap").classList.toggle("knap--sekundaer", !aendret);
+  tegnPlanStatus();  // 036: statuslinjen siger, at fordelingen er ændret
 }
 
 function findBedstePlanKnap() {
-  if (tilstand.forbrugStart) soegMedForbrug(); else findBedstePlan();
+  if (tilstand.forbrugStart) soegMedForbrug(); else findBedstePlanAutomatisk();  // 036: som ved start
 }
 
 function soegMedForbrug() {
@@ -2544,7 +2519,6 @@ function tegnPerson(v, foersteGang) {
   $("#forudsaetninger-titel").textContent = `≈ ${antal === 1 ? "Én forudsætning" : `${antal} forudsætninger`} bag tallet →`;
 
   tilstand.v = v;
-  if (tilstand.forslag && tilstand.forslag.noegle !== svarNoegle()) fjernForslag();
   flytFormularTilPanel();
   tegnNoegletal(v);
   tegnGraf(v);
@@ -2666,7 +2640,6 @@ function tegnSamletTidslinje(s) {
 function vaelgFane(hvem, fokus = false) {
   if (tilstand.hvem === hvem) return;
   tilstand.hvem = hvem;
-  fjernForslag();
   visHvem();
   if (fokus) $(`#person-faner [data-hvem="${hvem}"]`).focus();
 }
@@ -2675,6 +2648,7 @@ function vaelgFane(hvem, fokus = false) {
 function forbind() {
   startMotor();
   $("#optimer-knap").addEventListener("click", findBedstePlanKnap);
+  $("#egne-valg").addEventListener("change", grundlagFraGuide);  // 036
   $("#motor-igen").addEventListener("click", () => { startMotor(); hentKommuner(); });
   hentKommuner();
   visTrin(1, false);
@@ -2711,8 +2685,7 @@ function forbind() {
     $("#resultat").hidden = true; $("#guide").hidden = false; $("#menu").hidden = true; $("#ny-beregning").hidden = true;
     flytFormularTilGuide();
     tilstand.hvem = "dig";
-    tilstand.grundlag = "branchestandard";  // 035b
-    visGrundlag();
+    grundlagFraGuide();  // 036: afkrydsningen nulstilles ikke
     visTrin(1);
   });
   for (const navn of ["data", "graf"]) {

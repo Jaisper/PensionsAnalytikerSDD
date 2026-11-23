@@ -1,4 +1,4 @@
-"""Feature 007 — "Find bedste plan" og engangsbeløb som buffer i brugerfladen (US1, US2, SC-002,
+"""Feature 007 og 036 — "Find bedste plan" og engangsbeløb som buffer i brugerfladen (US1, US2, SC-002,
 SC-004). Syntetisk rapport: o1 kapitalpension 65, o2 ratepension 67/10 år, o3 livsvarig 67,
 o4 livsvarig 70 og folkepension 69."""
 import json
@@ -25,31 +25,29 @@ def daarlig_plan(side):
     side.wait_for_function("() => tilstand.v !== window.__f && !document.querySelector('.tl-fejl')")
 
 
-def find_forslag(side):
+def find_bedste_plan(side):
+    """Tryk "Find bedste plan" og vent, til søgningen er færdig (036: samme søgning som ved start)."""
+    nr = side.evaluate("autoNr")
     side.click("#optimer-knap")
-    side.wait_for_selector("#forslag:not([hidden]) .forslag__resultat", timeout=60000)
+    side.wait_for_function(f"() => autoNr > {nr} && document.body.dataset.plan === 'klar' && !tilstand.soeger",
+                           timeout=60000)
 
 
 def svar_json(side):
     return json.dumps(side.evaluate("tilstand.aktuelleSvar"))
 
 
-def test_find_bedste_plan_og_anvend(resultat):
+def test_find_bedste_plan_bruges_med_det_samme(resultat):
     daarlig_plan(resultat)
     foer_svar = svar_json(resultat)
-    find_forslag(resultat)
-    tekst = resultat.inner_text("#forslag")
-    assert "kr. mere om måneden" in tekst and "i stedet for" in tekst
-    assert resultat.locator("#forslag li").count() >= 1
-    assert resultat.locator(".tl-spoegelse").count() >= 1
     forventet = app.optimer(foer_svar, date.today().isoformat())["data"]
-    resultat.get_by_role("button", name="Anvend").click()
-    resultat.wait_for_selector("#forslag", state="hidden")
-    efter_svar = json.loads(svar_json(resultat))
+    assert forventet["forbedret"], "den dårlige plan kan forbedres"
+    find_bedste_plan(resultat)
+    efter_svar = resultat.evaluate("tilstand.aktuelleSvar")
     for oid, felter in forventet["plan"]["ordninger"].items():
         o = next(x for x in efter_svar["ordninger"] if x["id"] == oid)
         assert all(o[k] == v for k, v in felter.items())
-    # SC-004: det faste beløb hele perioden er forslagets beløb.
+    # SC-004: det faste beløb hele perioden er søgningens beløb.
     p0, a0 = til_kerne(json.loads(foer_svar))
     v = maalvindue(beregn(p0, a0, 2026, date.today()), p0)  # 007b
     p, a = til_kerne(efter_svar)
@@ -59,32 +57,22 @@ def test_find_bedste_plan_og_anvend(resultat):
     assert resultat.input_value("#data-panel-form #o2-udbetaling_start_alder") == str(o2)
 
 
-def test_behold_min_plan_aendrer_intet(resultat):
+def test_brug_min_egen_plan_fortryder(resultat):
     daarlig_plan(resultat)
     foer = svar_json(resultat)
-    find_forslag(resultat)
-    resultat.get_by_role("button", name="Behold min plan").click()
-    assert resultat.locator("#forslag").is_hidden()
-    assert resultat.locator(".tl-spoegelse").count() == 0
+    find_bedste_plan(resultat)
+    resultat.get_by_role("button", name="Brug min egen plan").click()
+    resultat.wait_for_function(
+        "() => document.querySelector('#hovedtal-plan button')?.textContent === 'Brug den bedste plan'")
     assert svar_json(resultat) == foer
-
-
-def test_forslag_forsvinder_ved_aendring(resultat):
-    daarlig_plan(resultat)
-    find_forslag(resultat)
-    b = resultat.locator('.tl-raekke[data-id="o3"] .tl-bjaelke')
-    b.focus()
-    b.press("ArrowRight")
-    assert resultat.locator("#forslag").is_hidden()
-    assert resultat.locator(".tl-spoegelse").count() == 0
 
 
 def test_fremdrift_vises(resultat):
     daarlig_plan(resultat)
     resultat.evaluate("""() => { window.__fremdrift = [];
-        new MutationObserver(() => window.__fremdrift.push(document.querySelector('#forslag progress')?.value))
-          .observe(document.querySelector('#forslag'), {subtree: true, childList: true, attributes: true}); }""")
-    find_forslag(resultat)
+        new MutationObserver(() => window.__fremdrift.push(document.querySelector('#plan-status-mere progress')?.value))
+          .observe(document.querySelector('#plan-status-mere'), {subtree: true, childList: true, attributes: true}); }""")
+    find_bedste_plan(resultat)
     assert any(v is not None for v in resultat.evaluate("window.__fremdrift"))
 
 
@@ -111,33 +99,13 @@ def test_engangsbeloeb_som_buffer_eller_direkte(resultat):
     assert "o1" not in d["plan"]["ordninger"]
 
 
-def test_axe_og_360_med_forslag(resultat):
+def test_axe_og_360_efter_soegning(resultat):
     daarlig_plan(resultat)
-    find_forslag(resultat)
+    find_bedste_plan(resultat)
     resultat.add_script_tag(url="https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.9.1/axe.min.js")
     fejl = resultat.evaluate("async () => (await axe.run(document, {runOnly: "
                              "['wcag2a','wcag2aa','wcag21aa','wcag22aa']})).violations.map(v => v.id)")
     assert fejl == []
     resultat.set_viewport_size({"width": 360, "height": 800})
     resultat.wait_for_function("() => document.documentElement.scrollWidth <= 360", timeout=5000)
-    assert resultat.fejl == []
-
-
-def test_afbryd_soegningen_beholder_planen(resultat):
-    """Over 10 sekunder kræver en vej ud (brugerkontrol): "Afbryd" stopper søgningen, og planen og
-    tallene er uændrede. Bagefter kan der regnes igen."""
-    daarlig_plan(resultat)
-    foer = svar_json(resultat)
-    hovedtal = resultat.inner_text("#hovedtal")
-    resultat.click("#optimer-knap")
-    resultat.click("#optimer-afbryd")
-    assert resultat.locator("#forslag").is_hidden()
-    assert svar_json(resultat) == foer and resultat.inner_text("#hovedtal") == hovedtal
-    resultat.evaluate("motorKlar")
-    resultat.wait_for_function("() => motorKlar && document.querySelector('#motor').hidden")
-    b = resultat.locator('.tl-raekke[data-id="o3"] .tl-bjaelke')
-    resultat.evaluate("window.__f = tilstand.v")
-    b.focus()
-    b.press("ArrowRight")
-    resultat.wait_for_function("() => tilstand.v !== window.__f")
     assert resultat.fejl == []

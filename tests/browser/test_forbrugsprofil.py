@@ -85,17 +85,17 @@ def test_mindst_et_baand_over_nul(med_loen):
 
 def test_knappen_soeger_den_bedste_plan_fra_egen_plan(med_loen):
     egen_foer = med_loen.evaluate("tilstand.planer && structuredClone(tilstand.planer.egen.ordninger)")
-    knap = med_loen.get_by_role("button", name="Find bedste plan", exact=True)
-    note = med_loen.locator("#optimer-note")
-    assert knap.count() == 1 and knap.is_visible()             # 033b: kun én knap
-    assert note.is_hidden()
+    knap = med_loen.locator("#optimer-knap")
+    status = med_loen.locator("#plan-status")
+    assert med_loen.get_by_role("button", name="Find bedste plan").count() == 1   # 033b: kun én knap
+    assert "fordelingen" not in status.inner_text()
     nr = med_loen.evaluate("autoNr")
     saet(med_loen, 3, "85")
     saet(med_loen, 4, "70")
     assert med_loen.evaluate("autoNr") == nr                  # ingen søgning, mens borgeren justerer
-    assert note.is_visible() and "knap--primaer" in knap.get_attribute("class")
+    assert "fordelingen" in status.inner_text() and "knap--primaer" in knap.get_attribute("class")  # 036
     efter_soegning(med_loen, knap.click)
-    assert note.is_hidden()
+    assert "fordelingen" not in status.inner_text()
     assert procenter(med_loen) == [1, 1, 1, 0.85, 0.7]
     planer = med_loen.evaluate("tilstand.planer")
     if planer is not None:

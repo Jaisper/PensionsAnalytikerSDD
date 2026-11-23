@@ -112,10 +112,13 @@ def test_traek_under_partner_aendrer_partneren(side, tmp_path):
 def test_find_bedste_plan_for_partneren(side, tmp_path):
     til_resultat_som_par(side, tmp_path)
     faner(side).nth(1).click()
+    # 036: samme søgning som ved start, for begge i husstanden.
+    nr = side.evaluate("autoNr")
     side.click("#optimer-knap")
-    side.wait_for_selector("#forslag .forslag__resultat", timeout=120000)
-    if side.locator("#forslag h3").count():
-        assert all(i.startswith("p") for i in side.evaluate("Object.keys(tilstand.forslag.d.plan.ordninger)"))
+    side.wait_for_function(f"() => autoNr > {nr} && document.body.dataset.plan === 'klar' && !tilstand.soeger",
+                           timeout=120000)
+    assert side.evaluate("tilstand.planer") is not None
+    assert side.fejl == []
 
 
 def test_samme_som_cpython(side, tmp_path):

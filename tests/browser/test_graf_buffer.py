@@ -2,7 +2,7 @@
 Syntetisk rapport: o1 kapitalpension ved 65 år (buffer fra start)."""
 import pytest
 
-from tests.browser.test_optimering import daarlig_plan, find_forslag
+from tests.browser.test_optimering import daarlig_plan, find_bedste_plan
 
 pytestmark = pytest.mark.browser
 
@@ -43,13 +43,10 @@ def test_hovedtal_er_fast_beloeb(resultat):
     assert v["hovedtal"]["maaned"] == round(min(jaevn), -2)
 
 
-def test_hovedtal_efter_anvend_er_forslagets_beloeb(resultat):
+def test_hovedtal_efter_soegning_er_den_bedste_plans_beloeb(resultat):
     daarlig_plan(resultat)
-    find_forslag(resultat)
-    efter = resultat.evaluate("tilstand.forslag.d.efter")
-    resultat.evaluate("window.__f = tilstand.v")
-    resultat.get_by_role("button", name="Anvend").click()
-    resultat.wait_for_function("() => tilstand.v !== window.__f")
+    find_bedste_plan(resultat)
+    efter = resultat.evaluate("tilstand.forslagVist.efter")
     assert resultat.evaluate("+document.querySelector('#hovedtal').dataset.vaerdi") == efter
 
 

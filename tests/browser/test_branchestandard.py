@@ -25,15 +25,14 @@ def branche(side, tmp_path):
     return side
 
 
-def test_altid_som_pensionsselskaberne(ny_side):
-    """035b: intet valg i guiden; afkast og inflation er valgfrie egne estimater."""
+def test_som_pensionsselskaberne_uden_egne_forventninger(ny_side):
+    """035b/036: som udgangspunkt som pensionsselskaberne; egne forventninger er et valg i guiden."""
     s = ny_side
     s.goto(s.base_url)
     s.evaluate("motorKlar")
     assert s.evaluate("tilstand.grundlag") == "branchestandard"
     assert s.locator("input[name=grundlag]").count() == 0
-    assert "Dine egne estimater (valgfrit)" in s.text_content("#egne-forventninger")
-    assert s.evaluate("!document.querySelector('#egne-forventninger').hidden")
+    assert s.evaluate("document.querySelector('#egne-forventninger').hidden")
 
 
 def test_tre_tal_med_branchens_benaevnelser(branche):
