@@ -178,17 +178,17 @@ def _dine_aftaler(side) -> dict[str, _Aftale]:
             continue  # fx ATP Livslang Pension
         bund = starter[i + 1] - 6 if i + 1 < len(starter) else side.height
         aftale = _Aftale(_normaliser_nr(nr))
-        for w in ord_:
-            if not top - 6 <= w["top"] < bund:
-                continue
+        raekke = [w for w in ord_ if top - 6 <= w["top"] < bund]
+        for w in raekke:
             if BELOEB.match(w["text"]):
                 beloeb = _kr(w["text"])
                 if abs(w["x1"] - ind_x1) < abs(w["x1"] - ops_x1):
                     aftale.indbetaling = beloeb
                 else:
                     aftale.saldo = beloeb
-            elif w["text"] == "forsikring" and abs(w["x1"] - ops_x1) < 15:
-                aftale.kun_forsikring = True
+        # "Kun forsikring" står under "Opsparing" eller i bemærkningerne ("Investeringsform: Kun forsikring").
+        raekke_tekst = " ".join(w["text"] for w in sorted(raekke, key=lambda w: (round(w["top"]), w["x0"])))
+        aftale.kun_forsikring = bool(re.search(r"\bkun\s+forsikring\b", raekke_tekst, re.IGNORECASE))
         aftaler[aftale.nr] = aftale
     return aftaler
 
@@ -335,22 +335,26 @@ def _vaegt(p: _Produkt) -> float:
 def _fordel(aftale: _Aftale, produkter: list[_Produkt], scenariealder: int, rateloft: int, am_bidrag: float) -> None:
     """Fordeler aftalens saldo og indbetaling på produkterne. Skøn markeres på produktet. Oplyser
     rapporten saldo og indbetaling pr. produkt, bruges de i stedet (for hvert felt, når alle har det)."""
-    indbetaling = None if aftale.indbetaling is None else round(aftale.indbetaling * (1 - am_bidrag))
-    if len(produkter) > 1 and all(p.oplyst_saldo is not None for p in produkter):
-        oplyst_ind = all(p.oplyst_indbetaling is not None for p in produkter)
+    oplyst_saldo = len(produkter) > 1 and all(p.oplyst_saldo is not None for p in produkter)
+    oplyst_ind = oplyst_saldo and all(p.oplyst_indbetaling is not None for p in produkter)
+    if oplyst_ind:
         for p in produkter:
             p.saldo = p.oplyst_saldo
-            if oplyst_ind:
-                p.indbetaling = round(p.oplyst_indbetaling * (1 - am_bidrag))
-                if p.indbetaling:
-                    p.noter.append("Indbetalingen er omregnet til beløbet efter arbejdsmarkedsbidrag (8 %).")
-        if oplyst_ind:
-            return
-        saldi = {id(p): p.saldo for p in produkter}
-        _fordel(_Aftale(aftale.nr, aftale.indbetaling, None), produkter, scenariealder, rateloft, am_bidrag)
-        for p in produkter:
-            p.saldo = saldi[id(p)]
+            p.indbetaling = round(p.oplyst_indbetaling * (1 - am_bidrag))
+            if p.indbetaling:
+                p.noter.append("Indbetalingen er omregnet til beløbet efter arbejdsmarkedsbidrag (8 %).")
         return
+    # Skøn. Er saldoen oplyst pr. produkt, fordeles kun indbetalingen (aftalens saldo udelades, så der
+    # ikke kommer en skønsnote om saldoen), og den oplyste saldo sættes bagefter.
+    _fordel_skoen(_Aftale(aftale.nr, aftale.indbetaling, None if oplyst_saldo else aftale.saldo),
+                  produkter, rateloft, am_bidrag)
+    if oplyst_saldo:
+        for p in produkter:
+            p.saldo = p.oplyst_saldo
+
+
+def _fordel_skoen(aftale: _Aftale, produkter: list[_Produkt], rateloft: int, am_bidrag: float) -> None:
+    indbetaling = None if aftale.indbetaling is None else round(aftale.indbetaling * (1 - am_bidrag))
     if len(produkter) == 1:
         p = produkter[0]
         p.saldo, p.indbetaling = aftale.saldo, indbetaling
@@ -389,12 +393,31 @@ class PensionsInfoAflaeser:
                 aftaleside = next((s for s in sektioner.get("aftaler", []) if "Aftalenr." in _tekst(s)), None)
                 if aftaleside is None or "scenarie" not in sektioner:
                     raise AflaesningFejl("ukendt_format", "Det ligner ikke en rapport fra PensionsInfo.")
-                aftaler = _dine_aftaler(aftaleside)
+                # Kun udbetalingstabellen er uundværlig. De øvrige afsnit beriger, og en fejl i ét af dem
+                # giver en bemærkning (brugeren retter selv i guiden) i stedet for en fejlet upload.
+                bem: list[str] = []
                 scenariealder, kolonner, produkter = _udbetalingstabel(sektioner["scenarie"])
-                detaljer = _flere_oplysninger(sektioner.get("flere", []))
+                try:
+                    aftaler = _dine_aftaler(aftaleside)
+                except Exception:
+                    aftaler = {}
+                    bem.append("Siden \"Dine aftaler\" kunne ikke aflæses, så saldo og indbetaling mangler. "
+                               "Indtast dem selv.")
+                try:
+                    detaljer = _flere_oplysninger(sektioner.get("flere", []))
+                except Exception:
+                    detaljer = []
+                    bem.append("Afsnittet \"Pension - flere oplysninger\" kunne ikke aflæses. "
+                               "Tjek udbetalingsalder og saldo pr. ordning.")
                 # Feature 031: forsikringerne. Kun med indholdsfortegnelse, så ingen andre sider læses.
-                indhold = next((_tekst(s) for s in pdf.pages[1:3] if "Indhold" in _tekst(s)), None)
-                daekninger, daekning_bem = aflaes_daekninger(pdf.pages, indhold)
+                try:
+                    indhold = next((_tekst(s) for s in pdf.pages[1:3] if "Indhold" in _tekst(s)), None)
+                    daekninger, daekning_bem = aflaes_daekninger(pdf.pages, indhold)
+                    bem += daekning_bem
+                except Exception:
+                    daekninger = []
+                    bem.append("Dine forsikringer kunne ikke aflæses. Se dem på pensionsinfo.dk.")
+            return self._saml(aftaler, scenariealder, produkter, detaljer, daekninger, bem)
         except AflaesningFejl:
             raise
         except Exception:
@@ -402,6 +425,7 @@ class PensionsInfoAflaeser:
         finally:
             _TEKST.clear()
 
+    def _saml(self, aftaler, scenariealder, produkter, detaljer, daekninger, daekning_bem) -> Aflaesning:
         atp = next((b for p in produkter if p.selskab == "ATP" for b in p.beloeb if b), None)
         private = [p for p in produkter if p.selskab != "ATP" and not p.selskab.startswith("Folkepension")]
         for p in private:

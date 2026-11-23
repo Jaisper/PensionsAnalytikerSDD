@@ -76,6 +76,63 @@ def test_saldo_og_indbetaling_pr_produkt_bruges_naar_rapporten_oplyser_dem():
     assert _ordning(a, "1234567890", "kapitalpension").saldo == 800_000   # aftalens saldo som før
 
 
+def test_saldo_pr_produkt_men_indbetaling_kun_for_nogle():
+    # Regression: alle produkter har oplyst saldo, men ét mangler indbetaling ("Der er ikke leveret
+    # oplysninger om indbetalingen"). Gav uendelig rekursion i _fordel, og uploaden fejlede.
+    from pensionsoverblik.pdfimport.pensionsinfo import _Aftale, _fordel, _Produkt
+    kap = _Produkt("A", "X", "engang", [100_000], type_tekst="Kapitalpension", oplyst_saldo=100_000)
+    rate = _Produkt("S", "X", "aarraekke", [200_000], type_tekst="Ratepension", periode_aar=10,
+                    oplyst_saldo=1_500_000, oplyst_indbetaling=60_000)
+    liv = _Produkt("S", "X", "livsvarig", [20_000], type_tekst="Livsvarig pension",
+                   oplyst_saldo=400_000, oplyst_indbetaling=10_000)
+    _fordel(_Aftale("1", indbetaling=90_000, saldo=2_000_000), [kap, rate, liv], 60, 68_700, 0.08)
+    assert (kap.saldo, rate.saldo, liv.saldo) == (100_000, 1_500_000, 400_000)
+    # indbetalingen fordeles skønsmæssigt (efter AM-bidrag: 82.800): rate op til loftet, rest livsvarig
+    assert (kap.indbetaling, rate.indbetaling, liv.indbetaling) == (0, 68_700, 14_100)
+    assert not any("saldo er fordelt" in n for n in kap.noter + rate.noter + liv.noter)
+
+
+def test_uventet_fejl_bliver_til_aflaesningsfejl(monkeypatch):
+    # Fejltolerance: en uventet undtagelse i efterbehandlingen må ikke vælte uploaden.
+    from pensionsoverblik.pdfimport import pensionsinfo
+    from pensionsoverblik.pdfimport.aflaeser import AflaesningFejl
+    def boom(*a, **k):
+        raise RuntimeError("uventet")
+    monkeypatch.setattr(pensionsinfo, "_fordel", boom)
+    with pytest.raises(AflaesningFejl):
+        AFLAESER.aflaes(RAPPORT_PDF)
+
+
+def test_kun_forsikring_i_bemaerkningskolonnen():
+    import pdfplumber, io
+    from pensionsoverblik.pdfimport.pensionsinfo import _dine_aftaler
+    from tests.app.pensionsinfo_syntetisk import RAPPORT_KUN_FORSIKRING_I_BEM_PDF
+    with pdfplumber.open(io.BytesIO(RAPPORT_KUN_FORSIKRING_I_BEM_PDF)) as pdf:
+        aftaler = _dine_aftaler(pdf.pages[2])
+    assert aftaler["11111-2222"].kun_forsikring
+    assert not aftaler["1234567890"].kun_forsikring
+
+
+def test_dine_aftaler_ulaeselig_giver_bemaerkning_ikke_fejl(monkeypatch):
+    from pensionsoverblik.pdfimport import pensionsinfo
+    def boom(*a, **k):
+        raise ValueError("uventet layout")
+    monkeypatch.setattr(pensionsinfo, "_dine_aftaler", boom)
+    a = AFLAESER.aflaes(RAPPORT_PDF)
+    assert a.ordninger and all(o.saldo is None for o in a.ordninger)
+    assert any("Dine aftaler" in b for b in a.bemaerkninger)
+
+
+def test_daekninger_ulaeselige_giver_bemaerkning_ikke_fejl(monkeypatch):
+    from pensionsoverblik.pdfimport import pensionsinfo
+    def boom(*a, **k):
+        raise ValueError("uventet layout")
+    monkeypatch.setattr(pensionsinfo, "aflaes_daekninger", boom)
+    a = AFLAESER.aflaes(RAPPORT_PDF)
+    assert a.ordninger and a.daekninger == []
+    assert any("forsikringer" in b for b in a.bemaerkninger)
+
+
 def test_aftale_uden_prognose_bliver_ukendt(aflaesning):
     o = _ordning(aflaesning, "9999999999", "ukendt")
     assert o.saldo == 50_000 and o.noter
