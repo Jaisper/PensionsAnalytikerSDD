@@ -275,16 +275,22 @@ def test_forudsaetning_med_fri_profil():
     assert "120 % fra 75" in next(a.besked for a in stigende.advarsler if a.kode == "FORBRUGSPROFIL")
 
 
-def test_husstanden_deler_profilen_fra_den_foerste_der_stopper():
-    # A (født 1958) stopper ved 67 i 2025, B (født 1962) ved 64 i 2026. Båndene regnes fra 2025 i A's
-    # aldre: 2025–2029 er 100 %, 2030–2034 er 80 %, for begge.
+def test_hver_sin_profil_fra_egen_stopalder():
+    # 037 (erstatter 033's fælles profil, produktejerens beslutning 2026-11-23): A (født 1958) stopper
+    # ved 67 i 2025, B (født 1962) ved 64 i 2026. Hver har sin egen profil fra sin egen stopalder.
     from pensionskerne.husstand import beregn_husstand
     from tests.golden.test_husstand import A, A_ANT, B
-    ant = replace(A_ANT, forbrugsprofil=Forbrugsprofil((1.0, 0.8)))
-    h = beregn_husstand(A, ant, B, ant, 2026, BEREGNINGSDATO)
-    for res in (h.a, h.b):
-        v = {a.kalenderaar: j.vaegt for j, a in zip(res.jaevn.aar, res.aar)}
-        assert v[2029] == 1.0 and v[2030] == 0.8 and v[2040] == 0.8
+    vaegte = lambda res: {a.kalenderaar: j.vaegt for j, a in zip(res.jaevn.aar, res.aar)}
+    a_ant = replace(A_ANT, forbrugsprofil=Forbrugsprofil((1.0, 0.8)))
+    h = beregn_husstand(A, a_ant, B, A_ANT, 2026, BEREGNINGSDATO)
+    va, vb = vaegte(h.a), vaegte(h.b)
+    assert va[2029] == 1.0 and va[2030] == 0.8 and va[2040] == 0.8    # A: 67–71 er 2025–2029
+    assert all(w == 1.0 for w in vb.values())                         # B: flad
+    h = beregn_husstand(A, A_ANT, B, replace(A_ANT, forbrugsprofil=Forbrugsprofil((1.0, 0.5))), 2026,
+                        BEREGNINGSDATO)
+    va, vb = vaegte(h.a), vaegte(h.b)
+    assert all(w == 1.0 for w in va.values())
+    assert vb[2030] == 1.0 and vb[2031] == 0.5                         # B: 64–68 er 2026–2030
 
 
 # ── Den bedste plan (US2, FR-004) ──────────────────────────────────────────────
@@ -304,14 +310,14 @@ def test_baandene_staar_paa_resultatet():
     assert tidlig.forbrug_baand[:2] == ((60, 64), (65, 69)) and len(tidlig.forbrug_baand) == 6
 
 
-def test_husstandens_baand_i_egne_aldre():
-    # B er fire år yngre end A: A's bånd 67–71 er B's 63–67.
+def test_husstandens_baand_fra_egen_stopalder():
+    # 037: A stopper ved 67, B ved 64. Før 037 fulgte B's bånd A's (63–67 i B's aldre).
     from pensionskerne.husstand import beregn_husstand
     from tests.golden.test_husstand import A, A_ANT, B
     ant = replace(A_ANT, forbrugsprofil=Forbrugsprofil((1.0, 0.8)))
     h = beregn_husstand(A, ant, B, ant, 2026, BEREGNINGSDATO)
     assert h.a.forbrug_baand[0] == (67, 71)
-    assert h.b.forbrug_baand[0] == (63, 67)
+    assert h.b.forbrug_baand[0] == (64, 68)
 
 
 def test_forudsaetning_kun_med_faldende_profil():

@@ -125,6 +125,7 @@ PARTNER_FELTER = {
     "loen.aarlig": "person.partner.profil.loen.aarlig",
     "loen.deltid_aarlig": "person.partner.profil.loen.deltid_aarlig",
     "loen.deltid_til_alder": "person.partner.profil.loen.deltid_til_alder",
+    "antagelser.forbrugsprofil": "person.partner.antagelser.forbrugsprofil",  # 037
 }
 
 
@@ -432,8 +433,13 @@ def scenarie(guide_json: str, idag: str, afkast: float, inflation: float, plan_s
     from pensionskerne import Antagelser
 
     data = json.loads(guide_json)
+    dit = float((data.get("antagelser") or {}).get("afkast_efter_pal", Antagelser().afkast_efter_pal))
     data["antagelser"] = {**(data.get("antagelser") or {}), "afkast_efter_pal": afkast, "inflation": inflation,
                           "plan_slut_alder": plan_slut_alder}
+    # 037: har partneren sit eget afkast, flyttes det med samme forskel som dit.
+    pa = ((data.get("person") or {}).get("partner") or {}).get("antagelser") or {}
+    if pa.get("afkast_efter_pal") is not None:
+        pa["afkast_efter_pal"] = round(max(0.0, float(pa["afkast_efter_pal"]) + afkast - dit), 6)
     forloeb = None
     if stress:
         r = beregn(json.dumps(data), idag)

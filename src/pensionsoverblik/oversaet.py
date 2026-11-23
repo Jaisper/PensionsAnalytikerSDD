@@ -120,8 +120,27 @@ def til_husstand(data: dict) -> tuple[Pensionsprofil, Antagelser, Pensionsprofil
         loen=_loen(pp.get("loen")),
         partner=Partner(foedselsdato=profil_a.foedselsdato),
     )
-    antagelser_b = replace(antagelser_a, folkepension_opsaettelse_aar=_heltal(
-        pp.get("folkepension_opsaettelse_aar"), "person.partner.profil.folkepension_opsaettelse_aar", 0))
+    # 037: partnerens egen fordeling, eget afkast og eget grundlag. Mangler et felt (gemt før 037), bruges
+    # dit. Inflationen er husstandens fælles, så "dagens kroner" er det samme for begge.
+    egne = p.get("antagelser") or {}
+    felt = "person.partner.antagelser"
+    afkast = _tal(egne.get("afkast_efter_pal"), f"{felt}.afkast_efter_pal", antagelser_a.afkast_efter_pal)
+    grundlag = egne.get("beregningsgrundlag") or antagelser_a.beregningsgrundlag
+    if grundlag not in BEREGNINGSGRUNDLAG:
+        raise UgyldigtInput(f"{felt}.beregningsgrundlag", "Vælg branchestandard eller egne antagelser")
+    forbrug = (Forbrugsprofil(tuple(_tal(x, f"{felt}.forbrugsprofil") for x in egne["forbrugsprofil"] or []))
+               if "forbrugsprofil" in egne else antagelser_a.forbrugsprofil)
+    # Stresstestens år (023a) følger partnerens eget afkast: samme afvigelse som dit.
+    forskel = afkast - antagelser_a.afkast_efter_pal
+    antagelser_b = replace(
+        antagelser_a,
+        folkepension_opsaettelse_aar=_heltal(
+            pp.get("folkepension_opsaettelse_aar"), "person.partner.profil.folkepension_opsaettelse_aar", 0),
+        afkast_efter_pal=afkast,
+        afkast_forloeb={aar: v + forskel for aar, v in antagelser_a.afkast_forloeb.items()},
+        beregningsgrundlag=grundlag,
+        forbrugsprofil=forbrug,
+    )
     return profil_a, antagelser_a, profil_b, antagelser_b
 
 
