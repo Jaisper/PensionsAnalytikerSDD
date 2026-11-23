@@ -2302,6 +2302,10 @@ function visHvem(foersteGang = false) {
   $("#graf-panel").hidden = samlet;
   $("#sammensaetning").hidden = samlet;
   $("#link-sammensaetning").hidden = samlet;
+  // Kun det, der giver mening summeret: afkast, stopalder, næste krone og år for år er pr. person.
+  $("#forudsaetninger").hidden = samlet;
+  $("#saadan").hidden = samlet;
+  $("#menu a[href='#saadan']").closest("li").hidden = samlet;
   tegnForsikringer(samlet ? [] : tilstand.hvem === "partner" ? tilstand.partnerForsikringer : tilstand.forsikringer);
   $("#link-graf").setAttribute("href", samlet ? "#samlet-panel" : "#graf-panel");
   $("#overblik-titel").textContent = { dig: "Dit overblik", partner: "Din partners overblik", samlet: "Jeres overblik" }[tilstand.hvem];

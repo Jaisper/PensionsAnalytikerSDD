@@ -115,3 +115,22 @@ def test_valgene_overlever_opdater_og_gem(par):
     assert g["antagelser"]["partner"]["afkast_efter_pal"] == 0.06
     assert g["antagelser"]["partner"]["forbrugsprofil"][0] == 1.2
     assert par.fejl == []
+
+
+def test_samlet_viser_kun_det_der_giver_mening_summeret(par):
+    # Afkast, stopalder, næste krone og år-for-år er pr. person; de hører ikke til fanen Samlet.
+    skjult = "#forudsaetninger, #saadan, #menu a[href='#saadan']"
+    faner(par).nth(2).click()
+    par.wait_for_function("() => tilstand.hvem === 'samlet'")
+    for sel in skjult.split(", "):
+        assert par.locator(sel).is_hidden(), sel
+    assert par.locator("#samlet-panel").is_visible()
+    faner(par).nth(0).click()
+    par.wait_for_function("() => tilstand.hvem === 'dig'")
+    for sel in skjult.split(", "):
+        assert par.locator(sel).is_visible(), sel
+
+
+def test_unikke_id_er(par):
+    assert par.evaluate("""() => { const ids = [...document.querySelectorAll('[id]')].map(e => e.id);
+                                   return ids.filter((x, i) => ids.indexOf(x) !== i); }""") == []
