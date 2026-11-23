@@ -385,7 +385,6 @@ STRESS_SIGMA_OBLIGATIONER = 0.039
 STRESS_KORRELATION = 0.0
 STRESS_STANDARDAFVIGELSER = 2
 STRESS_AAR = 2
-STRESS = (("daarlige_aar_foerst", "Dårlige år først", -1), ("gode_aar_foerst", "Gode år først", 1))
 
 
 def stress_afvigelse() -> float:
@@ -416,10 +415,9 @@ def scenarier(guide_json: str) -> list[dict]:
             for noegle, titel, ra, ri in SCENARIER] + [
         {"noegle": f"levetid_{alder}", "titel": f"Planen rækker til {alder} år", "afkast": afkast,
          "inflation": inflation, "plan_slut_alder": alder}
-        for alder in LEVETIDER] + [
-        {"noegle": noegle, "titel": titel, "afkast": afkast, "inflation": inflation, "plan_slut_alder": None,
-         "stress": retning}
-        for noegle, titel, retning in STRESS]
+        for alder in LEVETIDER]
+    # "Dårlige/Gode år først" (023a) er udgået i tabellen 2026-11-23 (produktejer): gode år kan ikke hæve de
+    # første år (ingen lån, 010), så rækkerne så skæve ud. `scenarie(stress=...)` er bevaret.
 
 
 def scenarie(guide_json: str, idag: str, afkast: float, inflation: float, plan_slut_alder: int | None = None,

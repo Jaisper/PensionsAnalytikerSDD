@@ -35,6 +35,14 @@ bliver lavere, end gennemsnittet lover (sekvensrisiko). Det kan værktøjet ikke
 
 ## Clarifications
 
+### Session 2026-11-23 (efter udgivelsen)
+
+- Q: "Gode år først" giver kun marginalt mere end dit valg, selv med over 20 % afkast i to år. → A: Rigtigt
+  regnet, men misvisende: tabellen viser niveauet de første år, og gode år kan ikke hæve det (ingen lån, 010).
+  Gevinsten kommer senere (højere niveau senere og et trin et år før; i alt cirka lige så meget som de
+  dårlige år koster). **Rækkerne "Dårlige år først" og "Gode år først" udgår i tabellen (produktejer).**
+  Afkast pr. år i kernen og `scenarie(stress=...)` er bevaret.
+
 - **Besluttet 2026-10-27 (som foreslået):** Hvor dårlige er "dårlige år"? Et tal kræver en kilde. → to år med
   afkast på forventet afkast minus to standardafvigelser for en blandet pensionsportefølje, ud fra
   Rådet for Afkastforventninger. Med 50 % aktier og 50 % obligationer er standardafvigelsen ca.
