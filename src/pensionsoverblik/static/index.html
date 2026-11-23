@@ -339,10 +339,13 @@
           <fieldset class="trin" data-trin="5" hidden>
             <legend><h2 tabindex="-1">Dine forventninger</h2></legend>
             <p class="hjaelp">Ingen kender fremtiden. Vi har foreslået almindelige værdier. Du kan ændre dem nu eller senere.</p>
-            <p class="felt__hjaelp" id="grundlag-hjaelp">Vi regner som pensionsselskaberne: med de samme forventninger til afkast og inflation, som dit pensionsselskab bruger. Så kan du sammenligne med deres tal, og du får tre tal: ved højt, forventet og lavt afkast.</p>
-            <div id="egne-forventninger" role="group" aria-labelledby="egne-titel">
-            <h3 id="egne-titel">Dine egne estimater (valgfrit)</h3>
-            <p class="felt__hjaelp">Vil du også se tallene med dine egne forventninger, kan du sætte dem her. Ved beløbet skifter du mellem pensionsselskabernes og dine egne.</p>
+            <p class="felt__hjaelp" id="grundlag-hjaelp">Du behøver ikke udfylde noget her. Så regner vi som pensionsselskaberne: med Rådet for Afkastforventningers forudsætninger for afkast og inflation, som dit pensionsselskab også bruger. Så kan du sammenligne med deres tal, og du får tre tal: ved højt, forventet og lavt afkast.</p>
+            <div class="felt felt--afkrydsning">
+              <label class="valg"><input type="checkbox" id="egne-valg" aria-controls="egne-forventninger" aria-describedby="egne-valg-hjaelp"> Jeg vil bruge mine egne forventninger</label>
+              <p class="felt__hjaelp" id="egne-valg-hjaelp">Så regner vi med dem fra start. Ved beløbet kan du altid skifte til pensionsselskabernes.</p>
+            </div>
+            <div id="egne-forventninger" role="group" aria-labelledby="egne-titel" hidden>
+            <h3 id="egne-titel">Dine egne forventninger</h3>
             <div class="felt" data-felt="antagelser.afkast_efter_pal">
               <label for="afkast">Forventet afkast pr. år efter skat på pensionen</label>
               <div class="skyder"><input type="range" id="afkast" min="0" max="8" step="0.5" value="4"><output for="afkast" id="afkast-v">4 %</output></div>
@@ -483,14 +486,15 @@
               <p class="felt__hjaelp" id="forbrug-note" role="status" hidden></p>
               <button type="button" class="knap knap--tekst" id="forbrug-flad" hidden>Samme beløb hele livet</button>
             </section>
-            <div class="optimering">
-              <!-- 033b: én knap. Er fordelingen ændret, søger den fra din egen plan med den nye fordeling. -->
-              <p class="optimering__note" id="optimer-note" role="status" hidden>Du har ændret fordelingen. Når du er færdig, så tryk "Find bedste plan". Så finder vi den plan, der passer bedst til din fordeling. Den kan rykke dine udbetalinger frem.</p>
+            <!-- 036: én statuslinje for planen. Tal og grafer regnes med det samme; linjen siger, om det viste
+                 stadig er den bedste plan. Én knap (033b); er fordelingen ændret, søger den fra din egen plan. -->
+            <div class="optimering" id="plan-status-boks">
+              <p class="optimering__status" id="plan-status" role="status" aria-live="polite"></p>
               <div class="optimering__top">
                 <button type="button" class="knap knap--sekundaer" id="optimer-knap">Find bedste plan</button>
-                <p class="felt__hjaelp">Vi afprøver, hvornår og hvor længe dine ordninger kan udbetales, og finder det højeste faste beløb, du kan leve af hele perioden – efter skat og uden nye huller i din indkomst.</p>
+                <p class="felt__hjaelp" id="optimer-hjaelp">Vi afprøver, hvornår og hvor længe dine ordninger udbetales, og finder det højeste faste beløb, du kan leve af hele perioden – efter skat og uden nye huller i din indkomst. Dine forventninger og din fordeling ændres ikke.</p>
               </div>
-              <div class="forslag" id="forslag" role="status" aria-live="polite" hidden></div>
+              <div id="plan-status-mere"></div>
             </div>
             <div class="tidslinje" id="tidslinje" role="group" aria-label="Dine ordninger over tid"></div>
             <details class="laes" data-laes="tidslinje"><summary></summary><div class="laes__tekst"></div></details>

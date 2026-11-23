@@ -61,7 +61,9 @@ def side(browser, base_url):
 
 
 def vaelg_grundlag(page, grundlag):
-    page.evaluate("g => { tilstand.grundlag = g; visGrundlag(); }", grundlag)
+    """Som borgeren i guidens trin 5 (036): "Jeg vil bruge mine egne forventninger"."""
+    page.evaluate("g => { const b = document.querySelector('#egne-valg'); b.checked = g === 'egne';"
+                  " b.dispatchEvent(new Event('change')); }", grundlag)
 
 
 @pytest.fixture

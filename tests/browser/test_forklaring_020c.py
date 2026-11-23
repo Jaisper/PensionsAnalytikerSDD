@@ -9,8 +9,8 @@ FUNDET = "{forbedret: false, udtoemmende: false, evalueret: 1234, mulige: 98765}
 
 def test_forklaringen_af_forslaget(resultat):
     resultat.wait_for_function("() => !!tilstand.forklaringer")
-    resultat.evaluate(f"visForslag({FUNDET}, svarNoegle()); document.querySelector('#forslag').hidden = false")
-    boks = resultat.locator("#forslag [data-optimering]")
+    resultat.evaluate(f"tilstand.forslagVist = {FUNDET}; tegnPlanStatus()")
+    boks = resultat.locator("#plan-status-mere [data-optimering]")
     boks.locator("summary").click()
     niveau1 = boks.inner_text()
     assert "rådgiver" in niveau1                        # forbeholdet på alle niveauer
