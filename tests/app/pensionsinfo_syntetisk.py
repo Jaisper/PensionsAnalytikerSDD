@@ -237,3 +237,11 @@ RAPPORT_MED_FORSIKRINGER_PDF = lav_pdf_placeret([
 RAPPORT_MED_UKENDT_FORSIKRING_PDF = lav_pdf_placeret([
     FORSIDE, INDHOLD_FORSIKRING, AFTALER, SUNDHED, _hoved("Udbetaling ved død (2 | 3)", "Overblik") + [(99, 143, "Noget andet", 7)],
     DOED_DETALJER, TAE, TAE_DETALJER, KS, KS_DETALJER, KS_BOERN, SCENARIE, FLERE, BILAG])
+
+# "Kun forsikring" kan også stå i bemærkningskolonnen ("Investeringsform: Kun forsikring", set i en
+# rapport fra 2026) og ikke under "Opsparing".
+AFTALER_KUN_FORSIKRING_I_BEM = [
+    (356, 125, "Investeringsform: Kun forsikring", 6) if t[2].startswith("Investeringsform: Der er ikke") else t
+    for t in AFTALER if t[2] != "Kun forsikring"
+]
+RAPPORT_KUN_FORSIKRING_I_BEM_PDF = lav_pdf_placeret([FORSIDE, INDHOLD, AFTALER_KUN_FORSIKRING_I_BEM, SCENARIE, FLERE, BILAG])
