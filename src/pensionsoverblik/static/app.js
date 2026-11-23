@@ -431,11 +431,22 @@ function ordningSvar(o) {
   };
 }
 
-function partnerSvar() {
+// 037: partnerens egen fordeling, eget afkast og eget grundlag. Første gang en kopi af dine (fladt), derefter
+// hver for sig. Inflationen er husstandens (dine antagelser).
+function partnerAntagelser(forrige) {
+  return structuredClone(forrige?.person?.partner?.antagelser
+    ?? { afkast_efter_pal: +$("#afkast").value / 100, beregningsgrundlag: tilstand.grundlag, forbrugsprofil: [] });
+}
+
+// Valg, der ikke står i guiden (fordelingen, partnerens antagelser): fra en åbnet fil, ellers fra resultatet,
+// når guiden står i datapanelet ("Opdater"). En ny beregning fra guiden starter forfra.
+const forrigeValg = () => tilstand.gemteValg ?? (tilstand.panel ? tilstand.aktuelleSvar : null);
+
+function partnerSvar(forrige = null) {
   if (!erPar()) return null;
   const foedselsdato = $(fuldPartner() ? "#p-foedselsdato" : "#partner-foedselsdato").value;
   if (!fuldPartner()) return { foedselsdato, oevrig_indkomst_aar: beloeb($("#partner-indkomst").value) ?? 0 };
-  return { foedselsdato, profil: {
+  return { foedselsdato, antagelser: partnerAntagelser(forrige), profil: {
     ordninger: tilstand.partnerOrdninger.map(ordningSvar),
     atp_aarlig: beloeb($("#p-atp").value) || null,
     folkekirkemedlem: $("#p-folkekirke").checked,
@@ -491,6 +502,7 @@ function opsparingSvar(pre = "") {
 }
 
 function guideSvar() {
+  const forrige = forrigeValg();
   return {
     person: {
       foedselsdato: $("#foedselsdato").value,
@@ -501,7 +513,7 @@ function guideSvar() {
       opsparing: opsparingSvar(),
       loen: loenSvar(),
       atp_aarlig: beloeb($("#atp").value) || null,  // tomt eller 0: ATP's gennemsnit (kernens fallback)
-      partner: partnerSvar(),
+      partner: partnerSvar(forrige),
     },
     ordninger: tilstand.ordninger.map(ordningSvar),
     antagelser: {
@@ -509,6 +521,7 @@ function guideSvar() {
       inflation: +$("#inflation").value / 100,
       folkepension_opsaettelse_aar: +$("#opsaettelse").value,
       beregningsgrundlag: tilstand.grundlag,  // 035
+      ...(forrige?.antagelser?.forbrugsprofil ? { forbrugsprofil: structuredClone(forrige.antagelser.forbrugsprofil) } : {}),
     },
   };
 }
@@ -583,6 +596,7 @@ async function beregnFraGuide() {
     if (fejl) { visFejl(fejl.felt, fejl.besked); return; }
     tilstand.mineSvar = structuredClone(svar);
     tilstand.aktuelleSvar = structuredClone(svar);
+    tilstand.gemteValg = null;
     tilstand.forbrugStart = null;
     tilstand.sidsteGyldige = structuredClone(svar);
     tilstand.forrigeHovedtal = null;
@@ -1060,7 +1074,8 @@ function tegnSaadan(v) {
 function tegnSkydere() {
   const s = tilstand.aktuelleSvar;
   const saet = (id, vaerdi, tekst) => { $(`#${id}`).value = vaerdi; $(`#${id}-v`).textContent = tekst; };
-  saet("r-afkast", s.antagelser.afkast_efter_pal * 100, procent(s.antagelser.afkast_efter_pal));
+  const afkast = aktiveAntagelser().afkast_efter_pal ?? s.antagelser.afkast_efter_pal;  // 037
+  saet("r-afkast", afkast * 100, procent(afkast));
   saet("r-inflation", s.antagelser.inflation * 100, procent(s.antagelser.inflation));
 }
 
@@ -1110,7 +1125,9 @@ function flytFormularTilGuide() {
 }
 
 /* ── Beregningsgrundlag (feature 035) ───────────────────────────────────── */
-const branche = () => tilstand.grundlag === "branchestandard";
+const aktivtGrundlag = () => (tilstand.hvem === "partner" && tilstand.aktuelleSvar?.person?.partner?.profil
+  ? aktiveAntagelser().beregningsgrundlag ?? tilstand.grundlag : tilstand.grundlag);  // 037
+const branche = () => aktivtGrundlag() === "branchestandard";
 
 function visGrundlag() {
   // Skyderne for afkast og inflation gælder kun dine egne estimater.
@@ -1121,6 +1138,12 @@ function visGrundlag() {
 function skiftGrundlag() {
   // 036: et skift søger ikke den bedste plan igen; statuslinjen siger, at planen er fundet med de andre.
   const ny = branche() ? "egne" : "branchestandard";
+  if (tilstand.hvem === "partner") {  // 037: kun partnerens
+    aktiveAntagelser().beregningsgrundlag = ny;
+    visGrundlag();
+    genberegn();
+    return;
+  }
   tilstand.grundlag = ny;
   tilstand.aktuelleSvar.antagelser.beregningsgrundlag = ny;
   saetEgneValg(ny === "egne");
@@ -1147,7 +1170,15 @@ function tegnGrundlag(v) {
   knap.addEventListener("click", skiftGrundlag);
   $("#hovedtal-grundlag").replaceChildren(g.type === "branchestandard"
     ? `Udbetaling ved forventet afkast, regnet som pensionsselskaberne (Rådet for Afkastforventninger, ${g.saet}). `
-    : `Regnet med dine egne estimater: afkast ${procent(v.antagelser.afkast_efter_pal)} og inflation ${procent(v.antagelser.inflation)}. `, knap);
+    : `Regnet med dine egne estimater: afkast ${procent(v.antagelser.afkast_efter_pal)} og inflation ${procent(v.antagelser.inflation)}. `, knap,
+    ...(forskelligeGrundlag() ? [el("span", { class: "hovedtal__note", tekst: " Du og din partner regner med forskellige "
+      + "forventninger. Pensionsselskabernes har deres egen inflation, så inflationen er ikke helt den samme for jer." })] : []));
+}
+
+function forskelligeGrundlag() {
+  const s = tilstand.aktuelleSvar;
+  const pa = s?.person?.partner?.antagelser;
+  return !!(s?.person?.partner?.profil && pa?.beregningsgrundlag && pa.beregningsgrundlag !== s.antagelser.beregningsgrundlag);
 }
 
 function synkroniserFormular() {
@@ -1286,6 +1317,19 @@ function saetGuideFelter(felter) {
   }
 }
 
+function gemData() {
+  const s = tilstand.aktuelleSvar;
+  return {
+    skema: GEM.skema, gemt: idag(), felter: guideFelter(),
+    ordninger: tilstand.ordninger, partnerOrdninger: tilstand.partnerOrdninger,
+    forsikringer: tilstand.forsikringer, partnerForsikringer: tilstand.partnerForsikringer,
+    naesteId: tilstand.naesteId, naestePid: tilstand.naestePid, rapportIndbetaling: tilstand.rapportIndbetaling ?? null,
+    valg: { niveau: tilstand.niveau ?? null, kroner: tilstand.kroner ?? null },
+    // 037: fordelingen og partnerens antagelser (står ikke i guiden). Før 037 blev fordelingen ikke gemt.
+    antagelser: { forbrugsprofil: s?.antagelser?.forbrugsprofil ?? null, partner: s?.person?.partner?.antagelser ?? null },
+  };
+}
+
 async function gemTilSenere() {
   const status = $("#gem-status");
   ryd();
@@ -1293,14 +1337,7 @@ async function gemTilSenere() {
   if (kode.length < 8) { visFejl("gem-kode", "Adgangskoden skal være mindst 8 tegn."); return; }
   if (kode !== $("#gem-kode2").value) { visFejl("gem-kode2", "De to adgangskoder er ikke ens."); return; }
   status.textContent = "Krypterer …";
-  const data = {
-    skema: GEM.skema, gemt: idag(), felter: guideFelter(),
-    ordninger: tilstand.ordninger, partnerOrdninger: tilstand.partnerOrdninger,
-    forsikringer: tilstand.forsikringer, partnerForsikringer: tilstand.partnerForsikringer,
-    naesteId: tilstand.naesteId, naestePid: tilstand.naestePid, rapportIndbetaling: tilstand.rapportIndbetaling ?? null,
-    valg: { niveau: tilstand.niveau ?? null, kroner: tilstand.kroner ?? null },
-  };
-  const fil = await krypter(data, kode);
+  const fil = await krypter(gemData(), kode);
   const url = URL.createObjectURL(new Blob([JSON.stringify(fil)], { type: "application/json" }));
   const a = el("a", { href: url, download: `pensionsoverblik-gemt-${idag()}.json` });
   document.body.append(a);
@@ -1337,6 +1374,9 @@ async function aabnGemt() {
   tilstand.partnerOrdninger = data.partnerOrdninger || [];
   tilstand.forsikringer = data.forsikringer || [];
   tilstand.partnerForsikringer = data.partnerForsikringer || [];
+  // 037: fordelingen og partnerens antagelser bruges ved næste beregning fra guiden.
+  tilstand.gemteValg = data.antagelser ? { antagelser: { forbrugsprofil: data.antagelser.forbrugsprofil },
+    person: { partner: data.antagelser.partner ? { antagelser: data.antagelser.partner } : null } } : null;
   tilstand.naesteId = data.naesteId || tilstand.naesteId;
   tilstand.naestePid = data.naestePid || tilstand.naestePid;
   tilstand.rapportIndbetaling = data.rapportIndbetaling || {};
@@ -1649,14 +1689,24 @@ async function opdaterFraPanel() {
   }
 }
 
+// 037: antagelserne for den person, hvis fane vises (fordeling, afkast, grundlag). Inflationen er husstandens.
+function aktiveAntagelser() {
+  const s = tilstand.aktuelleSvar;
+  const p = s?.person?.partner;
+  if (tilstand.hvem !== "partner" || !p?.profil) return s.antagelser;
+  p.antagelser ??= { afkast_efter_pal: s.antagelser.afkast_efter_pal, beregningsgrundlag: s.antagelser.beregningsgrundlag,
+    forbrugsprofil: [] };
+  return p.antagelser;
+}
+
 function aktivSvar() {
   // Svarene for den person, resultatsiden viser: dine eller — under fanen "Partner" — partnerens
-  // ordninger og opsættelse (afkast og inflation er fælles). Ændringer skrives ind i husstandens svar.
+  // ordninger, opsættelse og afkast (037; inflationen er fælles). Ændringer skrives ind i husstandens svar.
   const s = tilstand.aktuelleSvar;
   const pp = s?.person?.partner?.profil;
   if (tilstand.hvem !== "partner" || !pp) return s;
   return { ordninger: pp.ordninger, person: { loen: pp.loen }, antagelser: {
-    get afkast_efter_pal() { return s.antagelser.afkast_efter_pal; },
+    get afkast_efter_pal() { return s.person.partner.antagelser?.afkast_efter_pal ?? s.antagelser.afkast_efter_pal; },
     get inflation() { return s.antagelser.inflation; },
     get folkepension_opsaettelse_aar() { return pp.folkepension_opsaettelse_aar || 0; },
     set folkepension_opsaettelse_aar(n) { pp.folkepension_opsaettelse_aar = n; },
@@ -2070,6 +2120,7 @@ const GRUNDLAG_NAVN = { branchestandard: "pensionsselskabernes forventninger", e
 function udenGrundlag(svar) {
   const s = structuredClone(svar);
   delete s.antagelser.beregningsgrundlag;
+  if (s.person?.partner?.antagelser) delete s.person.partner.antagelser.beregningsgrundlag;  // 037
   return JSON.stringify(s);
 }
 
@@ -2255,6 +2306,7 @@ function visHvem(foersteGang = false) {
   $("#link-graf").setAttribute("href", samlet ? "#samlet-panel" : "#graf-panel");
   $("#overblik-titel").textContent = { dig: "Dit overblik", partner: "Din partners overblik", samlet: "Jeres overblik" }[tilstand.hvem];
   if (samlet) { tegnSamlet(); return; }
+  visGrundlag();  // 037: grundlaget er personens eget
   tegnPerson(tilstand.hvem === "partner" ? tilstand.husstand.partner : tilstand.vDig, foersteGang);
 }
 
@@ -2378,6 +2430,7 @@ function forbrugTekst(b) {
 function utenProfil(svar) {
   const s = structuredClone(svar);
   delete s.antagelser.forbrugsprofil;
+  if (s.person?.partner?.antagelser) delete s.person.partner.antagelser.forbrugsprofil;  // 037
   return JSON.stringify(s);
 }
 
@@ -2388,10 +2441,12 @@ function saetForbrug(procenter) {
     tilstand.forbrugStart = { egen: tilstand.planer ? structuredClone(tilstand.planer.egen) : null,
       noegle: utenProfil(tilstand.aktuelleSvar) };
   }
-  const a = tilstand.aktuelleSvar.antagelser;
-  if (procenter.every((x) => x === 100)) delete a.forbrugsprofil;
-  else a.forbrugsprofil = procenter.map((x) => x / 100);
-  $("#forbrug-flad").hidden = !a.forbrugsprofil;
+  // 037: den viste persons fordeling. Partnerens flade fordeling er en tom liste (uden feltet arves din).
+  const a = aktiveAntagelser();
+  const flad = procenter.every((x) => x === 100);
+  if (a === tilstand.aktuelleSvar.antagelser && flad) delete a.forbrugsprofil;
+  else a.forbrugsprofil = flad ? [] : procenter.map((x) => x / 100);
+  $("#forbrug-flad").hidden = flad;
   visFordelingAendret();
   genberegn();
 }
@@ -2409,10 +2464,16 @@ function soegMedForbrug() {
   // Søgningen starter fra borgerens egen plan med den nye fordeling, så "Brug min egen plan" stadig er
   // den. Har borgeren ændret andet imens (fx flyttet en bjælke), starter den fra det, der vises nu.
   const start = tilstand.forbrugStart;
-  const profil = tilstand.aktuelleSvar.antagelser.forbrugsprofil;
-  const svar = structuredClone(start?.egen && utenProfil(tilstand.aktuelleSvar) === start.noegle ? start.egen
-    : tilstand.aktuelleSvar);
-  if (profil) svar.antagelser.forbrugsprofil = profil; else delete svar.antagelser.forbrugsprofil;
+  const nu = tilstand.aktuelleSvar;
+  const svar = structuredClone(start?.egen && utenProfil(nu) === start.noegle ? start.egen : nu);
+  // Begges fordeling, som den står nu (037).
+  if (nu.antagelser.forbrugsprofil) svar.antagelser.forbrugsprofil = structuredClone(nu.antagelser.forbrugsprofil);
+  else delete svar.antagelser.forbrugsprofil;
+  const pa = nu.person?.partner?.antagelser;
+  if (pa && svar.person?.partner) {
+    svar.person.partner.antagelser ??= {};
+    if ("forbrugsprofil" in pa) svar.person.partner.antagelser.forbrugsprofil = structuredClone(pa.forbrugsprofil);
+  }
   tilstand.forbrugStart = null;
   tilstand.planer = null;
   tilstand.aktuelleSvar = svar;
@@ -2439,7 +2500,6 @@ function tegnForbrug(v) {
     ? `Fra ${stiger.fra} år kommer der flere penge ind, end din fordeling bruger. Vi låner aldrig af senere år, så beløbet stiger igen dér. "Find bedste plan" kan måske rykke dine udbetalinger frem.`
     : "";
   const ramme = $("#forbrug-baand");
-  const partner = tilstand.husstand && tilstand.hvem === "dig" ? tilstand.husstand.partner.forbrug : null;
   const noegle = f.baand.map((b) => `${b.fra}-${b.til}`).join("|");
   if (ramme.dataset.noegle === noegle) {
     // Samme bånd: opdatér værdierne uden at genopbygge, så fokus bliver på skyderen.
@@ -2457,10 +2517,8 @@ function tegnForbrug(v) {
   ramme.replaceChildren(...f.baand.map((b, i) => {
     const id = `forbrug-${i}`;
     const navn = baandNavn(b, i === f.baand.length - 1);
-    const p = partner?.baand[i];
-    const pNavn = p ? `partner ${baandNavn(p, i === f.baand.length - 1)}` : null;
     const skyder = el("input", { type: "range", id, min: FORBRUG_MIN, max: FORBRUG_MAKS, step: 5, value: b.procent,
-      "aria-label": pNavn ? `${navn} (${pNavn})` : navn, "aria-valuetext": forbrugTekst(b) });
+      "aria-label": navn, "aria-valuetext": forbrugTekst(b) });
     skyder.addEventListener("input", () => {
       // Hver skyder for sig (033b). Kernen kræver mindst ét bånd over 0 %.
       const skydere = $$("#forbrug-baand input");
@@ -2469,7 +2527,7 @@ function tegnForbrug(v) {
       saetForbrug(skydere.map((x) => +x.value));
     });
     return el("div", { class: "forbrug__kolonne" },
-      el("label", { for: id }, navn, pNavn ? el("span", { class: "forbrug__partner", tekst: `(${pNavn})` }) : null),
+      el("label", { for: id }, navn),
       skyder,
       el("output", { for: id, tekst: `${b.procent} %` }),
       el("span", { class: "forbrug__kr", tekst: b.maaned == null ? "–" : `${kr(b.maaned)} kr.` }));
@@ -2737,7 +2795,7 @@ function forbind() {
     opdater(+e.target.value);
     genberegn();
   });
-  skyder("r-afkast", (v) => { tilstand.aktuelleSvar.antagelser.afkast_efter_pal = v / 100; synkroniserFormular(); }, (v) => `${decimal(v)} %`);
+  skyder("r-afkast", (v) => { aktiveAntagelser().afkast_efter_pal = v / 100; synkroniserFormular(); }, (v) => `${decimal(v)} %`);
   skyder("r-inflation", (v) => { tilstand.aktuelleSvar.antagelser.inflation = v / 100; synkroniserFormular(); }, (v) => `${decimal(v)} %`);
   $("#forbrug-flad").addEventListener("click", () => {
     $$("#forbrug-baand input").forEach((x) => { x.value = 100; });

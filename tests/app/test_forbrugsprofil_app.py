@@ -22,9 +22,48 @@ def test_profilen_oversaettes():
     assert til_kerne(GUIDE)[1].forbrugsprofil.procenter == ()
 
 
-def test_partneren_deler_profilen():
+def med_partner(guide, **antagelser):
+    p = guide["person"]["partner"]
+    return {**guide, "person": {**guide["person"], "partner": {**p, "antagelser": antagelser}}}
+
+
+def test_partneren_arver_uden_egne_felter():
+    # 037 FR-001: gemt før 037 – partneren bruger dine værdier.
     _, a, _, b = til_husstand(med_profil(PAR))
-    assert a.forbrugsprofil == b.forbrugsprofil
+    assert b.forbrugsprofil.procenter == a.forbrugsprofil.procenter == tuple(FALDENDE)
+    assert (b.afkast_efter_pal, b.beregningsgrundlag) == (a.afkast_efter_pal, a.beregningsgrundlag)
+
+
+def test_partnerens_egne_antagelser():
+    # 037: fordeling, afkast og grundlag hver for sig. Inflationen er husstandens.
+    g = med_partner(med_profil(PAR), afkast_efter_pal=0.06, beregningsgrundlag="branchestandard",
+                    forbrugsprofil=[1.0, 0.5], inflation=0.09)
+    _, a, _, b = til_husstand(g)
+    assert a.forbrugsprofil.procenter == tuple(FALDENDE) and b.forbrugsprofil.procenter == (1.0, 0.5)
+    assert b.afkast_efter_pal == 0.06 and a.afkast_efter_pal != 0.06
+    assert b.beregningsgrundlag == "branchestandard"
+    assert b.inflation == a.inflation
+
+
+def test_partnerens_tomme_profil_er_flad():
+    _, a, _, b = til_husstand(med_partner(med_profil(PAR), forbrugsprofil=[]))
+    assert a.forbrugsprofil.procenter == tuple(FALDENDE) and b.forbrugsprofil.procenter == ()
+
+
+def test_feltfejl_peger_paa_partnerens_profil():
+    r = app.beregn(json.dumps(med_partner(PAR, forbrugsprofil=[1.0, 1.6])), IDAG)
+    assert not r["ok"] and r["fejl"]["felt"] == "person.partner.antagelser.forbrugsprofil"
+
+
+def test_scenarierne_flytter_begges_afkast():
+    # 037 FR-004: ±1 procentpoint gælder begge, hver fra sit eget afkast.
+    g = med_partner(PAR, afkast_efter_pal=0.06)
+    dig = g["antagelser"].get("afkast_efter_pal", 0.04)
+    s = app.scenarie(json.dumps(g), IDAG, dig - 0.01, g["antagelser"].get("inflation", 0.02))
+    forventet = med_partner(PAR, afkast_efter_pal=0.05)
+    forventet["antagelser"] = {**forventet["antagelser"], "afkast_efter_pal": dig - 0.01}
+    v = app.beregn(json.dumps(forventet), IDAG)["data"]
+    assert s["data"]["partner"] == v["husstand"]["partner"]["hovedtal"]["maaned"]
 
 
 def test_feltfejl_peger_paa_profilen():
