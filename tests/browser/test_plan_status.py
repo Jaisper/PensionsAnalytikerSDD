@@ -141,3 +141,57 @@ def test_axe_og_360_med_aendret_plan(bedste_plan):
     s.set_viewport_size({"width": 360, "height": 800})
     s.wait_for_function("() => document.documentElement.scrollWidth <= 360", timeout=5000)
     assert s.fejl == []
+
+
+# ── Tidslinjen: bjælkerne må aldrig gå ud over sporet (fundet i produktion 2026-11-23) ──
+
+BJAELKER_UDENFOR = """() => [...document.querySelectorAll('.tl-raekke')].flatMap((r) => {
+  const spor = r.querySelector('.tl-spor').getBoundingClientRect();
+  return [...r.querySelectorAll('.tl-bjaelke, .tl-greb')].map((b) => b.getBoundingClientRect())
+    .filter((b) => b.width && (b.right > spor.right + 1 || b.left < spor.left - 1))
+    .map((b) => `${r.dataset.id}: ${Math.round(b.left)}–${Math.round(b.right)} uden for ${Math.round(spor.left)}–${Math.round(spor.right)}`);
+})"""
+
+
+@pytest.mark.parametrize("bredde", [1280, 1640])
+def test_bjaelkerne_holder_sig_i_sporet(bedste_plan, bredde):
+    s = bedste_plan
+    s.set_viewport_size({"width": bredde, "height": 900})
+    s.wait_for_timeout(300)
+    assert s.evaluate(BJAELKER_UDENFOR) == []
+    daarlig_plan(s)
+    find_bedste_plan(s)
+    s.wait_for_timeout(300)
+    assert s.evaluate(BJAELKER_UDENFOR) == []
+
+
+@pytest.mark.parametrize("bredde", [1280, 1640])
+def test_bjaelkerne_holder_sig_i_sporet_for_et_par(side, tmp_path, bredde):
+    from tests.browser.conftest import vent_paa_planen
+    from tests.browser.test_partner import til_resultat_som_par
+    side.set_viewport_size({"width": bredde, "height": 900})
+    til_resultat_som_par(side, tmp_path)
+    vent_paa_planen(side, timeout=120000)
+    side.wait_for_timeout(300)
+    assert side.evaluate(BJAELKER_UDENFOR) == []
+    side.locator("#person-faner [data-hvem=partner]").click()
+    side.wait_for_timeout(500)
+    assert side.evaluate(BJAELKER_UDENFOR) == []
+
+
+def test_bjaelkerne_foelger_med_naar_vinduet_aendrer_bredde(bedste_plan):
+    s = bedste_plan
+    s.set_viewport_size({"width": 1900, "height": 900})
+    s.wait_for_timeout(500)
+    s.set_viewport_size({"width": 1100, "height": 900})
+    s.wait_for_timeout(500)
+    assert s.evaluate(BJAELKER_UDENFOR) == []
+
+
+def test_bjaelkerne_holder_sig_i_sporet_selv_med_forkert_grafskala(bedste_plan):
+    # Uanset årsagen (grafen bredere end sporet, forældet skala): bjælkerne bliver i sporet.
+    s = bedste_plan
+    s.evaluate("""() => { const x = tilstand.graf.scales.x, f = x.getPixelForValue.bind(x);
+                          x.getPixelForValue = (i) => f(i) * 1.4; placerBjaelker(); }""")
+    s.wait_for_timeout(400)  # bjælkerne animeres (transition .15s)
+    assert s.evaluate(BJAELKER_UDENFOR) == []
