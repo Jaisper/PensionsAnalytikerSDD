@@ -55,3 +55,12 @@ def test_axe_og_360(side):
     assert fejl == []
     side.set_viewport_size({"width": 360, "height": 800})
     side.wait_for_function("() => document.documentElement.scrollWidth <= 360", timeout=5000)
+
+
+def test_satser_og_kilder_er_venstrestillet(side):
+    # Produktejer 2026-11-24: alle celler i tabellen "Satser og kilder" venstrestilles.
+    side.click("#metode-link")
+    side.wait_for_selector("#metode-satser tbody tr")
+    justering = side.evaluate("""() => [...document.querySelectorAll('#metode-satser th, #metode-satser td')]
+        .map((c) => getComputedStyle(c).textAlign)""")
+    assert justering and set(justering) <= {"left", "start"}, set(justering)

@@ -460,3 +460,5 @@ thead th { background: var(--graa-50); position: sticky; top: 0; }
 /* 2026-11-24: usikkerhedstabellen står fremme under skyderne. */
 .usikkerhed { margin: 24px 0 8px; }
 .usikkerhed h3 { margin: 0 0 4px; }
+/* 2026-11-24 (produktejer): tabellen "Satser og kilder" på metodesiden er venstrestillet i alle kolonner. */
+#metode-satser th, #metode-satser td { text-align: left; }
