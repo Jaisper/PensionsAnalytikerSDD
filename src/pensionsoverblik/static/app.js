@@ -2805,7 +2805,6 @@ function forbind() {
     $$("#forbrug-baand input").forEach((x) => { x.value = 100; });
     saetForbrug($$("#forbrug-baand input").map(() => 100));
   });
-  $("#hovedtal-spaend").addEventListener("click", (e) => { if (e.target.closest("a")) $("#usikkerhed").open = true; });
   $("#nulstil").addEventListener("click", () => {
     tilstand.aktuelleSvar = structuredClone(tilstand.mineSvar);
     tilstand.forbrugStart = null;

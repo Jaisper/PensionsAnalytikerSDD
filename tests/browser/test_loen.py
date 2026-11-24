@@ -39,6 +39,7 @@ def test_loen_giver_loenkort_og_fast_beloeb_fra_stopalderen(side):
     assert side.fejl == []
 
 
+@pytest.mark.skip(reason="Skjult i brugerfladen 2026-11-24 (produktejer). Beregningen i app.py er bevaret og testet.")
 def test_hvornaar_kan_jeg_stoppe_og_brug_alderen(side):
     til_resultat(side, bank="300000")
     side.fill("#oenske", "1000")
@@ -54,6 +55,7 @@ def test_hvornaar_kan_jeg_stoppe_og_brug_alderen(side):
     assert side.evaluate("tilstand.v.hovedtal.fra_alder") == alder
 
 
+@pytest.mark.skip(reason="Skjult i brugerfladen 2026-11-24 (produktejer). Beregningen i app.py er bevaret og testet.")
 def test_uden_loen_beder_vi_om_loennen(side):
     til_resultat(side, loen=None, stop=None)
     side.fill("#oenske", "15000")
@@ -68,6 +70,7 @@ def test_samme_som_cpython(side):
     assert b == app.stopalder(g, IDAG, 15000)
 
 
+@pytest.mark.skip(reason="Skjult i brugerfladen 2026-11-24 (produktejer). Beregningen i app.py er bevaret og testet.")
 def test_axe_og_360(side):
     til_resultat(side, bank="300000")
     side.fill("#oenske", "1000")

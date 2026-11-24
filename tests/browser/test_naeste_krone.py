@@ -7,7 +7,7 @@ from tests.browser.conftest import indlaes_axe
 
 from tests.browser.test_loen import til_resultat
 
-pytestmark = pytest.mark.browser
+pytestmark = [pytest.mark.browser, pytest.mark.skip(reason="Skjult i brugerfladen 2026-11-24 (produktejer). Beregningen i app.py er bevaret og testet.")]
 
 
 def test_sammenligning_viser_alle_alternativer_hurtigt(side):

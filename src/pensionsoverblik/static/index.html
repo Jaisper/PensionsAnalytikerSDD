@@ -545,8 +545,18 @@
             <div class="felt"><label for="r-inflation">Prisstigning pr. år</label>
               <div class="skyder"><input type="range" id="r-inflation" min="0" max="5" step="0.5"><output for="r-inflation" id="r-inflation-v"></output></div></div>
           </div>
+          <!-- 2026-11-24 (produktejer): tabellen står altid fremme, lige under skyderne. -->
+          <section class="usikkerhed" id="usikkerhed" aria-labelledby="usikkerhed-titel" hidden>
+            <h3 id="usikkerhed-titel">Hvis afkast, inflation eller levetid bliver anderledes</h3>
+            <p class="sektion__intro">Det faste beløb om måneden efter skat, i dagens kroner, når afkastet er 1 procentpoint lavere eller højere end dit valg, inflationen er 0,5 procentpoint højere eller lavere, eller planen skal række kortere eller længere end til 90 år. Ingen kender fremtiden, så tallene er eksempler, ikke grænser.</p>
+            <div class="tabel-rul" id="usikkerhed-tabel"></div>
+            <details class="laes" data-laes="usikkerhed"><summary></summary><div class="laes__tekst"></div></details>
+            <p class="graf-forklaring" id="usikkerhed-efter" hidden></p>
+          </section>
           <button type="button" class="knap knap--tekst" id="nulstil">Nulstil til mine svar</button>
-          <section class="stop-soeg" aria-labelledby="stop-soeg-titel">
+          <!-- Skjult 2026-11-24 for at forenkle (produktejer): "Hvornår kan jeg stoppe?" og "Hvor skal næste krone
+               hen?". Fjern hidden for at vise dem igen; beregningerne i app.py og koden i app.js er bevaret. -->
+          <section class="stop-soeg" aria-labelledby="stop-soeg-titel" hidden>
             <h3 id="stop-soeg-titel">Hvornår kan jeg stoppe?</h3>
             <div class="felt">
               <label for="oenske">Hvor meget vil du have om måneden efter skat, i dagens kroner?</label>
@@ -557,7 +567,7 @@
             </div>
             <div id="stop-svar" role="status" aria-live="polite"></div>
           </section>
-          <section class="stop-soeg" aria-labelledby="naeste-krone-titel">
+          <section class="stop-soeg" aria-labelledby="naeste-krone-titel" hidden>
             <h3 id="naeste-krone-titel">Hvor skal næste krone hen?</h3>
             <div class="felt" data-felt="naeste_krone.beloeb">
               <label for="naeste-beloeb">Et ekstra beløb om året fra din løn, før skat</label>
@@ -568,13 +578,6 @@
             </div>
             <div id="naeste-svar" role="status" aria-live="polite"></div>
           </section>
-          <details class="fold" id="usikkerhed" hidden>
-            <summary>Hvis afkast, inflation eller levetid bliver anderledes <span aria-hidden="true">→</span></summary>
-            <p class="sektion__intro">Det faste beløb om måneden efter skat, i dagens kroner, når afkastet er 1 procentpoint lavere eller højere end dit valg, inflationen er 0,5 procentpoint højere eller lavere, eller planen skal række kortere eller længere end til 90 år. Ingen kender fremtiden, så tallene er eksempler, ikke grænser.</p>
-            <div class="tabel-rul" id="usikkerhed-tabel"></div>
-            <details class="laes" data-laes="usikkerhed"><summary></summary><div class="laes__tekst"></div></details>
-            <p class="graf-forklaring" id="usikkerhed-efter" hidden></p>
-          </details>
         </div>
       </section>
 
