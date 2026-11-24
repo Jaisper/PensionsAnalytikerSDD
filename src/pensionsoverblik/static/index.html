@@ -2,6 +2,10 @@
 <html lang="da">
 <head>
   <meta charset="utf-8">
+  <!-- Browseren blokerer selv enhver forbindelse til andre domæner (Princip XI, metodebeskrivelsens M5).
+       GitHub Pages kan ikke sætte headere, derfor et meta-tag. Inline style kræves af style-attributter;
+       img-src og font-src forhindrer, at CSS henter noget udefra. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; connect-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Pensionsoverblik</title>
   <meta name="description" content="Se hvad du kan forvente at få udbetalt i pension efter skat.">
