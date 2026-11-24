@@ -655,9 +655,10 @@ depotet realiserer gevinsten forholdsmæssigt.
 
 ### 6.7 Hovedtallet (`visning.py`, `_hovedtal`)
 
-**Hovedtallet** er det faste beløb om måneden efter skat i dagens kroner: det **laveste** udjævnede
-niveau fra stopalderen (uden løn fra første udbetaling), målt i forhold til fordelingen (beløbet ved
-100 %). År på 0 % tæller ikke. Det rundes til nærmeste 100 kr. Stiger niveauet senere (fordi der først
+**Hovedtallet** er det faste beløb om måneden efter skat i dagens kroner, som borgeren kan regne med
+**hvert år** fra stopalderen (uden løn fra første udbetaling). Det er derfor niveauet i det år, hvor det
+udjævnede beløb er lavest: udjævningen låner aldrig af senere år, så niveauet kan stige senere, men aldrig
+falde. Det måles i forhold til fordelingen (beløbet ved 100 %), og år på 0 % tæller ikke. Det rundes til nærmeste 100 kr. Stiger niveauet senere (fordi der først
 kommer flere penge da), oplyses det som "Fra X år stiger det til ca. Y kr.". Uden udjævning (ingen
 udbetalinger) er hovedtallet nettoindkomsten i første hele folkepensionsår.
 
@@ -746,8 +747,12 @@ Udbetalingen ved lavt afkast er beløbet efter skat, når 5 %-**forløbet** regn
 beløb hele perioden**. Det er en søgning over kernens egne, fulde beregninger med skat og modregning
 (Princip I). Der er ingen tilfældighed. Samme input giver altid samme forslag.
 
-- **Mål**: det laveste udjævnede beløb fra pensionsalderen (stopalderen med løn, ellers
-  folkepensionsalderen) i dagens kroner. Ved lige mål vinder det fladeste forløb.
+- **Mål**: Planen med det **højeste** faste beløb, som borgeren kan regne med hvert år fra
+  pensionsalderen (stopalderen med løn, ellers folkepensionsalderen), i dagens kroner. For hver plan, der
+  afprøves, er det faste beløb niveauet i det år, hvor det udjævnede beløb er lavest (det samme som
+  hovedtallet, afsnit 6.7). Søgningen gør dette laveste år så højt som muligt (maksimin). Den maksimerer
+  altså ikke gennemsnittet eller summen. Det ville belønne planer med få gode og mange dårlige år.
+  Giver to planer samme beløb, vinder den med det fladeste forløb.
 - **Søgerum**: startalder pr. ordning (fra pensionsalderen, dog tidligst den lovlige alder, til
   folkepensionsalderen plus den maksimale opsættelse), ratepensionens varighed, folkepensionens opsættelse
   og kapitalpensionens form (engangsbeløb, portioner over 2–20 år, omlægning til ratepension over 10–30 år
