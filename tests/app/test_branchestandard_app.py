@@ -53,3 +53,15 @@ def test_levetidsscenarie_med_branchestandard():
     s = next(x for x in app.scenarier(json.dumps(med(GUIDE, "branchestandard"))) if x["noegle"] == "levetid_95")
     r = app.scenarie(json.dumps(med(GUIDE, "branchestandard")), IDAG, s["afkast"], s["inflation"], s["plan_slut_alder"])
     assert r["ok"] and r["data"]["dig"] > 0
+
+
+def test_standardprofil_og_ingen_gebyr_er_synlige_forenklinger():
+    # Metodebeskrivelsens M1 og M4: forklaringen lovede kalibrering og gebyr; koden gør ingen af delene.
+    # Begge vises nu som forenklinger ved resultatet, når der regnes som pensionsselskaberne.
+    ids = lambda v: {f["id"] for f in v["forenklinger"] if f["anvendt"]}  # noqa: E731
+    branche = app.beregn(json.dumps(med(GUIDE, "branchestandard")), IDAG)["data"]
+    assert {"branchestandard_standardprofil", "branchestandard_uden_administrationsomkostning"} <= ids(branche)
+    egne = app.beregn(json.dumps(med(GUIDE, "egne")), IDAG)["data"]
+    assert not {"branchestandard_standardprofil", "branchestandard_uden_administrationsomkostning"} & ids(egne)
+    katalog = json.dumps(app.forklaringer(), ensure_ascii=False)
+    assert "kalibreret mod selskabets prognose" not in katalog

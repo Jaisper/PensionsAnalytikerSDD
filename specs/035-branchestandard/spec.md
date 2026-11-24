@@ -70,6 +70,14 @@ tillidsfaktor og en test.
   post med kilde. Det gælder kun branchestandardens livsvarige forløb. Med `egne` er
   horisonten uændret (SC-001).
 
+### Session 2026-11-24 (metodebeskrivelsen, fund M1 og M4)
+
+- Status: Kalibreringen af aktieandelen mod selskabets prognose (FR-011) og den faste administrationsomkostning
+  er ikke implementeret i brugerfladen. Kernen kan begge dele (`Ordning.aktieandel`, `Ordning.gebyr_pr_aar`),
+  men felterne sættes ikke. Alle ordninger regnes med standardprofilen og uden fast gebyr. Begge er nu
+  forenklinger i registret, så borgeren ser dem, og forklaringen er rettet. At implementere dem er en
+  senere feature (gebyret kræver en kilde, Princip III).
+
 ### Session 2026-11-05
 
 - Q: Skal borgeren vælge beregningsgrundlag i guiden? → A: Nej (produktejer, 035b). Der regnes altid som
