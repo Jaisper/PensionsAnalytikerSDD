@@ -433,3 +433,23 @@ thead th { background: var(--graa-50); position: sticky; top: 0; }
 
 /* Feature 020d: link i den mørke bund */
 .bund a { color: var(--hvid); text-decoration: underline; }
+
+/* Feature 039: metodebeskrivelsen som side ("Sådan fungerer løsningen"). Læsetekst: venstrestillede tabeller,
+   der må ombrydes, og en bredde, der er til at læse. */
+.metodedok { padding: 32px 0 64px; }
+.metodedok .ramme { max-width: 820px; }
+.metodedok h1 { font-size: 2rem; margin: 8px 0 16px; }
+.metodedok h2 { margin: 48px 0 12px; padding-top: 8px; border-top: 1px solid var(--graa-200); }
+.metodedok h3 { margin: 28px 0 8px; }
+.metodedok p, .metodedok li { line-height: 1.6; }
+.metodedok th, .metodedok td { text-align: left; white-space: normal; vertical-align: top; }
+.metodedok .tabel-rul { margin: 12px 0 20px; }
+.metodedok pre { overflow-x: auto; padding: 12px 16px; background: var(--graa-50); border-radius: 6px; font-size: .85rem; line-height: 1.35; }
+.metodedok blockquote { margin: 12px 0; padding: 4px 16px; border-left: 4px solid var(--graa-200); color: var(--graa-600); }
+.metodedok__intro { color: var(--graa-600); }
+.metodedok__indhold { margin: 24px 0 8px; padding: 16px 20px; background: var(--petrol-100); border-radius: 8px; }
+.metodedok__indhold h2 { margin: 0 0 8px; border: 0; padding: 0; font-size: 1.1rem; }
+.metodedok__indhold ul { margin: 0; padding: 0; list-style: none; columns: 2 280px; column-gap: 32px; }
+.metodedok__indhold li { break-inside: avoid; margin: 0 0 6px; }
+.metodedok hr { display: none; }
+@media print { .topbjaelke, .spring-over, .metodedok__indhold { display: none; } .metodedok h2 { break-after: avoid; } }
