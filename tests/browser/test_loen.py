@@ -4,7 +4,7 @@ import json
 import pytest
 
 from pensionsoverblik import app
-from tests.browser.conftest import vent_paa_planen
+from tests.browser.conftest import indlaes_axe, vent_paa_planen
 
 pytestmark = pytest.mark.browser
 
@@ -73,7 +73,7 @@ def test_axe_og_360(side):
     side.fill("#oenske", "1000")
     side.click("#stop-knap")
     side.wait_for_selector("#stop-svar .forslag__resultat")
-    side.add_script_tag(url="https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.9.1/axe.min.js")
+    indlaes_axe(side)
     fejl = side.evaluate("async () => (await axe.run(document, {runOnly: "
                          "['wcag2a','wcag2aa','wcag21aa','wcag22aa']})).violations.map(v => v.id)")
     assert fejl == []

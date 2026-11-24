@@ -3,6 +3,8 @@ båndene er 64–68, 69–73, 74–78, 79–84 og 85+. Beløbene regnes med det 
 først, når borgeren trykker "Find bedste plan" (033b: én knap, med en note, når fordelingen er ændret)."""
 import pytest
 
+from tests.browser.conftest import indlaes_axe
+
 from tests.browser.test_stopalder_graf import med_loen  # noqa: F401 (fixture)
 from tests.browser.test_tidslinje import marker_resultat, vent_paa_ny_beregning
 
@@ -132,7 +134,7 @@ def test_note_naar_et_baand_alligevel_stiger(med_loen):
 
 
 def test_axe(med_loen):
-    med_loen.add_script_tag(url="https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.9.1/axe.min.js")
+    indlaes_axe(med_loen)
     fejl = med_loen.evaluate("async () => (await axe.run('#forbrug', {runOnly: "
                              "['wcag2a','wcag2aa','wcag21aa','wcag22aa']})).violations.map(v => v.id)")
     assert fejl == []

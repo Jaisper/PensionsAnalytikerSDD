@@ -2,7 +2,7 @@
 (tidligste udbetaling 60 for o1, folkepensionsalder 69) med løn og stopalder 64."""
 import pytest
 
-from tests.browser.conftest import koer_guide, vent_paa_planen
+from tests.browser.conftest import indlaes_axe, koer_guide, vent_paa_planen
 from tests.browser.test_tidslinje import marker_resultat, traek, vent_paa_ny_beregning
 
 pytestmark = pytest.mark.browser
@@ -104,7 +104,7 @@ def test_uden_valgt_stopalder_foelger_punktet_foerste_udbetaling(uden_stopalder)
 
 
 def test_axe(med_loen):
-    med_loen.add_script_tag(url="https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.9.1/axe.min.js")
+    indlaes_axe(med_loen)
     med_loen.locator(PUNKT).click()
     # Med noderne i fejlen, så en fejl, der kun ses på CI (andre skrifttyper), kan findes.
     fejl = med_loen.evaluate("async () => (await axe.run(document, {runOnly: "

@@ -1,6 +1,8 @@
 """Feature 020 T006 — forenklingerne i "Sådan har vi regnet" (FR-005, FR-010)."""
 import pytest
 
+from tests.browser.conftest import indlaes_axe
+
 from pensionskerne import register
 
 pytestmark = pytest.mark.browser
@@ -30,7 +32,7 @@ def test_anvendt_forenkling_siges_i_tekst(resultat):
 
 def test_axe(resultat):
     resultat.click("#forenklinger-titel")
-    resultat.add_script_tag(url="https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.9.1/axe.min.js")
+    indlaes_axe(resultat)
     fejl = resultat.evaluate("async () => (await axe.run(document, {runOnly: "
                              "['wcag2a','wcag2aa','wcag21aa','wcag22aa']})).violations.map(v => v.id)")
     assert fejl == []

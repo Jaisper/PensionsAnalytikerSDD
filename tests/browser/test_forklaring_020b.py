@@ -2,6 +2,8 @@
 og ordlisten (US3, FR-008, FR-009, FR-010)."""
 import pytest
 
+from tests.browser.conftest import indlaes_axe
+
 pytestmark = pytest.mark.browser
 
 
@@ -51,7 +53,7 @@ def test_axe_og_360(resultat):
     klar(resultat)
     resultat.evaluate("document.querySelectorAll('details').forEach((d) => (d.open = true))")
     resultat.check("input[name=kroner][value=aarets]")
-    resultat.add_script_tag(url="https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.9.1/axe.min.js")
+    indlaes_axe(resultat)
     fejl = resultat.evaluate("async () => (await axe.run(document, {runOnly: "
                              "['wcag2a','wcag2aa','wcag21aa','wcag22aa']})).violations.map(v => v.id)")
     assert fejl == []

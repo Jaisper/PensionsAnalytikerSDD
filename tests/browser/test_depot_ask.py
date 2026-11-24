@@ -1,6 +1,8 @@
 """Feature 013b T006 — frit depot og aktiesparekonto i guiden og resultatet (US1, US2)."""
 import pytest
 
+from tests.browser.conftest import indlaes_axe
+
 from tests.browser.test_opsparing import til_opsparingstrinnet, til_resultat
 
 pytestmark = pytest.mark.browser
@@ -42,7 +44,7 @@ def test_indskud_uden_loen_giver_fejl_ved_feltet(side):
 
 def test_axe_paa_opsparingstrinnet(side):
     til_opsparingstrinnet(side)
-    side.add_script_tag(url="https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.9.1/axe.min.js")
+    indlaes_axe(side)
     fejl = side.evaluate("async () => (await axe.run(document, {runOnly: "
                          "['wcag2a','wcag2aa','wcag21aa','wcag22aa']})).violations.map(v => v.id)")
     assert fejl == []

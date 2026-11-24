@@ -10,6 +10,19 @@ from pathlib import Path
 import pytest
 
 SITE = Path(__file__).resolve().parents[2] / "_site"
+AXE_URL = "https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.9.1/axe.min.js"
+AXE_STI = "/__test__/axe.min.js"
+
+
+@functools.cache
+def _axe() -> bytes:
+    import urllib.request
+    return urllib.request.urlopen(AXE_URL, timeout=60).read()
+
+
+def indlaes_axe(page):
+    """axe-core i siden fra testserverens egen adresse. Sidens CSP blokerer scripts fra andre domæner (M5)."""
+    page.add_script_tag(url=AXE_STI)
 
 
 @pytest.fixture(scope="session")
@@ -19,6 +32,19 @@ def base_url():
     class Stille(http.server.SimpleHTTPRequestHandler):
         def log_message(self, *a):
             pass
+
+        def do_GET(self):
+            # Kun i testserveren: axe-core fra sidens egen adresse, så sidens CSP (M5) tillader den. Den
+            # kommer aldrig i den byggede side.
+            if self.path == AXE_STI:
+                data = _axe()
+                self.send_response(200)
+                self.send_header("Content-Type", "text/javascript")
+                self.send_header("Content-Length", str(len(data)))
+                self.end_headers()
+                self.wfile.write(data)
+                return
+            super().do_GET()
 
     handler = functools.partial(Stille, directory=str(SITE))
     server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)

@@ -3,6 +3,8 @@ import json
 
 import pytest
 
+from tests.browser.conftest import indlaes_axe
+
 pytestmark = pytest.mark.browser
 
 KODE = "hemmelig-kode-42"
@@ -74,7 +76,7 @@ def test_for_kort_eller_forskellig_adgangskode(resultat):
 
 def test_axe(resultat):
     resultat.click("#gem-knap")
-    resultat.add_script_tag(url="https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.9.1/axe.min.js")
+    indlaes_axe(resultat)
     fejl = resultat.evaluate("async () => (await axe.run(document, {runOnly: "
                              "['wcag2a','wcag2aa','wcag21aa','wcag22aa']})).violations.map(v => v.id)")
     assert fejl == []

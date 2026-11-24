@@ -4,7 +4,7 @@ import time
 
 import pytest
 
-from tests.browser.conftest import vent_paa_planen
+from tests.browser.conftest import indlaes_axe, vent_paa_planen
 
 from pensionsoverblik import app
 from tests.browser.test_partner import faner, til_resultat_som_par
@@ -68,7 +68,7 @@ def test_spaendet_foelger_fanen(side, tmp_path):
 def test_axe_og_360(resultat):
     vent_paa_spaend(resultat)
     resultat.click("#hovedtal-spaend a")
-    resultat.add_script_tag(url="https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.9.1/axe.min.js")
+    indlaes_axe(resultat)
     fejl = resultat.evaluate("async () => (await axe.run(document, {runOnly: "
                              "['wcag2a','wcag2aa','wcag21aa','wcag22aa']})).violations.map(v => v.id)")
     assert fejl == []
