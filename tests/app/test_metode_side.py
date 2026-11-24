@@ -103,10 +103,12 @@ def test_hovedafsnittene_er_med(side):
         assert afsnit in tekst, afsnit
 
 
-def test_siden_har_csp_og_intet_script():
+def test_siden_har_csp_og_kun_sit_eget_script():
+    # 039b: knappen "Tilbage til beregningen" lukker fanen; scriptet ligger på sidens egen adresse.
     html = metode_html.side(MD)
-    assert "Content-Security-Policy" in html and "script-src 'none'" in html
-    assert "<script" not in html
+    assert "Content-Security-Policy" in html and "script-src 'self'" in html and "connect-src 'self'" in html
+    assert re.findall(r"<script[^>]*>", html) == ['<script src="saadan-fungerer.js" defer>']
+    assert 'id="tilbage-til-beregningen"' in html and "Tilbage til beregningen" in html
 
 
 def test_featurenumre_fjernes():

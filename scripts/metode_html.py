@@ -189,18 +189,19 @@ SIDE = """<!doctype html>
 <html lang="da">
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'none'; connect-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; connect-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Sådan fungerer løsningen – Pensionsoverblik</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='10' fill='%23123845'/%3E%3Ccircle cx='16' cy='16' r='7' fill='%23f0c46a'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="app.css">
+  <script src="saadan-fungerer.js" defer></script>
 </head>
 <body>
   <a class="spring-over" href="#indhold">Gå til indhold</a>
   <header class="topbjaelke">
     <div class="ramme topbjaelke__indhold">
       <a class="logo" href="./"><span class="logo__maerke" aria-hidden="true"></span>Pensionsoverblik</a>
-      <nav aria-label="Hovedmenu"><ul class="menu"><li><a href="./">Til beregningen</a></li></ul></nav>
+      <button type="button" class="knap knap--sekundaer tilbage-til-beregningen" id="tilbage-til-beregningen">Tilbage til beregningen</button>
     </div>
   </header>
   <main id="indhold" class="metodedok">
@@ -213,7 +214,7 @@ SIDE = """<!doctype html>
     </div>
   </main>
   <footer class="bund"><div class="ramme"><p><strong>Pensionsoverblik</strong> er information, ikke rådgivning.
-    <a href="./">Til beregningen</a></p></div></footer>
+</p></div></footer>
 </body>
 </html>
 """

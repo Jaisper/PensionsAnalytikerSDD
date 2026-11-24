@@ -9,17 +9,44 @@ pytestmark = pytest.mark.browser
 
 @pytest.fixture
 def metodeside(ny_side):
+    """Siden åbnet direkte (fx et link delt med revisionen)."""
     s = ny_side
     s.add_init_script(OVERTRAEDELSER)
-    s.goto(s.base_url)
-    s.click("#saadan-fungerer-link")
+    s.goto(s.base_url + "saadan-fungerer.html")
     s.wait_for_selector("h1")
     return s
 
 
-def test_siden_aabnes_fra_forsiden(metodeside):
+def test_aabnes_i_ny_fane_og_beregningen_bliver_staaende(resultat):
+    # 039b: beregningen må ikke glemmes. Linket åbner en ny fane, og "Tilbage til beregningen" lukker den.
+    s = resultat
+    link = s.locator("#saadan-fungerer-link")
+    assert link.get_attribute("target") == "_blank" and "noopener" in link.get_attribute("rel")
+    assert "(åbner i en ny fane)" in link.inner_text()
+    hovedtal = s.inner_text("#hovedtal")
+    with s.context.expect_page() as ny:
+        link.click()
+    side = ny.value
+    side.wait_for_load_state("load")  # knappens script er indlæst (defer)
+    assert "saadan-fungerer.html?fra=beregning" in side.url and "Sådan fungerer" in side.inner_text("h1")
+    assert s.inner_text("#hovedtal") == hovedtal and s.evaluate("tilstand.v !== null")
+    with side.expect_event("close", timeout=5000):  # fanen lukkes under klikket
+        side.click("#tilbage-til-beregningen")
+    assert side.is_closed()
+    assert s.inner_text("#hovedtal") == hovedtal
+
+
+def test_aabnet_direkte_foerer_knappen_til_beregningen(metodeside):
+    # Åbnet direkte kan fanen ikke lukkes af siden; så går knappen til beregningen.
     s = metodeside
-    assert s.url.endswith("saadan-fungerer.html")
+    s.wait_for_load_state("load")
+    s.click("#tilbage-til-beregningen")
+    s.wait_for_url(lambda u: "saadan-fungerer" not in u, timeout=5000)
+    assert s.evaluate("window.__csp") == []
+
+
+def test_siden_har_indhold_og_ingen_overtraedelser(metodeside):
+    s = metodeside
     assert "Sådan fungerer" in s.inner_text("h1")
     assert s.locator(".metodedok h2").count() >= 13
     assert s.evaluate("window.__csp") == []
