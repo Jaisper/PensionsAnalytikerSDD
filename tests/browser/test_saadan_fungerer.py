@@ -51,6 +51,8 @@ def test_axe_og_360(browser, base_url):
     fejl = s.evaluate("async () => (await axe.run(document, {runOnly: "
                       "['wcag2a','wcag2aa','wcag21aa','wcag22aa']})).violations.map(v => v.id)")
     assert fejl == []
-    s.set_viewport_size({"width": 360, "height": 800})
-    s.wait_for_function("() => document.documentElement.scrollWidth <= 360", timeout=5000)
+    # 320 px og ikke kun 360: CI's skrifttyper er bredere end Chromes lokalt (fundet i udgivelsen af 039).
+    for bredde in (360, 320):
+        s.set_viewport_size({"width": bredde, "height": 800})
+        s.wait_for_function(f"() => document.documentElement.scrollWidth <= {bredde}", timeout=5000)
     ctx.close()
