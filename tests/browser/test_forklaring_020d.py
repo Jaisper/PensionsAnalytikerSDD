@@ -3,6 +3,8 @@ import json
 
 import pytest
 
+from tests.browser.conftest import indlaes_axe
+
 from pensionskerne import register
 from pensionsoverblik import app
 
@@ -47,7 +49,7 @@ def test_udskrift_aabner_alle_fold_uder_og_lukker_dem_igen(resultat):
 def test_axe_og_360(side):
     side.click("#metode-link")
     side.wait_for_selector("#metode:not([hidden]) .metode-emne")
-    side.add_script_tag(url="https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.9.1/axe.min.js")
+    indlaes_axe(side)
     fejl = side.evaluate("async () => (await axe.run(document, {runOnly: "
                          "['wcag2a','wcag2aa','wcag21aa','wcag22aa']})).violations.map(v => v.id)")
     assert fejl == []

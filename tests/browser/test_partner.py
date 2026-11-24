@@ -5,6 +5,8 @@ import json
 
 import pytest
 
+from tests.browser.conftest import indlaes_axe
+
 from pensionsoverblik import app
 from tests.app.pensionsinfo_syntetisk import RAPPORT_PDF
 
@@ -133,7 +135,7 @@ def test_samme_som_cpython(side, tmp_path):
 def test_axe_og_360(side, tmp_path):
     til_resultat_som_par(side, tmp_path)
     faner(side).nth(2).click()
-    side.add_script_tag(url="https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.9.1/axe.min.js")
+    indlaes_axe(side)
     fejl = side.evaluate("async () => (await axe.run(document, {runOnly: "
                          "['wcag2a','wcag2aa','wcag21aa','wcag22aa']})).violations.map(v => v.id)")
     assert fejl == []

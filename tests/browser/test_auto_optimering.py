@@ -3,6 +3,8 @@ skifte til sin egen plan. Uden valgt stopalder starter ingen ændret ordning fø
 udledes af den egne plans første udbetaling (030 FR-003; før 030: folkepensionsalderen)."""
 import pytest
 
+from tests.browser.conftest import indlaes_axe
+
 pytestmark = pytest.mark.browser
 
 
@@ -41,7 +43,7 @@ def test_aendringerne_kan_ses(bedste_plan):
 
 def test_axe_med_planlinjen(bedste_plan):
     bedste_plan.click("#hovedtal-plan summary")
-    bedste_plan.add_script_tag(url="https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.9.1/axe.min.js")
+    indlaes_axe(bedste_plan)
     fejl = bedste_plan.evaluate("async () => (await axe.run(document, {runOnly: "
                              "['wcag2a','wcag2aa','wcag21aa','wcag22aa']})).violations.map(v => v.id)")
     assert fejl == []

@@ -3,6 +3,8 @@ o1 kapitalpension 65 (tidligste 60), o2 ratepension 67 i 10 år (tidligste 64),
 o3 livsvarig 67, o4 livsvarig 70 (tidligste 66) og folkepension 69 (udskyd højst 10 år)."""
 import pytest
 
+from tests.browser.conftest import indlaes_axe
+
 pytestmark = pytest.mark.browser
 
 HOEJDE_004 = 734  # tidslinjens højde i 004 ved 1366 px med samme rapport (px)
@@ -164,7 +166,7 @@ def test_maal_mindst_24_px(resultat):
 def test_kompakt_axe_og_360_px(resultat):
     hoejde = resultat.evaluate("document.querySelector('#tidslinje').getBoundingClientRect().height")
     assert hoejde <= 0.7 * HOEJDE_004, hoejde  # SC-001
-    resultat.add_script_tag(url="https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.9.1/axe.min.js")
+    indlaes_axe(resultat)
     bjaelke(resultat, "o2").click()  # også med knapperne synlige
     fejl = resultat.evaluate("async () => (await axe.run(document, {runOnly: "
                              "['wcag2a','wcag2aa','wcag21aa','wcag22aa']})).violations.map(v => v.id)")

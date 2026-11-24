@@ -1,6 +1,8 @@
 """Feature 020 — forklaringer i tre niveauer i brugerfladen (US1, US2, FR-008, FR-010, SC-006, SC-007)."""
 import pytest
 
+from tests.browser.conftest import indlaes_axe
+
 from pensionsoverblik import app
 
 pytestmark = pytest.mark.browser
@@ -61,7 +63,7 @@ def test_axe_og_360(resultat):
     vent_paa_katalog(resultat)
     resultat.click("#hovedtal-forklaring-boks summary")
     resultat.evaluate("saetNiveau('niveau3'); visAar(tilstand.v.aar[2].alder)")
-    resultat.add_script_tag(url="https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.9.1/axe.min.js")
+    indlaes_axe(resultat)
     fejl = resultat.evaluate("async () => (await axe.run(document, {runOnly: "
                              "['wcag2a','wcag2aa','wcag21aa','wcag22aa']})).violations.map(v => v.id)")
     assert fejl == []

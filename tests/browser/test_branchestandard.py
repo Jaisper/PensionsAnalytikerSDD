@@ -3,7 +3,7 @@ import re
 
 import pytest
 
-from tests.browser.conftest import koer_guide, vaelg_grundlag, vent_paa_planen
+from tests.browser.conftest import indlaes_axe, koer_guide, vaelg_grundlag, vent_paa_planen
 
 pytestmark = pytest.mark.browser
 
@@ -71,7 +71,7 @@ def test_scenarietabellen_har_kun_levetid(branche):
 
 def test_axe(branche):
     s = branche
-    s.add_script_tag(url="https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.9.1/axe.min.js")
+    indlaes_axe(s)
     fejl = s.evaluate("async () => (await axe.run('#resultat', {runOnly: "
                       "['wcag2a','wcag2aa','wcag21aa','wcag22aa']})).violations.map(v => v.id)")
     assert fejl == []

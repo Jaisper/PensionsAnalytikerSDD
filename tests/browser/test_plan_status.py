@@ -4,6 +4,7 @@ import json
 
 import pytest
 
+from tests.browser.conftest import indlaes_axe
 from tests.browser.test_optimering import daarlig_plan, find_bedste_plan
 
 pytestmark = pytest.mark.browser
@@ -134,7 +135,7 @@ def test_ingen_forslagsboks_eller_stiplede_bjaelker(bedste_plan):
 def test_axe_og_360_med_aendret_plan(bedste_plan):
     s = bedste_plan
     daarlig_plan(s)
-    s.add_script_tag(url="https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.9.1/axe.min.js")
+    indlaes_axe(s)
     fejl = s.evaluate("async () => (await axe.run(document, {runOnly: "
                       "['wcag2a','wcag2aa','wcag21aa','wcag22aa']})).violations.map(v => v.id)")
     assert fejl == []

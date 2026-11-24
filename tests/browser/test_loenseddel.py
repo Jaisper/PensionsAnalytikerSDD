@@ -3,6 +3,8 @@ import json
 
 import pytest
 
+from tests.browser.conftest import indlaes_axe
+
 from tests.app.pensionsinfo_syntetisk import RAPPORT_PDF
 from tests.browser.test_gem import KODE, aabn
 
@@ -84,7 +86,7 @@ def test_afkrydsning_pr_ordning_og_axe(side, tmp_path):
     med_rapport(side, tmp_path)
     side.click("#naeste")
     assert side.locator("#ordninger input[id$='-fra-loen']").count() > 0
-    side.add_script_tag(url="https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.9.1/axe.min.js")
+    indlaes_axe(side)
     fejl = side.evaluate("async () => (await axe.run(document, {runOnly: "
                          "['wcag2a','wcag2aa','wcag21aa','wcag22aa']})).violations.map(v => v.id)")
     assert fejl == []

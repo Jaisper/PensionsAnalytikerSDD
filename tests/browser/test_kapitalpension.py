@@ -4,6 +4,8 @@ import json
 
 import pytest
 
+from tests.browser.conftest import indlaes_axe
+
 from pensionsoverblik import app
 
 pytestmark = pytest.mark.browser
@@ -99,7 +101,7 @@ def test_portioner_som_cpython(resultat):
 def test_axe_og_360(resultat):
     aaben_panel(resultat)
     resultat.select_option("#data-panel-form #o1-udbetalingsform", "portioner")
-    resultat.add_script_tag(url="https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.9.1/axe.min.js")
+    indlaes_axe(resultat)
     fejl = resultat.evaluate("async () => (await axe.run(document, {runOnly: "
                              "['wcag2a','wcag2aa','wcag21aa','wcag22aa']})).violations.map(v => v.id)")
     assert fejl == []

@@ -6,6 +6,8 @@ from datetime import date
 
 import pytest
 
+from tests.browser.conftest import indlaes_axe
+
 from pensionskerne import beregn
 from pensionskerne.optimering import fast_niveau, maalvindue
 from pensionsoverblik import app
@@ -102,7 +104,7 @@ def test_engangsbeloeb_som_buffer_eller_direkte(resultat):
 def test_axe_og_360_efter_soegning(resultat):
     daarlig_plan(resultat)
     find_bedste_plan(resultat)
-    resultat.add_script_tag(url="https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.9.1/axe.min.js")
+    indlaes_axe(resultat)
     fejl = resultat.evaluate("async () => (await axe.run(document, {runOnly: "
                              "['wcag2a','wcag2aa','wcag21aa','wcag22aa']})).violations.map(v => v.id)")
     assert fejl == []
