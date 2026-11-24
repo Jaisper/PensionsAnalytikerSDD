@@ -68,8 +68,8 @@ def fraktil(fordeling, p):
 
 Satserne ligger i registret som `raadet.*`. Afkastet skifter ved år 1–5, 6–10 og 11+.
 Investeringsomkostningerne for år 1–10 gælder alle ti år. Fra år 11 har Rådet kun tre
-aktivklasser. Aktieandelen kalibreres ved bisektion mod selskabets egen prognose (spec'en,
-"Porteføljen").
+aktivklasser. Spec'en beskriver, at aktieandelen kalibreres ved bisektion mod selskabets egen prognose (spec'en,
+"Porteføljen"). **Status 2026-11-24:** kernen kan tage en aktieandel pr. ordning (`Ordning.aktieandel`), men brugerfladen sætter den ikke. Alle ordninger regnes med registrets standardprofil (forenkling `branchestandard_standardprofil`, metodebeskrivelsens M1).
 
 ## Trin 3: genbruger kernen, men med to tilpasninger
 
@@ -79,7 +79,7 @@ Trin 2 giver et afkast pr. år, og kernen tager allerede imod et afkast pr. år
 
 - **Før PAL og omkostninger**: Stierne er afkast **før** PAL-skat og administrationsomkostninger.
   `afkast_forloeb` er afkast **efter** PAL. Stien omregnes derfor, og det faste gebyr trækkes i
-  kroner.
+  kroner. **Status 2026-11-24:** gebyret (`Ordning.gebyr_pr_aar`) sættes aldrig og er 0; kun Rådets investeringsomkostninger trækkes (forenkling `branchestandard_uden_administrationsomkostning`, M4).
 - **Pr. ordning**: Stierne er **pr. ordning**, fordi porteføljen er det. `afkast_forloeb` er fælles
   for alle ordninger. Ordningen får derfor sit eget forløb (`Ordning.afkast_forloeb`).
 

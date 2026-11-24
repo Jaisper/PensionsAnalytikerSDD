@@ -224,6 +224,9 @@ def beregn_branchestandard(profil: Pensionsprofil, antagelser: Antagelser, satsa
         return beregn(replace(profil, ordninger=ordninger), egne, satsaar, beregningsdato, buffer_start=start)
 
     o.marker("forenkling:branchestandard_en_inflation")
+    o.marker("forenkling:branchestandard_uden_administrationsomkostning")  # M4: gebyret sættes aldrig
+    if any(x.aktieandel is None for x in profil.ordninger):  # M1: ingen kalibrering mod selskabets prognose
+        o.marker("forenkling:branchestandard_standardprofil")
     if profil.opsparing:
         o.marker("forenkling:branchestandard_opsparing_fast_afkast")
 

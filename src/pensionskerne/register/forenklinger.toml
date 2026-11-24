@@ -150,6 +150,24 @@ betydning = "Lille. Afkastet følger Rådets forventninger år for år; kun omre
 kilde = "Feature 035, plan: forenkling branchestandard_en_inflation"
 
 [[forenkling]]
+id = "branchestandard_standardprofil"
+omfang = "markeret"
+titel = "Standardportefølje i stedet for din egen"
+beskrivelse = "Med branchestandarden regner vi hver pensionsordning med en standardportefølje af aktier og obligationer, hvor aktieandelen trappes ned, jo tættere du er på pension. Vi kender ikke, hvordan din ordning faktisk er investeret."
+begrundelse = "Rapporten fra PensionsInfo oplyser kun investeringsformen, ikke fordelingen på aktier og obligationer. At skønne aktieandelen ud fra selskabets egen prognose (spec 035) er ikke gjort endnu."
+betydning = "Har din ordning flere aktier end standardporteføljen, er det forventede afkast og spændet højere hos selskabet, og omvendt. Sammenlign med selskabets egen prognose i rapporten."
+kilde = "Feature 035; metodebeskrivelsen (docs/metode.md) fund M1"
+
+[[forenkling]]
+id = "branchestandard_uden_administrationsomkostning"
+omfang = "markeret"
+titel = "Ingen fast administrationsomkostning"
+beskrivelse = "Med branchestandarden trækker vi Rådet for Afkastforventningers investeringsomkostninger fra afkastet. Selskabets faste administrationsomkostning i kroner om året er ikke trukket fra."
+begrundelse = "Omkostningen er forskellig fra selskab til selskab og står ikke i rapporten. En fast sats kræver en kilde, før den kan komme i regelregistret."
+betydning = "Tallene er en anelse for høje i forhold til selskabets prognose, mest for små opsparinger."
+kilde = "Feature 035; metodebeskrivelsen (docs/metode.md) fund M4"
+
+[[forenkling]]
 id = "branchestandard_opsparing_fast_afkast"
 omfang = "markeret"
 titel = "Opsparing uden for pension følger dit faste afkast"
