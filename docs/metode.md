@@ -807,7 +807,8 @@ Alle er almindelige kald af kernen med ændret input. Ingen har egne regler.
 
 ### 10.1 Usikkerhed (018 og 019)
 
-Tabellen "Hvis afkast, inflation eller levetid bliver anderledes" regner hovedtallet med afkast ±1
+Tabellen "Hvis afkast, inflation eller levetid bliver anderledes" står altid fremme under skyderne for
+afkast og inflation. Den regner hovedtallet med afkast ±1
 procentpoint, inflation ±0,5 procentpoint (hver for sig og sammen, ingen sats under 0) og planens slutning
 ved 85 og 95 år i stedet for 90. Livrentens ydelse ændres ikke af levetidsscenarierne, fordi selskabet
 fastsætter den. Med branchestandarden vises kun levetiden, fordi branchestandarden har sit eget spænd
@@ -818,10 +819,14 @@ som gode år ikke kan hæve, fordi udjævningen ikke låner. Afkast pr. år (fea
 
 ### 10.2 "Hvornår kan jeg stoppe?" (017)
 
+*Skjult i brugerfladen fra 2026-11-24 for at forenkle. Beregningen er bevaret og kan vises igen.*
+
 Kræver løn. Afprøver hver stopalder fra i dag til folkepensionsalderen med den nuværende plan og viser
 den tidligste, hvor hovedtallet når det ønskede beløb, ellers den bedste. Alle aldre afprøves.
 
 ### 10.3 "Hvor skal næste krone hen?" (021)
+
+*Skjult i brugerfladen fra 2026-11-24 for at forenkle. Beregningen er bevaret og kan vises igen.*
 
 Kræver løn. Sammenligner et ekstra årligt beløb fra lønnen til ratepension, aldersopsparing,
 aktiesparekonto og opsparing i banken, hver med en fuld beregning. Ratepensionen får beløbet før skat,

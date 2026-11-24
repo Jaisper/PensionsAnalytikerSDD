@@ -25,7 +25,7 @@ def test_spaend_og_tabel(resultat):
     tekst = resultat.inner_text("#hovedtal-spaend")
     assert "mellem" in tekst
     resultat.click("#hovedtal-spaend a")
-    assert resultat.locator("#usikkerhed").get_attribute("open") is not None
+    assert resultat.locator("#usikkerhed-tabel").is_visible()  # altid vist, ingen fold-ud (2026-11-24)
     raekker = resultat.locator("#usikkerhed-tabel tbody tr")
     assert raekker.count() == 9                 # dit valg, seks (018) og to levetider (019)
     assert "Planen rækker til 95 år" in resultat.inner_text("#usikkerhed-tabel")
@@ -74,3 +74,24 @@ def test_axe_og_360(resultat):
     assert fejl == []
     resultat.set_viewport_size({"width": 360, "height": 800})
     resultat.wait_for_function("() => document.documentElement.scrollWidth <= 360", timeout=5000)
+
+
+def test_tabellen_vises_altid_under_skyderne(resultat):
+    # Produktejer 2026-11-24: tabellen står altid fremme, lige under afkast- og inflationsskyderne.
+    vent_paa_spaend(resultat)
+    assert resultat.locator("details#usikkerhed").count() == 0
+    assert resultat.locator("#usikkerhed-tabel").is_visible()
+    assert "Hvis afkast, inflation eller levetid bliver anderledes" in resultat.inner_text("#usikkerhed h3")
+    efter = resultat.evaluate("""() => !!(document.querySelector('#r-egne').compareDocumentPosition(
+        document.querySelector('#usikkerhed')) & Node.DOCUMENT_POSITION_FOLLOWING)""")
+    foer_nulstil = resultat.evaluate("""() => !!(document.querySelector('#usikkerhed').compareDocumentPosition(
+        document.querySelector('#nulstil')) & Node.DOCUMENT_POSITION_FOLLOWING)""")
+    assert efter and foer_nulstil
+
+
+def test_stop_og_naeste_krone_er_skjult(resultat):
+    # Produktejer 2026-11-24: "Hvornår kan jeg stoppe?" og "Hvor skal næste krone hen?" er ude for nu.
+    assert resultat.locator("#stop-knap").is_hidden()
+    assert resultat.locator("#naeste-knap").is_hidden()
+    assert "Hvornår kan jeg stoppe" not in resultat.inner_text("#forudsaetninger")
+    assert "næste krone" not in resultat.inner_text("#forudsaetninger")
