@@ -268,74 +268,88 @@
           <!-- Trin 4: opsparing uden for pension (feature 013) -->
           <fieldset class="trin" data-trin="4" hidden>
             <legend><h2 tabindex="-1">Din opsparing uden for pension</h2></legend>
-            <p class="hjaelp">Penge i banken, aktier og lignende. Opsparingen påvirker din skat, dit pensionstillæg og din ældrecheck, så den kan ændre beløbet. Har du ingen, kan du springe trinnet over. Vi bruger først banken, så depotet og til sidst aktiesparekontoen.</p>
-            <div class="felt" data-felt="opsparing[bank].saldo">
-              <label for="bank">Penge i banken og obligationer <span class="valgfri">(valgfri)</span></label>
-              <input id="bank" inputmode="numeric" class="beloeb" aria-describedby="bank-hjaelp" placeholder="0">
-              <p class="felt__hjaelp" id="bank-hjaelp">Beløbet i dag, også investeringsforeninger med obligationer. Afkastet beskattes som renter.</p>
-            </div>
-            <div class="felt felt--afkrydsning">
-              <label class="valg"><input type="checkbox" id="bank-i-plan" checked aria-describedby="bank-i-plan-hjaelp"> Brug pengene i min faste udbetaling</label>
-              <p class="felt__hjaelp" id="bank-i-plan-hjaelp">Ellers står de urørt og vokser med afkastet. Det gælder også for felterne nedenfor.</p>
-            </div>
-            <div class="felt" data-felt="opsparing[depot].saldo">
-              <label for="depot">Aktier og investeringsforeninger i et frit depot <span class="valgfri">(valgfri)</span></label>
-              <input id="depot" inputmode="numeric" class="beloeb" aria-describedby="depot-hjaelp" placeholder="0">
-              <p class="felt__hjaelp" id="depot-hjaelp">Værdien i dag. Gevinsten beskattes, når du sælger.</p>
-            </div>
-            <div class="felt" data-felt="opsparing[depot].urealiseret_gevinst">
-              <label for="depot-gevinst">Heraf gevinst, du ikke har solgt <span class="valgfri">(valgfri)</span></label>
-              <input id="depot-gevinst" inputmode="numeric" class="beloeb" aria-describedby="depot-gevinst-hjaelp" placeholder="Halvdelen">
-              <p class="felt__hjaelp" id="depot-gevinst-hjaelp">Står i din bank. Skriver du intet, regner vi med halvdelen af værdien.</p>
-            </div>
-            <div class="felt felt--afkrydsning">
-              <label class="valg"><input type="checkbox" id="depot-i-plan" checked> Brug depotet i min faste udbetaling</label>
-            </div>
-            <div class="felt" data-felt="opsparing[ask].saldo">
-              <label for="ask">Aktiesparekonto <span class="valgfri">(valgfri)</span></label>
-              <input id="ask" inputmode="numeric" class="beloeb" aria-describedby="ask-hjaelp" placeholder="0">
-              <p class="felt__hjaelp" id="ask-hjaelp">Værdien i dag. Afkastet beskattes hvert år og påvirker ikke dit pensionstillæg.</p>
-            </div>
-            <div class="felt" data-felt="opsparing[ask].aarligt_indskud">
-              <label for="ask-indskud">Indskud på aktiesparekontoen om året, mens du arbejder <span class="valgfri">(valgfri)</span></label>
-              <input id="ask-indskud" inputmode="numeric" class="beloeb" aria-describedby="ask-indskud-hjaelp" placeholder="0">
-              <p class="felt__hjaelp" id="ask-indskud-hjaelp">Kræver, at du har skrevet din løn. Over loftet regner vi resten som indskud i frit depot.</p>
-            </div>
-            <div class="felt felt--afkrydsning">
-              <label class="valg"><input type="checkbox" id="ask-i-plan" checked> Brug aktiesparekontoen i min faste udbetaling</label>
-            </div>
-            <div id="p-opsparing-felter" hidden>
-              <div class="felt" data-felt="opsparing[p-bank].saldo">
-                <label for="p-bank">Din partners penge i banken og obligationer <span class="valgfri">(valgfri)</span></label>
-                <input id="p-bank" inputmode="numeric" class="beloeb" aria-describedby="p-bank-hjaelp" placeholder="0">
-                <p class="felt__hjaelp" id="p-bank-hjaelp">Kun din partners egen. En fælles konto kan I dele mellem jer.</p>
+            <p class="hjaelp">Penge i banken, aktier og lignende. Opsparingen kan give et højere fast beløb, og den påvirker din skat, dit pensionstillæg og din ældrecheck. Alle felter er valgfri. Har du ingen opsparing, så gå videre.</p>
+            <!-- Review 2026-11-24: én gruppe pr. type; gevinst, afkrydsning og indskud vises først, når de er relevante. -->
+            <fieldset class="opsparing-gruppe">
+              <legend><h3>Bank</h3></legend>
+              <div class="felt" data-felt="opsparing[bank].saldo">
+                <label for="bank">Beløbet i dag</label>
+                <input id="bank" inputmode="numeric" class="beloeb" aria-describedby="bank-hjaelp" placeholder="0">
+                <p class="felt__hjaelp" id="bank-hjaelp">Også obligationer og investeringsforeninger med obligationer. Afkastet beskattes som renter.</p>
               </div>
-              <div class="felt felt--afkrydsning">
-                <label class="valg"><input type="checkbox" id="p-bank-i-plan" checked> Brug den i min partners faste udbetaling</label>
+              <div class="felt felt--afkrydsning" data-naar="bank">
+                <label class="valg"><input type="checkbox" id="bank-i-plan" checked aria-describedby="bank-i-plan-hjaelp"> Brug pengene i min faste udbetaling</label>
+                <p class="felt__hjaelp" id="bank-i-plan-hjaelp">Så bruges de til at hæve dit faste beløb om måneden. Ellers står de urørt og vokser med afkastet.</p>
+              </div>
+            </fieldset>
+            <fieldset class="opsparing-gruppe">
+              <legend><h3>Frit depot</h3></legend>
+              <div class="felt" data-felt="opsparing[depot].saldo">
+                <label for="depot">Værdien i dag</label>
+                <input id="depot" inputmode="numeric" class="beloeb" aria-describedby="depot-hjaelp" placeholder="0">
+                <p class="felt__hjaelp" id="depot-hjaelp">Aktier og investeringsforeninger i et almindeligt depot, ikke i pension eller på en aktiesparekonto. Gevinsten beskattes, når du sælger.</p>
+              </div>
+              <div class="felt" data-felt="opsparing[depot].urealiseret_gevinst" data-naar="depot">
+                <label for="depot-gevinst">Heraf gevinst</label>
+                <input id="depot-gevinst" inputmode="numeric" class="beloeb" aria-describedby="depot-gevinst-hjaelp">
+                <p class="felt__hjaelp" id="depot-gevinst-hjaelp">Værdien i dag minus det, du har købt for. Du kan se det i din netbank. Skriver du intet, regner vi med halvdelen af værdien.</p>
+              </div>
+              <div class="felt felt--afkrydsning" data-naar="depot">
+                <label class="valg"><input type="checkbox" id="depot-i-plan" checked aria-describedby="depot-i-plan-hjaelp"> Brug depotet i min faste udbetaling</label>
+                <p class="felt__hjaelp" id="depot-i-plan-hjaelp">Så sælges der løbende for at hæve dit faste beløb. Ellers står depotet urørt og vokser.</p>
+              </div>
+            </fieldset>
+            <fieldset class="opsparing-gruppe">
+              <legend><h3>Aktiesparekonto</h3></legend>
+              <div class="felt" data-felt="opsparing[ask].saldo">
+                <label for="ask">Værdien i dag</label>
+                <input id="ask" inputmode="numeric" class="beloeb" aria-describedby="ask-hjaelp" placeholder="0">
+                <p class="felt__hjaelp" id="ask-hjaelp">Afkastet beskattes hvert år og påvirker ikke dit pensionstillæg.</p>
+              </div>
+              <div class="felt" data-felt="opsparing[ask].aarligt_indskud" data-naar="loen">
+                <label for="ask-indskud">Indskud om året, mens du arbejder</label>
+                <input id="ask-indskud" inputmode="numeric" class="beloeb" aria-describedby="ask-indskud-hjaelp" placeholder="0">
+                <p class="felt__hjaelp" id="ask-indskud-hjaelp">Over loftet for aktiesparekontoen regner vi resten som indskud i frit depot.</p>
+              </div>
+              <div class="felt felt--afkrydsning" data-naar="ask">
+                <label class="valg"><input type="checkbox" id="ask-i-plan" checked aria-describedby="ask-i-plan-hjaelp"> Brug aktiesparekontoen i min faste udbetaling</label>
+                <p class="felt__hjaelp" id="ask-i-plan-hjaelp">Så bruges den til at hæve dit faste beløb. Ellers står den urørt og vokser.</p>
+              </div>
+            </fieldset>
+            <fieldset class="opsparing-gruppe" id="p-opsparing-felter" hidden>
+              <legend><h3>Din partners opsparing</h3></legend>
+              <p class="felt__hjaelp">Kun din partners egen. En fælles konto kan I dele mellem jer.</p>
+              <div class="felt" data-felt="opsparing[p-bank].saldo">
+                <label for="p-bank">Penge i banken</label>
+                <input id="p-bank" inputmode="numeric" class="beloeb" placeholder="0">
+              </div>
+              <div class="felt felt--afkrydsning" data-naar="p-bank">
+                <label class="valg"><input type="checkbox" id="p-bank-i-plan" checked> Brug pengene i min partners faste udbetaling</label>
               </div>
               <div class="felt" data-felt="opsparing[p-depot].saldo">
-                <label for="p-depot">Din partners frie depot <span class="valgfri">(valgfri)</span></label>
+                <label for="p-depot">Frit depot med aktier og investeringsforeninger</label>
                 <input id="p-depot" inputmode="numeric" class="beloeb" placeholder="0">
               </div>
-              <div class="felt" data-felt="opsparing[p-depot].urealiseret_gevinst">
-                <label for="p-depot-gevinst">Heraf gevinst, din partner ikke har solgt <span class="valgfri">(valgfri)</span></label>
-                <input id="p-depot-gevinst" inputmode="numeric" class="beloeb" placeholder="Halvdelen">
+              <div class="felt" data-felt="opsparing[p-depot].urealiseret_gevinst" data-naar="p-depot">
+                <label for="p-depot-gevinst">Heraf gevinst</label>
+                <input id="p-depot-gevinst" inputmode="numeric" class="beloeb" aria-describedby="p-depot-gevinst-hjaelp">
+                <p class="felt__hjaelp" id="p-depot-gevinst-hjaelp">Værdien i dag minus det, der er købt for. Skriver du intet, regner vi med halvdelen.</p>
               </div>
-              <div class="felt felt--afkrydsning">
+              <div class="felt felt--afkrydsning" data-naar="p-depot">
                 <label class="valg"><input type="checkbox" id="p-depot-i-plan" checked> Brug depotet i min partners faste udbetaling</label>
               </div>
               <div class="felt" data-felt="opsparing[p-ask].saldo">
-                <label for="p-ask">Din partners aktiesparekonto <span class="valgfri">(valgfri)</span></label>
+                <label for="p-ask">Aktiesparekonto</label>
                 <input id="p-ask" inputmode="numeric" class="beloeb" placeholder="0">
               </div>
-              <div class="felt felt--afkrydsning">
+              <div class="felt felt--afkrydsning" data-naar="p-ask">
                 <label class="valg"><input type="checkbox" id="p-ask-i-plan" checked> Brug aktiesparekontoen i min partners faste udbetaling</label>
               </div>
-            </div>
+            </fieldset>
             <div class="felt" id="partner-formue-felt" data-felt="likvid_formue person.likvid_formue" hidden>
-              <label for="partner-formue">Din partners opsparing <span class="valgfri">(valgfri)</span></label>
+              <label for="partner-formue">Din partners opsparing</label>
               <input id="partner-formue" inputmode="numeric" class="beloeb" aria-describedby="partner-formue-hjaelp" placeholder="0">
-              <p class="felt__hjaelp" id="partner-formue-hjaelp">Tæller med i jeres fælles formuegrænse for ældrechecken.</p>
+              <p class="felt__hjaelp" id="partner-formue-hjaelp">Samlet: bank, depot og aktiesparekonto. Den tæller med i jeres fælles formuegrænse for ældrechecken.</p>
             </div>
           </fieldset>
 

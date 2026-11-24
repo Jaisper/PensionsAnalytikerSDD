@@ -199,6 +199,7 @@ function visTrin(n, fokus = true) {
     if (t === n) li.setAttribute("aria-current", "step");
     li.classList.toggle("faerdig", t < n);
   });
+  opdaterOpsparing();
   $("#tilbage").hidden = n === 1;
   $("#naeste").textContent = n === 5 ? "Se min pension" : "Næste →";
   if (fokus) $(`.trin[data-trin="${n}"] h2`).focus();
@@ -487,6 +488,18 @@ function tegnPensionsRapport(pre = "") {
 }
 
 /* Opsparing uden for pension (feature 013 og 013b): bank, frit depot og aktiesparekonto pr. person. */
+/* Opsparingstrinnet (review 2026-11-24): felter med data-naar vises først, når de er relevante: gevinst og
+   afkrydsning, når der er et beløb, og indskud på aktiesparekontoen, når der er løn. */
+function opdaterOpsparing() {
+  const har = (id) => (beloeb($("#" + id)?.value) ?? 0) > 0;
+  const loen = har("loen-maaned");
+  const relevant = {
+    bank: har("bank"), depot: har("depot"), ask: har("ask") || (loen && har("ask-indskud")), loen,
+    "p-bank": har("p-bank"), "p-depot": har("p-depot"), "p-ask": har("p-ask"),
+  };
+  $$("[data-naar]").forEach((f) => { f.hidden = !relevant[f.dataset.naar]; });
+}
+
 function opsparingSvar(pre = "") {
   const svar = [];
   const iPlan = (type) => $(`#${pre}${type}-i-plan`).checked;
@@ -496,7 +509,8 @@ function opsparingSvar(pre = "") {
   if (depot) svar.push({ id: `${pre}depot`, type: "depot", saldo: depot, i_plan: iPlan("depot"),
     urealiseret_gevinst: beloeb($(`#${pre}depot-gevinst`).value) });
   const ask = beloeb($(`#${pre}ask`).value);
-  const indskud = pre ? null : beloeb($("#ask-indskud").value);
+  // Uden løn er feltet skjult, og en gemt værdi i det sendes ikke (review 2026-11-24).
+  const indskud = pre || $("#ask-indskud").closest(".felt").hidden ? null : beloeb($("#ask-indskud").value);
   if (ask || indskud) svar.push({ id: `${pre}ask`, type: "ask", saldo: ask || 0, i_plan: iPlan("ask"), aarligt_indskud: indskud || 0 });
   return svar;
 }
@@ -2742,6 +2756,7 @@ function forbind() {
   $("#tilfoej-ordning").addEventListener("click", () => tilfoejOrdning($("#ny-type").value));
   for (const pre of ["", "p-"]) $(`#${pre}loen-maaned`).addEventListener("input", () => tegnPensionsRapport(pre));
 
+  $("#guide-form").addEventListener("input", opdaterOpsparing);
   $("#guide-form").addEventListener("submit", (e) => {
     e.preventDefault();
     if (!validerTrin(tilstand.trin)) return;
