@@ -160,6 +160,7 @@ indhold fra borgeren.
 | Python (`src/`) | Ingen import af `urllib`, `http`, `socket`, `ssl`, `requests`, `pyodide.http` eller `js`. Kun standardbiblioteket, egne pakker og PDF-læseren er tilladt (`tests/kontrakt/test_browserpakker.py`) |
 | HTML (`index.html`) | Kun lokale scripts (`app.js`, `chart.umd.min.js`) og et indlejret ikon. Ingen skrifttyper, billeder, analyse- eller sporingsværktøjer fra andre domæner. Ingen cookies |
 | AI | Ingen AI-klienter, -afhængigheder eller -værter (`tests/kontrakt/test_ingen_ai.py`) |
+| Content-Security-Policy | Siden har en CSP (`<meta>` i `index.html`): `default-src 'self'`, `connect-src 'self'`, `img-src 'self' data: blob:`, `font-src 'self'`, `object-src 'none'`, `form-action 'none'`, `base-uri 'none'`. Browseren blokerer selv enhver forbindelse fra siden til andre domæner. Inline style er tilladt (style-attributter), men CSS kan ikke hente noget udefra |
 
 **Kontrolleret i browseren**: Browsertesten `test_pyodide.py` kører et helt forløb i Chromium: rapporten
 lægges ind, guiden udfyldes, resultatet vises, og en ordning flyttes. Testen registrerer alle
@@ -169,6 +170,10 @@ forespørgsler, også fra workeren, og kræver,
 - at der ikke sker en eneste forespørgsel, efter rapporten er læst.
 
 Testen kører før hver udgivelse (afsnit 12.3).
+
+**CSP i browseren**: `tests/browser/test_csp.py` kræver, at politikken findes med de nævnte direktiver, at
+et forsøg på at sende data til et andet domæne (`fetch` og billede) blokeres af browseren, og at et helt
+forløb (rapport, guide, resultat, bedste plan og metodesiden) ikke giver en eneste overtrædelse.
 
 ### 2.4 Hvad andre kan se
 
@@ -215,10 +220,10 @@ Testen kører før hver udgivelse (afsnit 12.3).
 - **Borgerens egen computer** er uden for løsningens kontrol: browserudvidelser, delt computer,
   skærmdeling og browserens egen hukommelse. En gemt, ukrypteret eksport ligger, hvor borgeren lægger
   den.
-- **Ingen Content-Security-Policy (CSP)**: Siden har i dag ingen CSP. Koden sender intet ud, og det er
-  testet, men en CSP (fx `connect-src 'self'`, `script-src 'self' 'wasm-unsafe-eval'`) ville få
-  browseren til selv at blokere enhver forbindelse til andre domæner, også ved en fremtidig fejl eller en
-  kompromitteret afhængighed. **Anbefaling: indfør en CSP og en test af den** (fund M5, afsnit 13.3).
+- **CSP dækker siden, ikke workeren**: GitHub Pages kan ikke sætte HTTP-headere, så politikken står i et
+  `<meta>`-tag. Det gælder siden. En worker, der hentes fra en fil, får sin politik fra filens egne headere
+  og er derfor ikke omfattet. Workerens kode (Python og `worker.js`) er dækket af kodegennemgangen i 2.3 og
+  af netværkstesten. Fuld dækning kræver en hosting, der kan sætte headere.
 - **Hosting**: GitHub Pages' egne adgangslogs er GitHubs (afsnit 2.4).
 
 ---
@@ -426,7 +431,7 @@ Registret (`src/pensionskerne/register/`) er **det eneste sted, satser findes**:
 |---|---|
 | `2026.toml` | 85 poster: skat (25), folkepension (14), personlig tillægsprocent (5), ældre- og mediecheck (4), ordninger (11), opsat pension (3), ATP, PAL, aktiesparekonto, forsikringsafgift, Rådet for Afkastforventninger (15) og branchestandarden (3) |
 | `kommuner_2026.toml` | Kommune- og kirkeskat for 98 kommuner (Skatteministeriet, kommuneskattesatser_2026.xlsx) |
-| `forenklinger.toml` | 17 forenklinger med titel, beskrivelse, begrundelse, betydning og kilde (afsnit 13) |
+| `forenklinger.toml` | 19 forenklinger med titel, beskrivelse, begrundelse, betydning og kilde (afsnit 13) |
 
 Hver post har `id`, `vaerdi`, `enhed`, `kilde` (lov og paragraf eller officiel kilde), `status` og
 `reguleres`:
@@ -713,10 +718,12 @@ Metoden er beskrevet i detaljer i [`docs/branchestandard-metode.md`](branchestan
 
 1. **Portefølje pr. ordning**: en blanding af globale aktier og obligationer. Aktieandelen følger
    registrets standardprofil efter år til pension (`branchestandard.standardprofil`, nedtrapning mod
-   pensionsalderen). Se de kendte afvigelser M1 og M4 i afsnit 13.3.
+   pensionsalderen). Der skønnes ikke ud fra selskabets prognose (forenkling
+   `branchestandard_standardprofil`, M1).
 2. **μ og σ** for porteføljen af Rådets forventede afkast, investeringsomkostninger, standardafvigelser og
    korrelationer for år 1–5, 6–10 og 11+. Investeringsomkostningerne trækkes fra afkastet. En fast
-   administrationsomkostning i kroner trækkes ikke (M4).
+   administrationsomkostning i kroner trækkes ikke (forenkling
+   `branchestandard_uden_administrationsomkostning`, M4).
 3. **Trin 1–2** (`prognose.py`): middelværdi og varians af depotet fremregnes rekursivt (henstillingens
    appendix 1), og 5 %- og 95 %-fraktilerne findes med en log-normal approksimation. Det giver tre
    afkaststier pr. ordning: højt, forventet og lavt. Implementeringen genskaber henstillingens
@@ -854,7 +861,7 @@ build af siden, alle browsertests og først derefter udgivelse. Fejler en test, 
 
 ### 13.1 Forenklinger
 
-Forenklingsregistret ([`forenklinger.toml`](../src/pensionskerne/register/forenklinger.toml)) har 17
+Forenklingsregistret ([`forenklinger.toml`](../src/pensionskerne/register/forenklinger.toml)) har 19
 forenklinger med begrundelse og betydning for resultatet. Seks gælder altid, de øvrige kun i de år,
 kernen markerer dem, og de vises ved resultatet. Blandt de vigtigste:
 
@@ -866,8 +873,9 @@ kernen markerer dem, og de vises ved resultatet. Blandt de vigtigste:
 - `partnerens_loen_ukendt` og `partnerindkomst_naermeste_aar` (husstand),
 - `kapitalpension_foer_1980`: lavere afgift for kapitalpension oprettet før 1980 er ikke modelleret,
 - `aktieafkast_som_kursgevinst` og `ask_indskud_lig_saldo` (opsparing),
-- `livsvarig_uden_aarets_afkast`, `branchestandard_en_inflation` og
-  `branchestandard_opsparing_fast_afkast` (prognose).
+- `livsvarig_uden_aarets_afkast`, `branchestandard_en_inflation`,
+  `branchestandard_opsparing_fast_afkast`, `branchestandard_standardprofil` og
+  `branchestandard_uden_administrationsomkostning` (prognose, de to sidste fra M1 og M4).
 
 ### 13.2 Ikke modelleret
 
@@ -886,9 +894,9 @@ kernen markerer dem, og de vises ved resultatet. Blandt de vigtigste:
 
 | # | Fund | Betydning | Status |
 |---|---|---|---|
-| M1 | **Aktieandelen kalibreres ikke.** Spec 035 og forklaringen på niveau 3 (emnet om branchestandardens metode i `forklaringer.toml`) siger, at aktieandelen er "et skøn kalibreret mod selskabets prognose". Kernen kan modtage en aktieandel pr. ordning (`Ordning.aktieandel`), men brugerfladen sætter den aldrig. Alle ordninger regnes derfor med registrets standardprofil | Branchestandardens tal kan afvige mere fra selskabets prognose end beskrevet. Forklaringen er misvisende | Åben. Enten kalibreringen implementeres, eller teksten rettes |
-| M4 | **Ingen fast administrationsomkostning.** Spec 035 og [`branchestandard-metode.md`](branchestandard-metode.md) beskriver, at et fast gebyr i kroner pr. år trækkes fra opsparingen. Kernen kan det (`Ordning.gebyr_pr_aar`), men feltet sættes aldrig og er 0. Rådets investeringsomkostninger er med | Branchestandardens tal er lidt for høje i forhold til selskabernes, mest for små opsparinger | Åben. Enten gebyret indføres (som post i registret med kilde), eller beskrivelsen rettes |
-| M5 | **Ingen Content-Security-Policy.** Siden sætter ingen CSP. Koden sender intet ud (gennemgået og testet, afsnit 2.3), men browseren håndhæver det ikke selv | Et ekstra forsvarslag mangler mod fremtidige fejl eller en kompromitteret afhængighed | Anbefalet: CSP med `connect-src 'self'` m.fl. og en browsertest af den |
+| M1 | **Aktieandelen kalibreres ikke.** Spec 035 og forklaringen på niveau 3 sagde, at aktieandelen er "et skøn kalibreret mod selskabets prognose". Kernen kan modtage en aktieandel pr. ordning (`Ordning.aktieandel`), men brugerfladen sætter den aldrig. Alle ordninger regnes med registrets standardprofil | Branchestandardens tal kan afvige fra selskabets prognose, hvis ordningen har en anden aktieandel | **Teksten rettet** (PR #47): forklaringen siger nu standardprofil, og forenklingen `branchestandard_standardprofil` vises ved resultatet. Kalibreringen er en senere feature |
+| M4 | **Ingen fast administrationsomkostning.** Spec 035 og [`branchestandard-metode.md`](branchestandard-metode.md) beskrev, at et fast gebyr i kroner pr. år trækkes fra opsparingen. Kernen kan det (`Ordning.gebyr_pr_aar`), men feltet sættes aldrig og er 0. Rådets investeringsomkostninger er med | Branchestandardens tal er en anelse for høje i forhold til selskabernes, mest for små opsparinger | **Teksten rettet** (PR #47): forenklingen `branchestandard_uden_administrationsomkostning` vises ved resultatet. Et gebyr kræver en sats med kilde i registret (Princip III) og er en senere feature |
+| M5 | **Ingen Content-Security-Policy.** Siden satte ingen CSP | Et ekstra forsvarslag manglede | **Lukket** (PR #46): CSP i `<meta>` og `tests/browser/test_csp.py`. Den dækker siden, ikke workeren (afsnit 2.8) |
 | M2 | `tekst.py` har funktionerne `relevante_sider` og `fjern_cpr` fra den tidligere løsning (kommentaren nævner "tokens"). De bruges kun af tests, ikke af importen | Ingen. Koden sender intet nogen steder (afsnit 2) | Kan fjernes |
 | M3 | PDF-parseren er udledt af rigtige rapporter og PensionsInfos demorapport (2026). Et nyt layout hos PensionsInfo kan give manglende felter | Manglende felter giver bemærkninger og tomme felter i guiden, ikke forkerte tal uden bemærkning (afsnit 3.6) | Overvåges. Fejlrettet senest i PR #39 |
 
