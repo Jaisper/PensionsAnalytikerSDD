@@ -462,3 +462,6 @@ thead th { background: var(--graa-50); position: sticky; top: 0; }
 .usikkerhed h3 { margin: 0 0 4px; }
 /* 2026-11-24 (produktejer): tabellen "Satser og kilder" på metodesiden er venstrestillet i alle kolonner. */
 #metode-satser th, #metode-satser td { text-align: left; }
+
+/* 039b: knappen "Tilbage til beregningen" i toppen af metodesiden. */
+.topbjaelke .tilbage-til-beregningen { margin-left: auto; }
