@@ -33,13 +33,8 @@ def test_tom_gevinst_giver_antagelsen(side):
     assert side.evaluate("tilstand.v.aar.reduce((s, a) => s + a.aktieindkomst, 0)") > 100000
 
 
-def test_indskud_uden_loen_giver_fejl_ved_feltet(side):
-    til_opsparingstrinnet(side)
-    side.fill("#ask-indskud", "20000")
-    side.click("#naeste")                       # trin 5: forventninger
-    side.click("#naeste")
-    side.wait_for_selector('[data-felt="opsparing[ask].aarligt_indskud"] .felt__fejl')
-    assert "løn" in side.inner_text('[data-felt="opsparing[ask].aarligt_indskud"]')
+# Indskud uden løn: feltet vises først med løn (review 2026-11-24), se
+# test_opsparing_trin.py::test_indskud_paa_aktiesparekonto_kraever_loen.
 
 
 def test_axe_paa_opsparingstrinnet(side):

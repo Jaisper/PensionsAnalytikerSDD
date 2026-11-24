@@ -465,3 +465,8 @@ thead th { background: var(--graa-50); position: sticky; top: 0; }
 
 /* 039b: knappen "Tilbage til beregningen" i toppen af metodesiden. */
 .topbjaelke .tilbage-til-beregningen { margin-left: auto; }
+
+/* Opsparingstrinnet (review 2026-11-24): en gruppe pr. type med en lille overskrift. */
+.opsparing-gruppe { border: 0; padding: 0; margin: 24px 0 0; min-width: 0; }
+.opsparing-gruppe > legend { padding: 0; margin-bottom: 4px; }
+.opsparing-gruppe h3 { margin: 0 0 4px; font-size: 1.2rem; color: var(--petrol-700); }
