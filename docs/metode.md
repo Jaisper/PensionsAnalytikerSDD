@@ -525,6 +525,10 @@ Beregningsmotoren<!-- teknisk --> (`beregn` i [`fremskrivning.py`](../src/pensio
   ved det seneste af planens slutning (borgerens valg, standard 90 år<!-- teknisk -->, `plan_slut_alder` ellers
   `livsvarig_horisont_alder`<!-- /teknisk -->), folkepensionens start og sidste rate. Livrentens ydelse regnes
   altid over 90 år og ændres ikke af planens slutning.
+- **Efter planens slutning** (040b): går tabellen længere end planen, fordi en ratepension udbetales længere,
+  udjævnes kun årene til og med planens slutning. Opsparingen (og et valgt beløb tilbage) er brugt op der. I
+  årene efter er beløbet årets egen indkomst, og opsparingen røres ikke. Hovedtallet og "Find bedste plan" ser
+  kun på årene i planen, og en besked siger det.
 
 ### 6.2 Opsparingsfasen (frem til hver ordnings start)
 

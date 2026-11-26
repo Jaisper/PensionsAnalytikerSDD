@@ -36,13 +36,14 @@ def _hovedtal(res: Fremskrivning) -> dict:
         # (det lånes ikke på forhånd); et senere spring oplyses som "senere". Med løn tæller kun
         # årene fra stopalderen (017). Med en forbrugsprofil (033) måles i forhold til profilen, så
         # hovedtallet er beløbet ved 100 %; "senere" er årets faktiske beløb. År på 0 % tæller ikke (033b).
-        fra = res.jaevn_fra_alder or res.aar[0].alder
-        par = [(j, a) for j, a in zip(res.jaevn.aar, res.aar) if a.alder >= fra and j.vaegt > 0]
+        # Årene efter planens slutning (040b) er årets egen indkomst, ikke det faste beløb.
+        fra, til = res.jaevn_fra_alder or res.aar[0].alder, res.jaevn_til_alder or res.aar[-1].alder
+        par = [(j, a) for j, a in zip(res.jaevn.aar, res.aar) if fra <= a.alder <= til and j.vaegt > 0]
         real = [j.jaevn / j.vaegt * a.realfaktor / MAANEDER for j, a in par]
         ref = max([0] + [i for i in range(1, len(real)) if real[i] > real[i - 1] + 1])
         senere = {"maaned": round(par[ref][0].jaevn * par[ref][1].realfaktor / MAANEDER, -2),
                   "fra_alder": par[ref][1].alder} if ref else None
-        return {"type": "jaevn", "maaned": round(min(real), -2), "fra_alder": fra, "senere": senere}
+        return {"type": "jaevn", "maaned": round(min(real), -2), "fra_alder": fra, "til_alder": til, "senere": senere}
     foerste_hele = next((a for a in res.aar if a.alder > res.folkepensionsalder), res.aar[-1])
     return {"type": "foerste_fp_aar", "maaned": round(foerste_hele.netto_real / MAANEDER, -2),
             "fra_alder": foerste_hele.alder, "senere": None}
@@ -55,7 +56,7 @@ def _forbrug(res: Fremskrivning) -> dict | None:
     if not res.jaevn or not res.forbrug_baand:
         return None
     pr_alder = {a.alder: round(j.jaevn * a.realfaktor / MAANEDER, -2) for j, a in zip(res.jaevn.aar, res.aar)
-                if a.alder >= (res.jaevn_fra_alder or res.aar[0].alder)}
+                if (res.jaevn_fra_alder or res.aar[0].alder) <= a.alder <= (res.jaevn_til_alder or res.aar[-1].alder)}
     procenter = list(res.antagelser.forbrugsprofil.procenter) or [1.0]
     baand = []
     for i, (fra, til) in enumerate(res.forbrug_baand):

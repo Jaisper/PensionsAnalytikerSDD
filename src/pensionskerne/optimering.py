@@ -115,16 +115,16 @@ def fast_niveau(res: Fremskrivning, vindue: range) -> float:
 
 def vindue(res: Fremskrivning) -> range:
     """Aldrene fra udjævningens første år (første udbetaling, eller stopalderen med løn, 017) til
-    tabellens slutning."""
-    return range(res.jaevn_fra_alder or res.aar[0].alder, res.aar[-1].alder + 1)
+    planens slutning (040b; ellers tabellens)."""
+    return range(res.jaevn_fra_alder or res.aar[0].alder, (res.jaevn_til_alder or res.aar[-1].alder) + 1)
 
 
 def slutniveau(res: Fremskrivning) -> float:
     """Det jævne niveau efter det sidste spring (kr./md., dagens kroner) — visningens "senere"
     niveau; uden jævn udbetaling det første hele folkepensionsår."""
     if res.jaevn:
-        fra = vindue(res).start  # arbejdsår (017) tæller ikke med
-        real = [x for x, a in zip(_jaevn_real(res), res.aar) if a.alder >= fra and x is not None]
+        v = vindue(res)  # arbejdsår (017) og årene efter planen (040b) tæller ikke med
+        real = [x for x, a in zip(_jaevn_real(res), res.aar) if a.alder in v and x is not None]
         if not real:
             return 0.0
         ref = max([0] + [i for i in range(1, len(real)) if real[i] > real[i - 1] + MAANEDER])
