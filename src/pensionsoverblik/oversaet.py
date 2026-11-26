@@ -88,6 +88,7 @@ def til_kerne(data: dict) -> tuple[Pensionsprofil, Antagelser]:
         folkepension_opsaettelse_aar=_heltal(a.get("folkepension_opsaettelse_aar"),
                                              "antagelser.folkepension_opsaettelse_aar", 0),
         plan_slut_alder=_heltal(a.get("plan_slut_alder"), "antagelser.plan_slut_alder"),
+        rest_ved_plan_slut=_tal(a.get("rest_ved_plan_slut"), "antagelser.rest_ved_plan_slut", 0.0),  # 040
         # 013b: rækkefølgen, opsparingen bruges i (grænseflade til en senere optimering).
         traekraekkefoelge=tuple(a.get("traekraekkefoelge") or standard.traekraekkefoelge),
         # 023a: afkast efter PAL-skat pr. kalenderår (JSON-nøgler er tekst).
@@ -140,6 +141,10 @@ def til_husstand(data: dict) -> tuple[Pensionsprofil, Antagelser, Pensionsprofil
         afkast_forloeb={aar: v + forskel for aar, v in antagelser_a.afkast_forloeb.items()},
         beregningsgrundlag=grundlag,
         forbrugsprofil=forbrug,
+        # 040: partnerens egen slutalder og rest. Mangler de (gemt før 040), regnes som standard: alderen er
+        # personens egen, så dine værdier kan ikke bruges.
+        plan_slut_alder=_heltal(egne.get("plan_slut_alder"), f"{felt}.plan_slut_alder"),
+        rest_ved_plan_slut=_tal(egne.get("rest_ved_plan_slut"), f"{felt}.rest_ved_plan_slut", 0.0),
     )
     return profil_a, antagelser_a, profil_b, antagelser_b
 

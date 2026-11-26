@@ -64,6 +64,8 @@ const ANTAGELSE_NAVNE = {
   satsregulering: ["Årlig regulering af satser", procent],
   loenvaekst: ["Stigning i indbetalinger pr. år", procent],
   livsvarig_horisont_alder: ["Livsvarig pension beregnes, som om du lever til", (v) => `${v} år`],
+  plan_slut_alder: ["Din øvrige opsparing skal række til og med", (v) => `${v ?? STANDARD_SLUT} år`],  // 040
+  rest_ved_plan_slut: ["Penge tilbage, når planen slutter", (v) => `${kr(v || 0)} kr.`],  // 040
   livsvarig_min_aar: ["Livsvarig pension mindst", (v) => `${v} år`],
   folkepension_opsaettelse_aar: ["Folkepension udskudt", (v) => (v ? `${v} år` : "nej")],
 };
@@ -273,6 +275,7 @@ function opdaterPartnerFelter() {
   $("#p-opsparing-felter").hidden = !fuld;
   $("#partner-formue-felt").hidden = !erPar() || fuld;
   $("#p-opsaettelse-felt").hidden = !fuld;
+  $("#p-plan-slut-felter").hidden = !fuld;  // 040
   if (tilstand.panel) $('.trin[data-trin="3"]').hidden = !fuld;
 }
 
@@ -439,6 +442,19 @@ function partnerAntagelser(forrige) {
     ?? { afkast_efter_pal: +$("#afkast").value / 100, beregningsgrundlag: tilstand.grundlag, forbrugsprofil: [] });
 }
 
+// 040: planens slutning og penge tilbage. Standardalderen sendes som null (som før 040: livrentens horisont).
+const STANDARD_SLUT = 90;
+const slutAlder = (v) => (+v === STANDARD_SLUT ? null : +v);
+function slutSvar(pre = "") {
+  return { plan_slut_alder: slutAlder($(`#${pre}plan-slut`).value), rest_ved_plan_slut: beloeb($(`#${pre}rest-slut`).value) ?? 0 };
+}
+function saetSlutFelter(pre, a) {
+  const alder = a?.plan_slut_alder ?? STANDARD_SLUT;
+  $(`#${pre}plan-slut`).value = alder;
+  $(`#${pre}plan-slut-v`).textContent = `${alder} år`;
+  $(`#${pre}rest-slut`).value = a?.rest_ved_plan_slut ? kr(a.rest_ved_plan_slut) : "";
+}
+
 // Valg, der ikke står i guiden (fordelingen, partnerens antagelser): fra en åbnet fil, ellers fra resultatet,
 // når guiden står i datapanelet ("Opdater"). En ny beregning fra guiden starter forfra.
 const forrigeValg = () => tilstand.gemteValg ?? (tilstand.panel ? tilstand.aktuelleSvar : null);
@@ -447,7 +463,7 @@ function partnerSvar(forrige = null) {
   if (!erPar()) return null;
   const foedselsdato = $(fuldPartner() ? "#p-foedselsdato" : "#partner-foedselsdato").value;
   if (!fuldPartner()) return { foedselsdato, oevrig_indkomst_aar: beloeb($("#partner-indkomst").value) ?? 0 };
-  return { foedselsdato, antagelser: partnerAntagelser(forrige), profil: {
+  return { foedselsdato, antagelser: { ...partnerAntagelser(forrige), ...slutSvar("p-") }, profil: {
     ordninger: tilstand.partnerOrdninger.map(ordningSvar),
     atp_aarlig: beloeb($("#p-atp").value) || null,
     folkekirkemedlem: $("#p-folkekirke").checked,
@@ -535,6 +551,7 @@ function guideSvar() {
       inflation: +$("#inflation").value / 100,
       folkepension_opsaettelse_aar: +$("#opsaettelse").value,
       beregningsgrundlag: tilstand.grundlag,  // 035
+      ...slutSvar(),  // 040
       ...(forrige?.antagelser?.forbrugsprofil ? { forbrugsprofil: structuredClone(forrige.antagelser.forbrugsprofil) } : {}),
     },
   };
@@ -1091,6 +1108,10 @@ function tegnSkydere() {
   const afkast = aktiveAntagelser().afkast_efter_pal ?? s.antagelser.afkast_efter_pal;  // 037
   saet("r-afkast", afkast * 100, procent(afkast));
   saet("r-inflation", s.antagelser.inflation * 100, procent(s.antagelser.inflation));
+  const a = aktiveAntagelser();  // 040: den viste persons slutning og rest
+  const slut = a.plan_slut_alder ?? STANDARD_SLUT;
+  saet("r-plan-slut", slut, `${slut} år`);
+  $("#r-rest").value = a.rest_ved_plan_slut ? kr(a.rest_ved_plan_slut) : "";
 }
 
 /* ── Feature 004: nøgletal, paneler og tidslinje ─────────────────────── */
@@ -1210,7 +1231,9 @@ function synkroniserFormular() {
   if (pp) {
     $("#p-opsaettelse").value = pp.folkepension_opsaettelse_aar || 0;
     $("#p-opsaettelse-v").textContent = pp.folkepension_opsaettelse_aar ? `${pp.folkepension_opsaettelse_aar} år` : "Nej";
+    saetSlutFelter("p-", s.person.partner.antagelser);  // 040
   }
+  saetSlutFelter("", s.antagelser);  // 040
   $("#opsaettelse").value = s.antagelser.folkepension_opsaettelse_aar;
   $("#opsaettelse-v").textContent = s.antagelser.folkepension_opsaettelse_aar ? `${s.antagelser.folkepension_opsaettelse_aar} år` : "Nej";
   $("#afkast").value = s.antagelser.afkast_efter_pal * 100;
@@ -2268,7 +2291,11 @@ function tegnUsikkerhed() {
   const hvem = tilstand.hvem;
   const eget = +$("#hovedtal").dataset.vaerdi;
   const a = tilstand.aktuelleSvar.antagelser;
-  const normalSlut = tilstand.vDig.antagelser.livsvarig_horisont_alder;
+  // 040: levetidsrækkerne er relative til den viste persons egen slutalder (`forskel`).
+  const egne = hvem === "samlet" ? a : aktiveAntagelser();
+  const egenSlut = egne.plan_slut_alder ?? STANDARD_SLUT;
+  const slutFor = (r) => (r.forskel === undefined ? egenSlut
+    : Math.min(+$("#r-plan-slut").max, Math.max(+$("#r-plan-slut").min, egenSlut + r.forskel)));
   const raekker = [{ titel: "Dit valg", afkast: a.afkast_efter_pal, inflation: a.inflation, plan_slut_alder: null, vaerdi: eget },
     ...u.map((r) => ({ ...r, vaerdi: r.beloeb ? r.beloeb[hvem] : null }))];
   // Spændet gælder afkast og inflation (018). Levetid (019) og rækkefølgen af gode og dårlige år
@@ -2293,14 +2320,15 @@ function tegnUsikkerhed() {
     el("tbody", {}, raekker.map((r) => el("tr", {}, el("th", { scope: "row", tekst: r.titel }),
       el("td", { tekst: tilstand.v?.grundlag?.type === "branchestandard" ? "Som selskaberne" : afkastTekst(r) }),
       el("td", { tekst: tilstand.v?.grundlag?.type === "branchestandard" ? "Som selskaberne" : procent(r.inflation) }),
-      el("td", { tekst: `${r.plan_slut_alder ?? normalSlut} år` }),
+      el("td", { tekst: `${slutFor(r)} år` }),
       el("td", { tekst: r.vaerdi === null || r.vaerdi === undefined ? "–" : `${kr(r.vaerdi)} kr.` }))))));
   // Lever du længere end planen (019): kun for én person, ikke under "Samlet".
   const efter = u.find((r) => r.beloeb?.efter_plan)?.beloeb.efter_plan[hvem];
   const linje2 = $("#usikkerhed-efter");
   linje2.hidden = hvem === "samlet" || efter === null || efter === undefined;
   if (!linje2.hidden) {
-    linje2.textContent = `Planen bruger ${hvem === "partner" ? "din partners" : "din"} opsparing op til ${normalSlut} år. `
+    const rest = egne.rest_ved_plan_slut ? `, så der er ${kr(egne.rest_ved_plan_slut)} kr. tilbage` : "";
+    linje2.textContent = `Planen bruger ${hvem === "partner" ? "din partners" : "din"} opsparing til og med ${egenSlut} år${rest}. `
       + `Lever ${hvem === "partner" ? "din partner" : "du"} længere, er der derefter ca. ${kr(efter)} kr. om måneden fra folkepension, ATP og livrente, i dagens kroner.`;
   }
 }
@@ -2591,6 +2619,15 @@ function tegnPerson(v, foersteGang) {
       + `efter skat og pensionsindbetaling frem til ${nl.til_alder} år (i dagens kroner).`
       + (nl.andel_pct !== null ? ` Det faste beløb er ${nl.andel_pct} % af det.` : "");
   }
+  // 040: prisen for at have penge tilbage, når planen slutter.
+  const rest = h.rest;
+  $("#hovedtal-rest").hidden = !rest;
+  if (rest) {
+    $("#hovedtal-rest").textContent = `At have ${kr(rest.beloeb)} kr. tilbage som ${rest.alder}-årig `
+      + (rest.pris_maaned > 0
+        ? `koster ca. ${kr(rest.pris_maaned)} kr. om måneden${rest.fra_alder ? ` fra ${rest.fra_alder} år` : ""} (i dagens kroner).`
+        : "ændrer ikke det faste beløb.");
+  }
   const foer = tilstand.forrigeHovedtal;
   $("#hovedtal-aendring").textContent = foer !== null && foer !== h.maaned
     ? `${h.maaned > foer ? "↑" : "↓"} ${kr(Math.abs(h.maaned - foer))} kr. i forhold til før` : "";
@@ -2627,6 +2664,7 @@ function tegnSamlet() {
     + "jeres faste beløb, hvis I hver især udjævner. I dagens kroner. Jeres pensionstillæg og ældrecheck er regnet sammen, som loven siger.";
   $("#hovedtal-aendring").textContent = "";
   $("#hovedtal-loen").hidden = true;
+  $("#hovedtal-rest").hidden = true;  // 040: står ved hver af jer
   const advarsler = [...vDig.hovedtal_advarsler, ...vP.hovedtal_advarsler].filter((a, i, l) => l.findIndex((b) => b.kode === a.kode) === i);
   $("#hovedtal-advarsler").replaceChildren(...advarsler.map((a) => advarselEl(a, "chip")));
   $("#hovedtal-forudsaetninger").hidden = !advarsler.length;
@@ -2750,7 +2788,7 @@ function forbind() {
     });
   });
   for (const [id, fmt] of [["afkast", (v) => `${decimal(v)} %`], ["inflation", (v) => `${decimal(v)} %`], ["opsaettelse", (v) => (+v ? `${v} år` : "Nej")],
-    ["p-opsaettelse", (v) => (+v ? `${v} år` : "Nej")]]) {
+    ["p-opsaettelse", (v) => (+v ? `${v} år` : "Nej")], ["plan-slut", (v) => `${v} år`], ["p-plan-slut", (v) => `${v} år`]]) {
     $(`#${id}`).addEventListener("input", (e) => { $(`#${id}-v`).textContent = fmt(e.target.value); });
   }
   $("#tilfoej-ordning").addEventListener("click", () => tilfoejOrdning($("#ny-type").value));
@@ -2816,6 +2854,15 @@ function forbind() {
   });
   skyder("r-afkast", (v) => { aktiveAntagelser().afkast_efter_pal = v / 100; synkroniserFormular(); }, (v) => `${decimal(v)} %`);
   skyder("r-inflation", (v) => { tilstand.aktuelleSvar.antagelser.inflation = v / 100; synkroniserFormular(); }, (v) => `${decimal(v)} %`);
+  // 040: planens slutning og resten for den viste person (37: partnerens under partnerens fane).
+  skyder("r-plan-slut", (v) => { aktiveAntagelser().plan_slut_alder = slutAlder(v); synkroniserFormular(); }, (v) => `${v} år`);
+  $("#r-rest").addEventListener("change", (e) => {
+    const n = beloeb(e.target.value);
+    aktiveAntagelser().rest_ved_plan_slut = Number.isFinite(n) && n > 0 ? n : 0;
+    e.target.value = n > 0 ? kr(n) : "";
+    synkroniserFormular();
+    genberegn();
+  });
   $("#forbrug-flad").addEventListener("click", () => {
     $$("#forbrug-baand input").forEach((x) => { x.value = 100; });
     saetForbrug($$("#forbrug-baand input").map(() => 100));

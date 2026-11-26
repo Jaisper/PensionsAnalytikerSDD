@@ -26,6 +26,7 @@ inventar = [
   "Hvor skal næste krone hen?",
   "Løn, stopalder og fradrag",
   "Usikkerhed og levetid",
+  "Planens slutning og penge tilbage",
   "Optimering",
   "Husstand og partner",
   "Afkast, inflation, satsregulering og realfaktor",
@@ -301,6 +302,16 @@ advarsler = ["INDKOMSTHUL"]
 niveau1 = "Skriver du din løn, regner vi årene, til du stopper. Det faste beløb begynder, når du stopper. Du kan se, hvornår du kan stoppe. Ved det faste beløb står din løn efter skat, så du kan sammenligne."
 niveau2 = "Af lønnen trækkes AM-bidrag og din pensionsindbetaling. Skriver du din løn som på lønsedlen, regner vi selv indbetalingen ud fra procenterne. Firmaets del er ikke en del af din løn. Beskæftigelsesfradrag, jobfradrag og seniorfradrag gør skatten lidt mindre. Din løn nedsætter ikke dit pensionstillæg, men over et bundfradrag kan den nedsætte ældrechecken. Har du ingen indkomst, fra du stopper, til din første udbetaling, siger vi det."
 niveau3 = "Ligningsloven § 9 J (beskæftigelsesfradrag og ekstra fradrag til seniorer de to sidste år før folkepensionsalderen, gældende lov) og § 9 K (jobfradrag). Fradragene nedsætter den skattepligtige indkomst. Lønnen og pensionsindbetalingen reguleres med satsreguleringen. L 117 (2023) om arbejdsindkomst og pensionstillæg."
+
+[[emne]]
+id = "planens_slutning"
+titel = "Hvor længe pengene skal række"
+inventar = ["Planens slutning og penge tilbage"]
+registerposter = []
+advarsler = ["REST_VED_PLAN_SLUT", "REST_IKKE_MULIG"]
+niveau1 = "Du vælger, hvor længe din opsparing skal række. Vi regner med 90 år, hvis du ikke vælger. Du kan også vælge et beløb, der skal være tilbage til sidst. Så bliver det faste beløb lidt mindre. Folkepension og livrente kommer stadig, så længe du lever."
+niveau2 = "Det faste beløb regnes, så opsparingen uden for pension er brugt op i det år, planen slutter. Vælger du et beløb, der skal være tilbage, regner vi, så netop det beløb står tilbage. Beløbet er i dagens kroner og står i din opsparing uden for pension, så det er efter skat. Afkastet af det beskattes hvert år, og det tæller med i formuen ved ældrechecken. Opsparing, du har valgt ikke at bruge, kommer oveni. Vi viser, hvor meget det faste beløb falder, og fra hvilken alder. Det er ofte de senere år, der falder, fordi vi aldrig låner af fremtiden."
+niveau3 = "Planens slutning er sidste række i udjævningen; en ratepension forlænger den til sidste rate. Livrentens ydelse regnes stadig over selskabets horisont og ændres ikke. Resten X i dagens kroner er en randbetingelse på det sidste k i forbrugsudjævningen: nutidsværdien af X ved udgangen af sidste år trækkes fra, før der fordeles. Kan X ikke nås, bruges intet af bufferen i det sidste segment, og vi siger det. Prisen er forskellen i det faste beløb til samme beregning med X lig nul. Begge er borgerens egne valg, ikke lovregler."
 
 [[emne]]
 id = "usikkerhed"

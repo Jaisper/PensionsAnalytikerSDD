@@ -411,7 +411,7 @@ Guiden har fem trin. Alt kan også rettes i datapanelet ved resultatet.
 | 2. Dine ordninger | Pr. ordning: type, saldo, årlig indbetaling, startalder, periode (ratepension), oprettelsesperiode, udbetalingsform (kapitalpension), afgift betalt, i buffer eller direkte (engangsbeløb). ATP pr. år |
 | 3. Din partner | Fuld profil (samme felter) eller et overslag (fødselsdato og anden indkomst) |
 | 4. Opsparing | Bank, frit depot (med gevinst), aktiesparekonto, løbende indskud, om opsparingen bruges i planen |
-| 5. Forventninger | Valgfrit: egne forventninger til afkast efter PAL-skat og inflation (ellers branchestandarden, afsnit 8). Opsættelse af folkepension |
+| 5. Forventninger | Valgfrit: egne forventninger til afkast efter PAL-skat og inflation (ellers branchestandarden, afsnit 8). Opsættelse af folkepension. Hvor længe pengene skal række (70–110 år, standard 90) og hvor mange penge der skal være tilbage, når planen slutter (standard 0 kr.), pr. person (040) |
 
 ### 4.2 Oversættelse<!-- teknisk --> (`oversaet.py`)<!-- /teknisk -->
 
@@ -522,8 +522,9 @@ Beregningsmotoren<!-- teknisk --> (`beregn` i [`fremskrivning.py`](../src/pensio
 - **Stopalder** (feature 017 og 030): med løn den valgte stopalder (ellers folkepensionsalderen). Uden
   valgt stopalder følger den første udbetaling.
 - **Tabellen** begynder i dag med løn, ellers ved første udbetaling eller folkepensionsalderen, og slutter
-  ved det seneste af planens slutning (standard 90 år<!-- teknisk -->, `livsvarig_horisont_alder`<!-- /teknisk -->), folkepensionens start
-  og sidste rate.
+  ved det seneste af planens slutning (borgerens valg, standard 90 år<!-- teknisk -->, `plan_slut_alder` ellers
+  `livsvarig_horisont_alder`<!-- /teknisk -->), folkepensionens start og sidste rate. Livrentens ydelse regnes
+  altid over 90 år og ændres ikke af planens slutning.
 
 ### 6.2 Opsparingsfasen (frem til hver ordnings start)
 
@@ -664,7 +665,17 @@ segment begynder. Det sikrer, at
 
 - **bufferen aldrig er negativ** (der lånes aldrig af senere år),
 - niveauet ikke falder i dagens kroner (i forhold til fordelingen),
-- bufferen ender i 0.
+- bufferen ender i 0, eller i det beløb, borgeren vil have tilbage.
+
+**Penge tilbage, når planen slutter** (040): borgeren kan vælge et beløb *X* i dagens kroner. Det er en
+randbetingelse på det sidste *k*: nutidsværdien af *X* ved udgangen af sidste år trækkes fra tælleren, før
+der fordeles. Bufferen ender derfor på *X* (efter skat, fordi den er opsparing uden for pension), og de
+øvrige krav gælder uændret. Afkastet af *X* beskattes hvert år, og *X* tæller med i formuen ved ældrechecken
+(fastpunktet nedenfor). Kan *X* ikke nås, bruges intet af bufferen i det sidste segment, og en advarsel
+siger, hvor meget der står tilbage<!-- teknisk --> (`REST_IKKE_MULIG`)<!-- /teknisk -->. Opsparing, borgeren har
+valgt ikke at bruge, kommer oveni. Ved hovedtallet vises **prisen**: hvor meget det faste beløb falder i
+forhold til samme beregning med *X* = 0, og fra hvilken alder. Det er ofte de senere år, der falder, ikke
+hovedtallet, fordi udjævningen ikke låner.
 
 Betalinger sker primo året. Med løn udjævnes kun årene fra stopalderen. Arbejdsårene vises med årets
 nettoindkomst, og engangsbeløb før stopalderen samles i bufferen og forrentes til stopalderen.
@@ -810,9 +821,11 @@ Alle er almindelige kald af kernen med ændret input. Ingen har egne regler.
 Tabellen "Hvis afkast, inflation eller levetid bliver anderledes" står altid fremme under skyderne for
 afkast og inflation. Den regner hovedtallet med afkast ±1
 procentpoint, inflation ±0,5 procentpoint (hver for sig og sammen, ingen sats under 0) og planens slutning
-ved 85 og 95 år i stedet for 90. Livrentens ydelse ændres ikke af levetidsscenarierne, fordi selskabet
-fastsætter den. Med branchestandarden vises kun levetiden, fordi branchestandarden har sit eget spænd
-(afsnit 8). For et par flyttes partnerens afkast med samme forskel (037).
+5 år før og efter borgerens valg (standard 85 og 95 år, 040). Livrentens ydelse ændres ikke af
+levetidsscenarierne, fordi selskabet fastsætter den. Med branchestandarden vises kun levetiden, fordi
+branchestandarden har sit eget spænd (afsnit 8). For et par flyttes partnerens afkast med samme forskel
+(037), og partnerens planslutning flyttes lige så mange år fra partnerens egen (040). Under tabellen står
+indkomsten fra folkepension, ATP og livrente i året efter planens slutning.
 
 (Rækkerne "Dårlige år først" og "Gode år først" er fjernet 2026-11-23. De viste kun niveauet de første år,
 som gode år ikke kan hæve, fordi udjævningen ikke låner. Afkast pr. år (feature 023a) er bevaret i kernen.)

@@ -44,7 +44,7 @@ bruge, men en forventet arv er usikker og må ikke få hovedtallet til at se for
 ## User Scenarios (kort)
 
 - **US1 (P1)**: "Med forventet arv" som scenarie: det faste beløb med og uden.
-- **US2 (P2)**: "Bevar X til arvinger": det faste beløb, der kan bruges, når X skal stå tilbage.
+- **US2 (P2)**: "Bevar X til arvinger": det faste beløb, der kan bruges, når X skal stå tilbage. **Bygget i 040** (planens slutning og penge tilbage).
 - **US3 (P3)**: Arv givet: restformuen og pensioner til begunstigede efter boafgift og 40 %
   afgift, pr. arvingklasse.
 

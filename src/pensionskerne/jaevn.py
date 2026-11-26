@@ -81,7 +81,11 @@ def beregn_jaevn(
     inflation: float,
     beregningsaar: int,
     vaegt: Sequence[float] | None = None,
+    rest_slut: float = 0.0,
 ) -> JaevnUdbetaling | None:
+    """`rest_slut` (040, nominelt ved udgangen af sidste række): bufferen skal ende på dette beløb i stedet for
+    0. Det er en randbetingelse på det sidste k: nutidsværdien af resten trækkes fra, før der fordeles. Kan
+    beløbet ikke nås, bruges intet af bufferen i det sidste segment (aldrig en negativ udbetaling)."""
     if not raekker:
         return None
     vaekst = 1 + inflation
@@ -107,6 +111,8 @@ def beregn_jaevn(
             if nv_vaekst <= 0:
                 continue  # kun år på 0 % indtil nu (033b): ingen udbetaling at sætte et niveau efter
             c = nv_ind / nv_vaekst
+            if k == n - 1 and rest_slut:
+                c = max((nv_ind - rest_slut * faktor / (1 + renter[k])) / nv_vaekst, min(0.0, c))
             if c <= bedste_c + 1e-12 * max(1.0, abs(c)):  # sidste minimum: så lange segmenter som muligt
                 bedste_c, bedste_k = min(c, bedste_c), k
         if math.isinf(bedste_c):
