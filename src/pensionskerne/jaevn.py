@@ -82,10 +82,14 @@ def beregn_jaevn(
     beregningsaar: int,
     vaegt: Sequence[float] | None = None,
     rest_slut: float = 0.0,
+    plan_raekker: int | None = None,
 ) -> JaevnUdbetaling | None:
-    """`rest_slut` (040, nominelt ved udgangen af sidste række): bufferen skal ende på dette beløb i stedet for
-    0. Det er en randbetingelse på det sidste k: nutidsværdien af resten trækkes fra, før der fordeles. Kan
-    beløbet ikke nås, bruges intet af bufferen i det sidste segment (aldrig en negativ udbetaling)."""
+    """`rest_slut` (040, nominelt ved udgangen af planens sidste række): bufferen skal ende på dette beløb i
+    stedet for 0. Det er en randbetingelse på det sidste k: nutidsværdien af resten trækkes fra, før der
+    fordeles. Kan beløbet ikke nås, bruges intet af bufferen i det sidste segment (aldrig en negativ udbetaling).
+
+    `plan_raekker` (040b): kun de første rækker udjævnes (planen). Rækkerne efter (fx en ratepension, der
+    udbetales efter planens slutning) er årets egen indkomst; bufferen røres ikke, men forrentes. None = alle."""
     if not raekker:
         return None
     vaekst = 1 + inflation
@@ -96,14 +100,15 @@ def beregn_jaevn(
     normal = [r.disponibel for r in raekker]
     indbetaling = [normal[t] + engangs_i_buffer.get(r.alder, 0.0) for t, r in enumerate(raekker)]
 
+    m = n if plan_raekker is None else max(1, min(n, plan_raekker))
     niveau = [0.0] * n
     buffer = 0.0
     i = 0
-    while i < n:
+    while i < m:
         bedste_c, bedste_k = math.inf, i
         nv_ind, nv_vaekst = buffer, 0.0
         faktor = 1.0
-        for k in range(i, n):
+        for k in range(i, m):
             if k > i:
                 faktor /= 1 + renter[k - 1]
             nv_ind += indbetaling[k] * faktor
@@ -111,17 +116,19 @@ def beregn_jaevn(
             if nv_vaekst <= 0:
                 continue  # kun år på 0 % indtil nu (033b): ingen udbetaling at sætte et niveau efter
             c = nv_ind / nv_vaekst
-            if k == n - 1 and rest_slut:
+            if k == m - 1 and rest_slut:
                 c = max((nv_ind - rest_slut * faktor / (1 + renter[k])) / nv_vaekst, min(0.0, c))
             if c <= bedste_c + 1e-12 * max(1.0, abs(c)):  # sidste minimum: så lange segmenter som muligt
                 bedste_c, bedste_k = min(c, bedste_c), k
         if math.isinf(bedste_c):
             # Resten af årene er på 0 % (033b): intet udbetales, og pengene bliver stående (ingen lån).
-            bedste_c, bedste_k = 0.0, n - 1
+            bedste_c, bedste_k = 0.0, m - 1
         for t in range(i, bedste_k + 1):
             niveau[t] = bedste_c * w[t] * vaekst ** (t - i)
             buffer = (buffer + indbetaling[t] - niveau[t]) * (1 + renter[t])
         i = bedste_k + 1
+    for t in range(m, n):  # efter planen (040b)
+        niveau[t] = normal[t]
 
     buffer = 0.0
     aar: list[JaevnAar] = []

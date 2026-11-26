@@ -224,7 +224,7 @@ def _med_pris(visning: dict, uden: dict) -> None:
     aldre = visning["graf"]["aldre"]
     forskel = {alder: (u or 0.0) - (m or 0.0) for alder, m, u in zip(aldre, med_j, uden_j)}
     falder = [alder for alder, x in forskel.items() if x >= PRIS_TAERSKEL_MAANED]
-    visning["hovedtal"]["rest"] = {"beloeb": rest, "alder": visning["aar"][-1]["alder"],
+    visning["hovedtal"]["rest"] = {"beloeb": rest, "alder": visning["hovedtal"]["til_alder"],
                                    "pris_maaned": round(max(forskel.values(), default=0.0), -2) if falder else 0.0,
                                    "fra_alder": falder[0] if falder else None}
 

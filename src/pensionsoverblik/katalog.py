@@ -73,6 +73,7 @@ ADVARSLER: dict[str, dict[str, str]] = {
     "FORBRUGSPROFIL": {"placering": "hovedtal", "ikon": "≈", "titel": "Din fordeling over tid"},  # 033, 033b
     "REST_VED_PLAN_SLUT": {"placering": "hovedtal", "ikon": "≈", "titel": "Penge tilbage til sidst"},  # 040
     "REST_IKKE_MULIG": {"placering": "hovedtal", "ikon": "!", "titel": "Beløbet kan ikke nås"},  # 040
+    "UDBETALING_EFTER_PLAN": {"placering": "hovedtal", "ikon": "≈", "titel": "Udbetaling efter planens slutning"},  # 040b
     "RATEPENSION_LOFT": {"placering": "ratepension", "ikon": "!", "titel": "Over loftet for ratepension"},
     "750_TIMER": {"placering": "folkepension", "ikon": "!", "titel": "Krav om arbejde"},
     "OPSAT_ANDRE_FORMER": {"placering": "folkepension", "ikon": "≈", "titel": "Andre udbetalingsformer"},

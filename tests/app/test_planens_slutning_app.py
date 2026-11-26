@@ -89,3 +89,14 @@ def test_efter_plan_er_aaret_efter_borgerens_egen_slutning():
     raekke = next(a for a in v["aar"] if a["alder"] == 89)
     assert lang["efter_plan"]["dig"] == round(raekke["netto_real"] / 12, -2)
     assert "efter_plan" not in app.scenarie(g, IDAG, 0.03, 0.02, 83)["data"]
+
+
+def test_ratepension_efter_planens_slutning():
+    # 040b: ratepensionen udbetales 75–84, planen slutter som 80-årig. Tabellen går til 84, men hovedtal og
+    # rest hører til planen, og årene efter tæller ikke i hovedtallet.
+    g = json.loads(json.dumps(GUIDE))
+    g["ordninger"][0].update(udbetaling_start_alder=75, udbetaling_aar=10)
+    v = app.beregn(json.dumps(med(g, plan_slut_alder=80, rest_ved_plan_slut=50000)), IDAG)["data"]
+    assert v["aar"][-1]["alder"] == 84 and v["hovedtal"]["til_alder"] == 80
+    assert v["hovedtal"]["rest"]["alder"] == 80
+    assert any(a["kode"] == "UDBETALING_EFTER_PLAN" for a in v["hovedtal_advarsler"])

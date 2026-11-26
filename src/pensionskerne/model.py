@@ -316,6 +316,7 @@ class Fremskrivning:
     formue: tuple[FormueAar, ...] = ()  # fra i dag til sidste år (013)
     formue_start: float = 0.0           # opsparingen i dag (013)
     jaevn_fra_alder: int | None = None  # første år i udjævningen (017: stopalderen); None = første række
+    jaevn_til_alder: int | None = None  # udjævningens sidste år (040b: planens slutning); None = sidste række
     forbrug_baand: tuple[tuple[int, int], ...] = ()  # forbrugsprofilens bånd i egne aldre (033)
     # Branchestandarden (035): forløbene ved højt og lavt afkast ("hoej", "lav"). Resultatet selv er
     # forløbet ved forventet afkast. None med egne antagelser, eller når spændet ikke er beregnet.
