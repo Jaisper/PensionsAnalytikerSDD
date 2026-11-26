@@ -83,3 +83,40 @@ def test_axe_og_360(browser, base_url):
         s.set_viewport_size({"width": bredde, "height": 800})
         s.wait_for_function(f"() => document.documentElement.scrollWidth <= {bredde}", timeout=5000)
     ctx.close()
+
+
+# ── 041: "Sådan udvikles løsningen" ───────────────────────────────────────────
+def test_udviklingsmetoden_aabnes_i_ny_fane_og_kan_lukkes(resultat):
+    s = resultat
+    link = s.locator("#saadan-udvikles-link")
+    assert link.get_attribute("target") == "_blank" and "noopener" in link.get_attribute("rel")
+    assert "(åbner i en ny fane)" in link.inner_text()
+    hovedtal = s.inner_text("#hovedtal")
+    with s.context.expect_page() as ny:
+        link.click()
+    side = ny.value
+    side.wait_for_load_state("load")
+    assert "saadan-udvikles.html?fra=beregning" in side.url and "Sådan udvikles" in side.inner_text("h1")
+    # Henvisningen til den anden beskrivelse beholder, at fanen er åbnet fra beregningen.
+    assert side.get_attribute("a.metodedok__anden", "href").endswith("saadan-fungerer.html?fra=beregning")
+    with side.expect_event("close", timeout=5000):
+        side.click("#tilbage-til-beregningen")
+    assert s.inner_text("#hovedtal") == hovedtal
+
+
+def test_udviklingsmetoden_indhold_axe_og_360(browser, base_url):
+    ctx = browser.new_context(locale="da-DK", bypass_csp=True)
+    s = ctx.new_page()
+    s.goto(base_url + "saadan-udvikles.html")
+    assert s.locator(".metodedok__indhold a").count() == 14
+    tekst = s.inner_text("main")
+    for ord_ in (".py", "src/", "tests/", "`"):
+        assert ord_ not in tekst, ord_
+    indlaes_axe(s)
+    fejl = s.evaluate("async () => (await axe.run(document, {runOnly: "
+                      "['wcag2a','wcag2aa','wcag21aa','wcag22aa']})).violations.map(v => v.id)")
+    assert fejl == []
+    for bredde in (360, 320):
+        s.set_viewport_size({"width": bredde, "height": 800})
+        s.wait_for_function(f"() => document.documentElement.scrollWidth <= {bredde}", timeout=5000)
+    ctx.close()

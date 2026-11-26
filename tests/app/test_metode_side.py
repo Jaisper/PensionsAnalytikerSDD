@@ -115,3 +115,39 @@ def test_featurenumre_fjernes():
     md = "Udjævning (feature 010) virker. Equalizer (fordeling, 033/033b/037) og usikkerhed (018 og 019). Løn (017c)."
     html, _ = metode_html.til_html(md)
     assert html == "<p>Udjævning virker. Equalizer (fordeling) og usikkerhed. Løn.</p>"
+
+
+# ── 041: udviklingsmetoden som side i løsningen, på samme måde ─────────────────
+UDVIKLING = "docs/udviklingsmetode.md"
+MD_UDVIKLING = (ROD / UDVIKLING).read_text(encoding="utf-8")
+
+
+@pytest.fixture(scope="module")
+def udviklingsside():
+    return laes(metode_html.side(MD_UDVIKLING, UDVIKLING))
+
+
+def test_udviklingssiden_har_ingen_kodenavne(udviklingsside):
+    test_siden_har_ingen_kodenavne(udviklingsside)
+    test_kodeblokkene_er_kun_formler_og_diagrammer(udviklingsside)
+
+
+def test_udviklingssidens_ankre_findes(udviklingsside):
+    assert udviklingsside.ankre and set(udviklingsside.ankre) <= udviklingsside.ids
+
+
+def test_udviklingssidens_hovedafsnit(udviklingsside):
+    tekst = " ".join(udviklingsside.tekst)
+    for afsnit in ("Processen pr. feature", "Test først", "Testsuiten: hvad der testes, og hvor meget",
+                   "Testdata og persondata", "Brug af AI i udviklingen", "Begrænsninger og anbefalinger"):
+        assert afsnit in tekst, afsnit
+
+
+def test_siderne_henviser_til_hinanden_og_til_egen_kilde():
+    metode = metode_html.side(MD)
+    udvikling = metode_html.side(MD_UDVIKLING, UDVIKLING)
+    assert "<title>Sådan fungerer løsningen – Pensionsoverblik</title>" in metode
+    assert "<title>Sådan udvikles løsningen – Pensionsoverblik</title>" in udvikling
+    assert "blob/main/docs/metode.md" in metode and 'href="saadan-udvikles.html"' in metode
+    assert "blob/main/docs/udviklingsmetode.md" in udvikling and 'href="saadan-fungerer.html"' in udvikling
+

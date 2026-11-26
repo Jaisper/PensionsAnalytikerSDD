@@ -102,9 +102,10 @@ def byg() -> None:
         shutil.copy(hent(f["url"], f["sha256"]), SITE / f["navn"])
     shutil.copytree(STATISK, SITE, dirs_exist_ok=True)
     # Feature 039: metodebeskrivelsen som side i løsningen, uden det tekniske (samme kilde som til revisionen).
-    from metode_html import side
-    (SITE / "saadan-fungerer.html").write_text(side((ROD / "docs" / "metode.md").read_text(encoding="utf-8")),
-                                               encoding="utf-8")
+    # 041: udviklingsmetoden på samme måde.
+    from metode_html import SIDER, side
+    for kilde, fil, _ in SIDER:
+        (SITE / fil).write_text(side((ROD / kilde).read_text(encoding="utf-8"), kilde), encoding="utf-8")
     (SITE / ".nojekyll").touch()  # GitHub Pages: server filerne som de er
     stoerrelse = sum(p.stat().st_size for p in SITE.rglob("*") if p.is_file())
     print(f"Færdig: {SITE} ({stoerrelse / 1e6:.1f} MB)")

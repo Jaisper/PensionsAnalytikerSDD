@@ -191,7 +191,7 @@ SIDE = """<!doctype html>
   <meta charset="utf-8">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; connect-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Sådan fungerer løsningen – Pensionsoverblik</title>
+  <title>{titel} – Pensionsoverblik</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='10' fill='%23123845'/%3E%3Ccircle cx='16' cy='16' r='7' fill='%23f0c46a'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="app.css">
   <script src="saadan-fungerer.js" defer></script>
@@ -207,8 +207,8 @@ SIDE = """<!doctype html>
   <main id="indhold" class="metodedok">
     <div class="ramme">
 {indledning}
-      <p class="metodedok__intro">Den fulde metodebeskrivelse til revision, med henvisninger til koden, findes i
-        <a href="https://github.com/Jaisper/PensionsAnalytikerSDD/blob/main/docs/metode.md" rel="noopener">projektets dokumentation</a>.</p>
+      <p class="metodedok__intro">Den fulde beskrivelse til revision, med henvisninger til koden, findes i
+        <a href="https://github.com/Jaisper/PensionsAnalytikerSDD/blob/main/{kilde}" rel="noopener">projektets dokumentation</a>.{andre}</p>
       <nav class="metodedok__indhold" aria-label="Indhold"><h2>Indhold</h2>{indhold}</nav>
 {tekst}
     </div>
@@ -220,11 +220,21 @@ SIDE = """<!doctype html>
 """
 
 
-def side(md: str) -> str:
+# Siderne i løsningen: (kilde i repositoriet, side i løsningen, titel). 041: udviklingsmetoden ved siden af metoden.
+SIDER = (
+    ("docs/metode.md", "saadan-fungerer.html", "Sådan fungerer løsningen"),
+    ("docs/udviklingsmetode.md", "saadan-udvikles.html", "Sådan udvikles løsningen"),
+)
+
+
+def side(md: str, kilde: str = SIDER[0][0]) -> str:
+    """Siden for `kilde` (en af SIDER). Den henviser til den fulde tekst og til de andre sider."""
+    _, _, titel = next(s for s in SIDER if s[0] == kilde)
     tekst, overskrifter = til_html(md)
     # Titel og indledning først, så indholdsfortegnelsen, så afsnittene.
     i = tekst.find("<h2 ")
     indledning, afsnit = (tekst[:i], tekst[i:]) if i >= 0 else (tekst, "")
     indhold = "<ul>" + "".join(f'<li><a href="#{a}">{t}</a></li>' for n, t, a in overskrifter if n == 2) + "</ul>"
-    return (SIDE.replace("{indledning}", indledning).replace("{indhold}", indhold)
-            .replace("{tekst}", afsnit))
+    andre = "".join(f' Se også <a class="metodedok__anden" href="{fil}">{html.escape(t)}</a>.' for k, fil, t in SIDER if k != kilde)
+    return (SIDE.replace("{titel}", html.escape(titel)).replace("{kilde}", kilde).replace("{andre}", andre)
+            .replace("{indledning}", indledning).replace("{indhold}", indhold).replace("{tekst}", afsnit))
