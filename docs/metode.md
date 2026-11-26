@@ -889,6 +889,9 @@ Hver ændring følger Spec Kit: spec med afklaringer, test først, implementerin
 fund står pr. feature i projektets specifikationer<!-- teknisk --> (`specs/NNN-*/`)<!-- /teknisk -->. Afvigelser fra loven og fra den tidligere løsning står i
 domænegrundlaget. En ændring af en golden case kræver en begrundelse (Princip IV).
 
+Processen, testene og udgivelsen er beskrevet i detaljer i udviklingsmetoden ("Sådan udvikles
+løsningen")<!-- teknisk --> ([udviklingsmetode.md](udviklingsmetode.md))<!-- /teknisk -->.
+
 ### 12.2 Test
 
 Ca. 1.000 almindelige tests og 187 browsertests<!-- teknisk --> (`uv run pytest` og `uv run pytest -m browser`)<!-- /teknisk -->:
