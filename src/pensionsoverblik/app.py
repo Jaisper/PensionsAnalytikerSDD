@@ -126,6 +126,8 @@ PARTNER_FELTER = {
     "loen.deltid_aarlig": "person.partner.profil.loen.deltid_aarlig",
     "loen.deltid_til_alder": "person.partner.profil.loen.deltid_til_alder",
     "antagelser.forbrugsprofil": "person.partner.antagelser.forbrugsprofil",  # 037
+    "antagelser.plan_slut_alder": "person.partner.antagelser.plan_slut_alder",  # 040
+    "antagelser.rest_ved_plan_slut": "person.partner.antagelser.rest_ved_plan_slut",  # 040
 }
 
 
@@ -192,21 +194,61 @@ def _samlet_formue(a: dict[int, float], b: dict[int, float], v_a: dict | None, v
             "rest": (v_a["rest"] if v_a else 0.0) + (v_b["rest"] if v_b else 0.0)}
 
 
-def beregn(guide_json: str, idag: str) -> dict:
+def _visninger(data: dict, dato: date):
+    """(visning, partnerens visning eller None, profil, partnerens profil eller None, husstand eller None)."""
+    hus = _husstand(data, dato)
+    if hus is None:
+        profil, antagelser = til_kerne(data)
+        return byg_visning(kerne_beregn(profil, antagelser, _satsaar(), dato)), None, profil, None, None
+    profil, _, profil_b, _, h = hus
+    return byg_visning(h.a), byg_visning(h.b), profil, profil_b, h
+
+
+# Prisen for resten (040): år, hvor det faste beløb falder mindre end et halvt hundrede kr. om måneden, er
+# afrundingsstøj (hovedtallet vises afrundet til hele hundrede).
+PRIS_TAERSKEL_MAANED = 50
+
+
+def _partnerens_antagelser(data: dict) -> dict | None:
+    return ((data.get("person") or {}).get("partner") or {}).get("antagelser")
+
+
+def _med_pris(visning: dict, uden: dict) -> None:
+    """Prisen for resten ved planens slutning (040): hvor meget det faste beløb falder (kr./md., dagens kroner)
+    i forhold til samme beregning uden rest, og fra hvilken alder. Resten binder det sidste segment af
+    udjævningen, så det er ofte de senere år, der falder, ikke hovedtallet (det laveste niveau)."""
+    rest = visning["antagelser"]["rest_ved_plan_slut"]
+    if rest <= 0:
+        return
+    med_j, uden_j = visning["graf"]["jaevn"] or [], uden["graf"]["jaevn"] or []
+    aldre = visning["graf"]["aldre"]
+    forskel = {alder: (u or 0.0) - (m or 0.0) for alder, m, u in zip(aldre, med_j, uden_j)}
+    falder = [alder for alder, x in forskel.items() if x >= PRIS_TAERSKEL_MAANED]
+    visning["hovedtal"]["rest"] = {"beloeb": rest, "alder": visning["aar"][-1]["alder"],
+                                   "pris_maaned": round(max(forskel.values(), default=0.0), -2) if falder else 0.0,
+                                   "fra_alder": falder[0] if falder else None}
+
+
+def beregn(guide_json: str, idag: str, med_pris: bool = True) -> dict:
+    """Hele visningen. Med en rest ved planens slutning (040) også prisen for den (én beregning mere);
+    scenarierne behøver den ikke (`med_pris=False`)."""
     try:
         data, dato = _data(guide_json, idag)
-        hus = _husstand(data, dato)
-        if hus is None:
-            profil, antagelser = til_kerne(data)
-            visning = byg_visning(kerne_beregn(profil, antagelser, _satsaar(), dato))
-        else:
-            profil, _, profil_b, _, h = hus
-            visning = byg_visning(h.a)
+        visning, partner, profil, profil_b, h = _visninger(data, dato)
+        if med_pris and (visning["antagelser"]["rest_ved_plan_slut"] > 0
+                         or (partner is not None and partner["antagelser"]["rest_ved_plan_slut"] > 0)):
+            uden = json.loads(json.dumps(data))
+            for a in (uden.get("antagelser"), _partnerens_antagelser(uden)):
+                if a:
+                    a["rest_ved_plan_slut"] = 0
+            uden_a, uden_b, *_ = _visninger(uden, dato)
+            _med_pris(visning, uden_a)
+            if partner is not None:
+                _med_pris(partner, uden_b)
     except UgyldigtInput as e:
         return _fejl("ugyldigt_input", e.besked, e.felt)
     visning["graenser"] = graenser(profil, _satsaar())
-    if hus is not None:
-        partner = byg_visning(h.b)
+    if partner is not None:
         partner["graenser"] = graenser(profil_b, _satsaar())
         visning["husstand"] = {"partner": partner, "samlet": _samlet(h, profil, profil_b, visning, partner)}
     return _ok(visning)
@@ -229,7 +271,7 @@ def stopalder(guide_json: str, idag: str, maaned: float) -> dict:
         resultater = []
         for alder in range(fra, til + 1):
             data["person"]["loen"] = {**data["person"]["loen"], "stop_alder": alder}
-            r = beregn(json.dumps(data), idag)
+            r = beregn(json.dumps(data), idag, med_pris=False)
             if not r["ok"]:
                 return r
             resultater.append({"alder": alder, "maaned": r["data"]["hovedtal"]["maaned"]})
@@ -373,8 +415,8 @@ SCENARIER = (  # nøgle, titel, retning for afkast, retning for inflation
     ("ugunstigt", "Lavere afkast og højere inflation", -1, 1),
     ("gunstigt", "Højere afkast og lavere inflation", 1, -1),
 )
-# Levetid (feature 019): planen rækker kortere eller længere end livrentens horisont (90 år).
-LEVETIDER = (85, 95)
+# Levetid (feature 019): planen rækker kortere eller længere. Fra 040 relativt til hver persons egen slutalder.
+LEVETID_FORSKEL = (-5, 5)
 # "Dårlige år først" (feature 023a): de to første år fra første udbetaling (stopalderen med løn) får
 # det forventede afkast minus to standardafvigelser; "gode år først" plus. Standardafvigelsen er for
 # en blandet portefølje med halvt globale aktier og halvt danske stats- og realkreditobligationer:
@@ -397,26 +439,40 @@ def stress_afvigelse() -> float:
     return STRESS_STANDARDAFVIGELSER * sigma * (1 - Regelopslag(_satsaar(), _satsaar(), 0.0).v("pal.sats"))
 
 
+def _egen_slut(antagelser: dict | None) -> int:
+    """Personens planslutning (040): eget valg, ellers livrentens horisont (90 år)."""
+    from pensionskerne import Antagelser
+
+    return int((antagelser or {}).get("plan_slut_alder") or Antagelser().livsvarig_horisont_alder)
+
+
+def _flyt_slut(slut: int, forskel: int) -> int:
+    from pensionskerne.validering import PLAN_SLUT_MAKS, PLAN_SLUT_MIN
+
+    return min(PLAN_SLUT_MAKS, max(PLAN_SLUT_MIN, slut + forskel))
+
+
 def scenarier(guide_json: str) -> list[dict]:
-    """De seks scenarier omkring borgerens antagelser (afkast og inflation som brøker)."""
+    """De seks scenarier omkring borgerens antagelser (afkast og inflation som brøker) og to om levetiden:
+    planen rækker 5 år kortere eller længere end borgerens egen slutalder (`forskel`, 040)."""
     from pensionskerne import Antagelser
 
     a = json.loads(guide_json).get("antagelser") or {}
     standard = Antagelser()
     afkast = float(a.get("afkast_efter_pal", standard.afkast_efter_pal))
     inflation = float(a.get("inflation", standard.inflation))
-    levetid = [{"noegle": f"levetid_{alder}", "titel": f"Planen rækker til {alder} år", "afkast": afkast,
-                "inflation": inflation, "plan_slut_alder": alder} for alder in LEVETIDER]
+    slut = _egen_slut(a)
+    levetid = [{"noegle": f"levetid_{_flyt_slut(slut, d)}",
+                "titel": f"Planen rækker {abs(d)} år {'kortere' if d < 0 else 'længere'}",
+                "afkast": afkast, "inflation": inflation, "plan_slut_alder": _flyt_slut(slut, d), "forskel": d}
+               for d in LEVETID_FORSKEL]
     if a.get("beregningsgrundlag") == "branchestandard":
         # 035: branchestandarden har sit eget spænd (højt og lavt afkast); kun levetiden er et andet spørgsmål.
         return levetid
     return [{"noegle": noegle, "titel": titel,
              "afkast": round(max(0.0, afkast + ra * AFKAST_SPAEND), 6),
              "inflation": round(max(0.0, inflation + ri * INFLATION_SPAEND), 6), "plan_slut_alder": None}
-            for noegle, titel, ra, ri in SCENARIER] + [
-        {"noegle": f"levetid_{alder}", "titel": f"Planen rækker til {alder} år", "afkast": afkast,
-         "inflation": inflation, "plan_slut_alder": alder}
-        for alder in LEVETIDER]
+            for noegle, titel, ra, ri in SCENARIER] + levetid
     # "Dårlige/Gode år først" (023a) er udgået i tabellen 2026-11-23 (produktejer): gode år kan ikke hæve de
     # første år (ingen lån, 010), så rækkerne så skæve ud. `scenarie(stress=...)` er bevaret.
 
@@ -432,22 +488,31 @@ def scenarie(guide_json: str, idag: str, afkast: float, inflation: float, plan_s
 
     data = json.loads(guide_json)
     dit = float((data.get("antagelser") or {}).get("afkast_efter_pal", Antagelser().afkast_efter_pal))
-    data["antagelser"] = {**(data.get("antagelser") or {}), "afkast_efter_pal": afkast, "inflation": inflation,
-                          "plan_slut_alder": plan_slut_alder}
+    egen_slut = _egen_slut(data.get("antagelser"))
+    data["antagelser"] = {**(data.get("antagelser") or {}), "afkast_efter_pal": afkast, "inflation": inflation}
+    p = (data.get("person") or {}).get("partner") or {}
+    if p.get("profil") and p.get("antagelser") is None:
+        p["antagelser"] = {}
+    pa = p.get("antagelser") or {}
+    partner_slut = _egen_slut(pa)
+    if plan_slut_alder is not None:
+        # 040: begge planer flyttes lige så mange år fra hver sin slutalder.
+        data["antagelser"]["plan_slut_alder"] = plan_slut_alder
+        if p.get("profil"):
+            pa["plan_slut_alder"] = _flyt_slut(partner_slut, plan_slut_alder - egen_slut)
     # 037: har partneren sit eget afkast, flyttes det med samme forskel som dit.
-    pa = ((data.get("person") or {}).get("partner") or {}).get("antagelser") or {}
     if pa.get("afkast_efter_pal") is not None:
         pa["afkast_efter_pal"] = round(max(0.0, float(pa["afkast_efter_pal"]) + afkast - dit), 6)
     forloeb = None
     if stress:
-        r = beregn(json.dumps(data), idag)
+        r = beregn(json.dumps(data), idag, med_pris=False)
         if not r["ok"]:
             return r
         start = int(data["person"]["foedselsdato"][:4]) + r["data"]["hovedtal"]["fra_alder"]
         aar_afkast = afkast + stress * stress_afvigelse()
         forloeb = {str(start + i): aar_afkast for i in range(STRESS_AAR)}
         data["antagelser"]["afkast_forloeb"] = forloeb
-    r = beregn(json.dumps(data), idag)
+    r = beregn(json.dumps(data), idag, med_pris=False)
     if not r["ok"]:
         return r
     v = r["data"]
@@ -455,12 +520,13 @@ def scenarie(guide_json: str, idag: str, afkast: float, inflation: float, plan_s
     svar = {"dig": v["hovedtal"]["maaned"],
             "partner": h["partner"]["hovedtal"]["maaned"] if h else None,
             "samlet": h["samlet"]["maaned"] if h else None}
-    normal_slut = Antagelser().livsvarig_horisont_alder
-    if plan_slut_alder is not None and plan_slut_alder > normal_slut:
-        def efter(visning):
-            raekke = next((a for a in visning["aar"] if a["alder"] == normal_slut + 1), None)
+    if plan_slut_alder is not None and plan_slut_alder > egen_slut:
+        # Året efter hver persons egen planslutning (040; før: efter 90 år).
+        def efter(visning, slut):
+            raekke = next((a for a in visning["aar"] if a["alder"] == slut + 1), None)
             return round(raekke["netto_real"] / 12, -2) if raekke else None
-        svar["efter_plan"] = {"dig": efter(v), "partner": efter(h["partner"]) if h else None}
+        svar["efter_plan"] = {"dig": efter(v, egen_slut),
+                              "partner": efter(h["partner"], partner_slut) if h else None}
     if forloeb:
         svar["forloeb"] = {aar: round(x, 6) for aar, x in forloeb.items()}
     return _ok(svar)

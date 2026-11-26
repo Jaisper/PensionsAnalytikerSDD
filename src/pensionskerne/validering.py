@@ -14,6 +14,8 @@ from .register.opslag import Regelopslag
 ORDNINGSTYPER = ("ratepension", "livsvarig", "aldersopsparing", "kapitalpension")
 UDBETALINGSFORMER = ("engangs", "portioner", "ratepension", "livsvarig")
 AKTIVTYPER = ("bank", "depot", "ask")  # feature 013 og 013b
+# Planens slutning (040): borgerens eget valg inden for et rimeligt spænd (ikke en lovregel).
+PLAN_SLUT_MIN, PLAN_SLUT_MAKS = 70, 110
 
 
 def _ikke_negativ(felt: str, vaerdi: float | None) -> None:
@@ -158,6 +160,11 @@ def valider(profil: Pensionsprofil, antagelser: Antagelser, satsaar: int, beregn
         raise UgyldigtInput("antagelser.satsregulering", "Satsen skal være større end -100 %")
     if antagelser.plan_slut_alder is not None and antagelser.plan_slut_alder <= beregningsdato.year - profil.foedselsdato.year:
         raise UgyldigtInput("antagelser.plan_slut_alder", "Planen skal slutte efter din nuværende alder")
+    if antagelser.plan_slut_alder is not None and not PLAN_SLUT_MIN <= antagelser.plan_slut_alder <= PLAN_SLUT_MAKS:
+        raise UgyldigtInput("antagelser.plan_slut_alder",
+                            f"Skriv en alder mellem {PLAN_SLUT_MIN} og {PLAN_SLUT_MAKS} år")
+    if antagelser.rest_ved_plan_slut < 0:
+        raise UgyldigtInput("antagelser.rest_ved_plan_slut", "Beløbet kan ikke være negativt")
     if antagelser.livsvarig_min_aar < 1:
         raise UgyldigtInput("antagelser.livsvarig_min_aar", "Skal være mindst 1 år")
 

@@ -161,6 +161,7 @@ class Antagelser:
     loenvaekst: float = 0.0              # realvækst i pensionsindbetalingen oven i satsreguleringen (017b)
     livsvarig_horisont_alder: int = 90   # livrentens beregningshorisont (selskabets ydelse)
     plan_slut_alder: int | None = None   # planens sidste år (019); None = livsvarig_horisont_alder
+    rest_ved_plan_slut: float = 0.0      # opsparing i planen ved planens slutning, dagens kroner (040)
     livsvarig_min_aar: int = 18
     folkepension_opsaettelse_aar: int = 0
     depot_urealiseret_andel: float = 0.5  # depotets gevinstandel, når den ikke er oplyst (013b)

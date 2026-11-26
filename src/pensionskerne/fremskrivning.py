@@ -675,6 +675,13 @@ def beregn(
         pr_alder = vaegte(forbrug.procenter, start, aldre)
         return [pr_alder[x] for x in aldre]
 
+    def rest_slut(aar: list[Aarsresultat]) -> float:
+        """Resten ved planens slutning (040) nominelt ved udgangen af sidste række; i dagens kroner som
+        opsparingsgrafen (`FormueAar.realfaktor`)."""
+        if not antagelser.rest_ved_plan_slut or not aar:
+            return 0.0
+        return antagelser.rest_ved_plan_slut * (1 + antagelser.inflation) ** (aar[-1].alder - alder_nu)
+
     def udjaevn(aar: list[Aarsresultat]) -> JaevnUdbetaling | None:
         """Udjævning fra `jaevn_fra` (017). Årene før (arbejdsår) udjævnes ikke: det faste beløb er
         årets nettoindkomst, og opsparing i planen og engangsbeløb samles i bufferen, vokser med
@@ -682,7 +689,7 @@ def beregn(
         foer = [a for a in aar if a.alder < jaevn_fra]
         if not foer:
             return beregn_jaevn(tuple(aar), engangs_i_buffer, [rente_i(a.alder) for a in aar], antagelser.inflation,
-                                beregningsdato.year, vaegt(aar))
+                                beregningsdato.year, vaegt(aar), rest_slut(aar))
         engangs = dict(engangs_i_buffer)
         b = 0.0
         foer_aar = []
@@ -695,7 +702,7 @@ def beregn(
         engangs[jaevn_fra] = engangs.get(jaevn_fra, 0.0) + b
         efter = tuple(a for a in aar if a.alder >= jaevn_fra)
         j = beregn_jaevn(efter, engangs, [rente_i(a.alder) for a in efter], antagelser.inflation, beregningsdato.year,
-                         vaegt(efter))
+                         vaegt(efter), rest_slut(aar))
         # Saldoen fra arbejdsårene føres videre ved stopalderen; den er ikke nye penge i bufferen (029).
         foerste = replace(j.aar[0], ind_buffer=j.aar[0].ind_buffer - b)
         return JaevnUdbetaling(j.niveau_foerste_aar, j.niveau_real, tuple(foer_aar) + (foerste,) + j.aar[1:])
@@ -825,6 +832,22 @@ def beregn(
                 f"Fra du stopper med at arbejde, har du ingen indkomst som {fra}–{til}-årig. Du kan "
                 "bruge opsparing uden for pension, begynde en udbetaling tidligere eller stoppe senere.",
                 aldre=(fra, til),
+            ))
+    if antagelser.rest_ved_plan_slut and jaevn is not None and aar:
+        # 040: borgerens eget valg. Beløbet står i opsparingen uden for pension, så det er efter skat.
+        samlet.antagelse("rest_ved_plan_slut", antagelser.rest_ved_plan_slut)
+        slut_alder = aar[-1].alder
+        advarsler.append(Advarsel(
+            "REST_VED_PLAN_SLUT",
+            f"Du har valgt at have {_kr(antagelser.rest_ved_plan_slut)} kr. tilbage som {slut_alder}-årig, i dagens "
+            "kroner. Det er dit eget valg. Beløbet står i din opsparing uden for pension.",
+        ))
+        naaet = max(0.0, jaevn.aar[-1].buffer_rest) / (1 + antagelser.inflation) ** (slut_alder - alder_nu)
+        if naaet < antagelser.rest_ved_plan_slut - BUFFER_TOLERANCE_KR * 12:
+            advarsler.append(Advarsel(
+                "REST_IKKE_MULIG",
+                f"Din opsparing kan ikke nå {_kr(antagelser.rest_ved_plan_slut)} kr. som {slut_alder}-årig. "
+                f"Der står ca. {_kr(naaet)} kr. tilbage.",
             ))
     if not konvergeret:
         advarsler.append(Advarsel(

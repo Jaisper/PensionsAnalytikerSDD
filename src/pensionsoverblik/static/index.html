@@ -382,6 +382,30 @@
               <label for="p-opsaettelse">Udskyd din partners folkepension</label>
               <div class="skyder"><input type="range" id="p-opsaettelse" min="0" max="10" step="1" value="0"><output for="p-opsaettelse" id="p-opsaettelse-v">Nej</output></div>
             </div>
+            <!-- 040: planens slutning og penge tilbage, pr. person. -->
+            <fieldset class="opsparing-gruppe">
+              <legend><h3>Hvor længe skal pengene række?</h3></legend>
+              <p class="felt__hjaelp" id="plan-slut-hjaelp">Folkepension og livrente kommer stadig, så længe du lever. Det er din øvrige opsparing, der skal række.</p>
+              <div class="felt" data-felt="antagelser.plan_slut_alder">
+                <label for="plan-slut">Til og med alderen</label>
+                <div class="skyder"><input type="range" id="plan-slut" min="70" max="110" step="1" value="90" aria-describedby="plan-slut-hjaelp"><output for="plan-slut" id="plan-slut-v">90 år</output></div>
+              </div>
+              <div class="felt" data-felt="antagelser.rest_ved_plan_slut">
+                <label for="rest-slut">Penge tilbage, når planen slutter</label>
+                <input id="rest-slut" inputmode="numeric" class="beloeb" placeholder="0 kr." aria-describedby="rest-slut-hjaelp">
+                <p class="felt__hjaelp" id="rest-slut-hjaelp">I dagens kroner. Fx til et par ekstra år eller til dine arvinger. Så bliver det faste beløb lidt mindre.</p>
+              </div>
+              <div id="p-plan-slut-felter" hidden>
+                <div class="felt" data-felt="person.partner.antagelser.plan_slut_alder">
+                  <label for="p-plan-slut">Din partners plan til og med alderen</label>
+                  <div class="skyder"><input type="range" id="p-plan-slut" min="70" max="110" step="1" value="90"><output for="p-plan-slut" id="p-plan-slut-v">90 år</output></div>
+                </div>
+                <div class="felt" data-felt="person.partner.antagelser.rest_ved_plan_slut">
+                  <label for="p-rest-slut">Penge tilbage, når din partners plan slutter</label>
+                  <input id="p-rest-slut" inputmode="numeric" class="beloeb" placeholder="0 kr.">
+                </div>
+              </div>
+            </fieldset>
           </fieldset>
 
           <div class="guide__knapper">
@@ -409,6 +433,7 @@
           <p class="hero__grundlag" id="hovedtal-grundlag"></p>
           <p class="hero__forklaring" id="hovedtal-forklaring"></p>
           <p class="hero__loen" id="hovedtal-loen" hidden></p>
+          <p class="hero__loen" id="hovedtal-rest" hidden></p>
           <div class="hero__plan" id="hovedtal-plan" role="status" aria-live="polite" hidden></div>
           <p class="hero__aendring" id="hovedtal-aendring" aria-live="polite"></p>
           <p class="hero__spaend" id="hovedtal-spaend"></p>
@@ -559,10 +584,18 @@
             <div class="felt"><label for="r-inflation">Prisstigning pr. år</label>
               <div class="skyder"><input type="range" id="r-inflation" min="0" max="5" step="0.5"><output for="r-inflation" id="r-inflation-v"></output></div></div>
           </div>
+          <!-- 040: planens slutning og penge tilbage for den viste person. -->
+          <div class="skydergitter" id="r-slut">
+            <div class="felt"><label for="r-plan-slut">Pengene skal række til og med</label>
+              <div class="skyder"><input type="range" id="r-plan-slut" min="70" max="110" step="1"><output for="r-plan-slut" id="r-plan-slut-v"></output></div></div>
+            <div class="felt"><label for="r-rest">Penge tilbage, når planen slutter</label>
+              <input id="r-rest" inputmode="numeric" class="beloeb" placeholder="0 kr." aria-describedby="r-rest-hjaelp">
+              <p class="felt__hjaelp" id="r-rest-hjaelp">I dagens kroner.</p></div>
+          </div>
           <!-- 2026-11-24 (produktejer): tabellen står altid fremme, lige under skyderne. -->
           <section class="usikkerhed" id="usikkerhed" aria-labelledby="usikkerhed-titel" hidden>
             <h3 id="usikkerhed-titel">Hvis afkast, inflation eller levetid bliver anderledes</h3>
-            <p class="sektion__intro">Det faste beløb om måneden efter skat, i dagens kroner, når afkastet er 1 procentpoint lavere eller højere end dit valg, inflationen er 0,5 procentpoint højere eller lavere, eller planen skal række kortere eller længere end til 90 år. Ingen kender fremtiden, så tallene er eksempler, ikke grænser.</p>
+            <p class="sektion__intro">Det faste beløb om måneden efter skat, i dagens kroner, når afkastet er 1 procentpoint lavere eller højere end dit valg, inflationen er 0,5 procentpoint højere eller lavere, eller planen skal række 5 år kortere eller længere end dit valg. Ingen kender fremtiden, så tallene er eksempler, ikke grænser.</p>
             <div class="tabel-rul" id="usikkerhed-tabel"></div>
             <details class="laes" data-laes="usikkerhed"><summary></summary><div class="laes__tekst"></div></details>
             <p class="graf-forklaring" id="usikkerhed-efter" hidden></p>

@@ -28,7 +28,8 @@ def test_spaend_og_tabel(resultat):
     assert resultat.locator("#usikkerhed-tabel").is_visible()  # altid vist, ingen fold-ud (2026-11-24)
     raekker = resultat.locator("#usikkerhed-tabel tbody tr")
     assert raekker.count() == 9                 # dit valg, seks (018) og to levetider (019)
-    assert "Planen rækker til 95 år" in resultat.inner_text("#usikkerhed-tabel")
+    assert "Planen rækker 5 år længere" in resultat.inner_text("#usikkerhed-tabel")  # 040: relativt
+    assert "95 år" in resultat.inner_text("#usikkerhed-tabel")
     assert "år først" not in resultat.inner_text("#usikkerhed-tabel")  # 023a-rækkerne er udgået
     assert "Lever du længere" in resultat.inner_text("#usikkerhed-efter")
     assert "Dit valg" in raekker.nth(0).inner_text()
